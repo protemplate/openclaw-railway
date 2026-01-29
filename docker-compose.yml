@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  moltbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: moltbot-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - SETUP_PASSWORD=${SETUP_PASSWORD:-dev-password}
+      - MOLTBOT_STATE_DIR=/data/.moltbot
+      - MOLTBOT_WORKSPACE_DIR=/data/workspace
+      - INTERNAL_GATEWAY_PORT=18789
+    volumes:
+      - moltbot_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  moltbot_data:
+    driver: local

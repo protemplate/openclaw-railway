@@ -1,0 +1,30 @@
+{
+  "name": "moltbot-railway-wrapper",
+  "version": "1.0.0",
+  "description": "Wrapper server for MoltBot Railway deployment",
+  "main": "src/server.js",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^5.0.1",
+    "http-proxy": "^1.18.1",
+    "archiver": "^7.0.1"
+  },
+  "keywords": [
+    "moltbot",
+    "railway",
+    "chatbot",
+    "ai",
+    "telegram",
+    "discord",
+    "slack"
+  ],
+  "author": "Protemplate",
+  "license": "MIT"
+}

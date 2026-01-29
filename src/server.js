@@ -221,7 +221,7 @@ app.get('/setup/export', authMiddleware, (req, res) => {
 const { middleware: proxyMiddleware, upgradeHandler } = createProxy();
 
 // Proxy all other requests to gateway (when running)
-app.use('*', (req, res, next) => {
+app.use('/{*path}', (req, res, next) => {
   if (!isGatewayRunning()) {
     return res.status(503).json({
       error: 'Service Unavailable',

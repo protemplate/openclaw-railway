@@ -4,13 +4,13 @@
 # ==============================================================================
 # Stage 1: Build the wrapper server
 # ==============================================================================
-FROM node:22-bookworm AS builder
+FROM node:24-bookworm AS builder
 
 WORKDIR /app
 
 # Copy package files for wrapper server
-COPY package*.json ./
-RUN npm ci --production
+COPY package.json ./
+RUN npm install --omit=dev
 
 # Copy wrapper server source
 COPY src/ ./src/
@@ -18,7 +18,7 @@ COPY src/ ./src/
 # ==============================================================================
 # Stage 2: Production runtime
 # ==============================================================================
-FROM node:22-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 
 # Install runtime dependencies
 # - tini: proper PID 1 handling for signal forwarding

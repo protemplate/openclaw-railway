@@ -36,7 +36,7 @@ build/
 .DS_Store
 Thumbs.db
 
-# MoltBot data (for local development)
-.moltbot/
+# OpenClaw data (for local development)
+.openclaw/
 workspace/
 data/

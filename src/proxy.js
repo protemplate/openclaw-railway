@@ -1,16 +1,16 @@
 /**
- * Reverse proxy configuration for MoltBot gateway
+ * Reverse proxy configuration for OpenClaw gateway
  *
- * Proxies HTTP and WebSocket traffic to the internal MoltBot gateway
+ * Proxies HTTP and WebSocket traffic to the internal OpenClaw gateway
  */
 
 import httpProxy from 'http-proxy';
 
 /**
- * Create a reverse proxy to the MoltBot gateway
+ * Create a reverse proxy to the OpenClaw gateway
  * @returns {Object} Proxy instance and middleware
  */
-export function createProxy() {
+export function createProxy(getToken) {
   const gatewayPort = process.env.INTERNAL_GATEWAY_PORT || '18789';
   const target = `http://127.0.0.1:${gatewayPort}`;
 
@@ -18,7 +18,7 @@ export function createProxy() {
     target,
     ws: true,
     changeOrigin: true,
-    xfwd: true
+    xfwd: false
   });
 
   // Handle proxy errors
@@ -29,14 +29,20 @@ export function createProxy() {
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         error: 'Bad Gateway',
-        message: 'MoltBot gateway is not available',
+        message: 'OpenClaw gateway is not available',
         details: err.message
       }));
     }
   });
 
-  // Log proxied requests
+  // Inject gateway auth header and log proxied requests
   proxy.on('proxyReq', (proxyReq, req) => {
+    if (getToken) {
+      const token = getToken();
+      if (token) {
+        proxyReq.setHeader('Authorization', `Bearer ${token}`);
+      }
+    }
     console.log(`[proxy] ${req.method} ${req.url} -> ${target}${req.url}`);
   });
 
@@ -51,6 +57,12 @@ export function createProxy() {
    * WebSocket upgrade handler
    */
   const upgradeHandler = (req, socket, head) => {
+    if (getToken) {
+      const token = getToken();
+      if (token) {
+        req.headers['authorization'] = `Bearer ${token}`;
+      }
+    }
     console.log(`[proxy] WebSocket upgrade: ${req.url}`);
     proxy.ws(req, socket, head);
   };

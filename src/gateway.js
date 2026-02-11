@@ -1,11 +1,11 @@
 /**
- * Gateway process manager for MoltBot
+ * Gateway process manager for OpenClaw
  *
- * Handles spawning, monitoring, and graceful shutdown of the MoltBot gateway process
+ * Handles spawning, monitoring, and graceful shutdown of the OpenClaw gateway process
  */
 
 import { spawn } from 'child_process';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import crypto from 'crypto';
 import { setGatewayReady } from './health.js';
@@ -13,17 +13,41 @@ import { setGatewayReady } from './health.js';
 let gatewayProcess = null;
 let isShuttingDown = false;
 
+// Log buffering for UI panel
+const LOG_BUFFER_MAX = 1000;
+let logBuffer = [];
+let logIdCounter = 0;
+let gatewayStartTime = null;
+
+/**
+ * Buffer a log line from the gateway process
+ * @param {'stdout'|'stderr'} stream - Which stream the line came from
+ * @param {string} text - The log text
+ */
+function bufferLogLine(stream, text) {
+  logIdCounter++;
+  logBuffer.push({
+    id: logIdCounter,
+    timestamp: Date.now(),
+    stream,
+    text
+  });
+  if (logBuffer.length > LOG_BUFFER_MAX) {
+    logBuffer = logBuffer.slice(logBuffer.length - LOG_BUFFER_MAX);
+  }
+}
+
 /**
  * Get or generate the gateway token
  * @returns {string} Gateway authentication token
  */
 export function getGatewayToken() {
-  const stateDir = process.env.MOLTBOT_STATE_DIR || '/data/.moltbot';
+  const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
   const tokenFile = join(stateDir, 'gateway.token');
 
   // Check if token is set via environment variable
-  if (process.env.MOLTBOT_GATEWAY_TOKEN) {
-    return process.env.MOLTBOT_GATEWAY_TOKEN;
+  if (process.env.OPENCLAW_GATEWAY_TOKEN) {
+    return process.env.OPENCLAW_GATEWAY_TOKEN;
   }
 
   // Check if token file exists
@@ -53,7 +77,7 @@ export function isGatewayRunning() {
 }
 
 /**
- * Start the MoltBot gateway process
+ * Start the OpenClaw gateway process
  * @returns {Promise<void>}
  */
 export async function startGateway() {
@@ -63,35 +87,75 @@ export async function startGateway() {
   }
 
   const port = process.env.INTERNAL_GATEWAY_PORT || '18789';
-  const stateDir = process.env.MOLTBOT_STATE_DIR || '/data/.moltbot';
-  const workspaceDir = process.env.MOLTBOT_WORKSPACE_DIR || '/data/workspace';
+  const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
+  const workspaceDir = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace';
 
-  console.log(`Starting MoltBot gateway on port ${port}...`);
+  isShuttingDown = false;
+  console.log(`Starting OpenClaw gateway on port ${port}...`);
 
-  // First run onboard in non-interactive mode if not already set up
-  const configFile = join(stateDir, 'moltbot.json');
+  // Create minimal config if not exists
+  const configFile = join(stateDir, 'openclaw.json');
   if (!existsSync(configFile)) {
-    console.log('Running initial setup...');
-    await runOnboard();
+    console.log('Creating minimal configuration...');
+    const minimalConfig = {
+      agent: {
+        model: 'anthropic/claude-sonnet-4'
+      },
+      gateway: {
+        port: parseInt(port, 10)
+      }
+    };
+    mkdirSync(stateDir, { recursive: true });
+    writeFileSync(configFile, JSON.stringify(minimalConfig, null, 2));
+    console.log('Configuration created at', configFile);
   }
 
+  // Get or generate gateway token
+  const token = getGatewayToken();
+
+  // Ensure token is in config file for gateway auth
+  const config = JSON.parse(readFileSync(configFile, 'utf-8'));
+  config.gateway = config.gateway || {};
+  config.gateway.port = parseInt(port, 10);
+  config.gateway.auth = { mode: 'token', token };
+  config.gateway.controlUi = config.gateway.controlUi || {};
+  config.gateway.controlUi.basePath = '/openclaw';
+  config.gateway.controlUi.allowInsecureAuth = true;
+  config.gateway.trustedProxies = ['127.0.0.1', '::1'];
+  delete config.gateway.token;
+  writeFileSync(configFile, JSON.stringify(config, null, 2));
+
   // Start the gateway
-  gatewayProcess = spawn('moltbot', ['gateway', '--port', port, '--verbose'], {
+  // Using: openclaw gateway --port PORT --verbose
+  gatewayProcess = spawn('openclaw', [
+    'gateway', 'run',
+    '--bind', 'loopback',
+    '--port', port,
+    '--auth', 'token',
+    '--token', token,
+    '--verbose'
+  ], {
     env: {
       ...process.env,
       HOME: stateDir,
-      MOLTBOT_STATE_DIR: stateDir,
-      MOLTBOT_WORKSPACE_DIR: workspaceDir
+      OPENCLAW_STATE_DIR: stateDir,
+      OPENCLAW_WORKSPACE_DIR: workspaceDir
     },
     stdio: ['ignore', 'pipe', 'pipe']
   });
 
+  gatewayStartTime = Date.now();
+
   gatewayProcess.stdout.on('data', (data) => {
-    console.log(`[gateway] ${data.toString().trim()}`);
+    const text = data.toString().trim();
+    console.log(`[gateway] ${text}`);
+    bufferLogLine('stdout', text);
   });
 
   gatewayProcess.stderr.on('data', (data) => {
-    console.error(`[gateway] ${data.toString().trim()}`);
+    const text = data.toString().trim();
+    console.error(`[gateway] ${text}`);
+    bufferLogLine('stderr', text);
   });
 
   gatewayProcess.on('error', (error) => {
@@ -102,12 +166,15 @@ export async function startGateway() {
   gatewayProcess.on('exit', (code, signal) => {
     console.log(`Gateway exited with code ${code}, signal ${signal}`);
     gatewayProcess = null;
+    gatewayStartTime = null;
     setGatewayReady(false);
 
     // Restart if not shutting down and exited unexpectedly
     if (!isShuttingDown && code !== 0) {
       console.log('Gateway crashed, restarting in 5 seconds...');
-      setTimeout(() => startGateway(), 5000);
+      setTimeout(() => startGateway().catch(err => {
+        console.error('Gateway restart failed:', err.message);
+      }), 5000);
     }
   });
 
@@ -118,20 +185,20 @@ export async function startGateway() {
 }
 
 /**
- * Run the moltbot onboard command in non-interactive mode
+ * Run the openclaw onboard command in non-interactive mode
  * @returns {Promise<void>}
  */
 async function runOnboard() {
-  const stateDir = process.env.MOLTBOT_STATE_DIR || '/data/.moltbot';
-  const workspaceDir = process.env.MOLTBOT_WORKSPACE_DIR || '/data/workspace';
+  const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
+  const workspaceDir = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace';
 
   return new Promise((resolve, reject) => {
-    const onboard = spawn('moltbot', ['onboard', '--non-interactive'], {
+    const onboard = spawn('openclaw', ['onboard', '--non-interactive', '--accept-risk'], {
       env: {
         ...process.env,
         HOME: stateDir,
-        MOLTBOT_STATE_DIR: stateDir,
-        MOLTBOT_WORKSPACE_DIR: workspaceDir
+        OPENCLAW_STATE_DIR: stateDir,
+        OPENCLAW_WORKSPACE_DIR: workspaceDir
       },
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -156,6 +223,58 @@ async function runOnboard() {
 }
 
 /**
+ * Run an arbitrary openclaw command and return its output
+ * @param {string} command - The openclaw subcommand (e.g., 'onboard', 'config')
+ * @param {string[]} args - Arguments to pass after the subcommand
+ * @returns {Promise<{stdout: string, stderr: string, code: number}>}
+ */
+export function runCmd(command, args = []) {
+  const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
+  const workspaceDir = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace';
+
+  return new Promise((resolve) => {
+    let stdout = '';
+    let stderr = '';
+
+    const child = spawn('openclaw', [command, ...args], {
+      env: {
+        ...process.env,
+        HOME: stateDir,
+        OPENCLAW_STATE_DIR: stateDir,
+        OPENCLAW_WORKSPACE_DIR: workspaceDir
+      },
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    child.stdout.on('data', (data) => { stdout += data.toString(); });
+    child.stderr.on('data', (data) => { stderr += data.toString(); });
+
+    child.on('error', (err) => {
+      resolve({ stdout, stderr: stderr + err.message, code: 1 });
+    });
+
+    child.on('exit', (code) => {
+      resolve({ stdout, stderr, code: code ?? 1 });
+    });
+  });
+}
+
+/**
+ * Delete the openclaw configuration file
+ * @returns {boolean} True if file was deleted, false if it didn't exist
+ */
+export function deleteConfig() {
+  const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
+  const configFile = join(stateDir, 'openclaw.json');
+
+  if (existsSync(configFile)) {
+    unlinkSync(configFile);
+    return true;
+  }
+  return false;
+}
+
+/**
  * Wait for the gateway to be ready
  * @param {string} port - Gateway port
  * @param {number} timeout - Timeout in milliseconds
@@ -163,15 +282,17 @@ async function runOnboard() {
  */
 async function waitForGateway(port, timeout = 30000) {
   const start = Date.now();
+  const endpoints = ['/health', '/', '/openclaw'];
 
   while (Date.now() - start < timeout) {
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}/health`);
-      if (response.ok) {
+    for (const endpoint of endpoints) {
+      try {
+        await fetch(`http://127.0.0.1:${port}${endpoint}`);
+        // Any response (even 404/401) means the server is listening
         return;
+      } catch {
+        // Gateway not ready yet (connection refused)
       }
-    } catch {
-      // Gateway not ready yet
     }
     await new Promise(resolve => setTimeout(resolve, 500));
   }
@@ -217,4 +338,26 @@ export function getGatewayInfo() {
     pid: gatewayProcess?.pid || null,
     port: process.env.INTERNAL_GATEWAY_PORT || '18789'
   };
+}
+
+/**
+ * Get recent log entries from the gateway process
+ * @param {number} sinceId - Only return entries with id > sinceId (0 for all)
+ * @returns {{entries: Array, lastId: number}}
+ */
+export function getRecentLogs(sinceId = 0) {
+  const entries = logBuffer.filter(e => e.id > sinceId);
+  return {
+    entries,
+    lastId: logBuffer.length > 0 ? logBuffer[logBuffer.length - 1].id : sinceId
+  };
+}
+
+/**
+ * Get gateway uptime in seconds, or null if not running
+ * @returns {number|null}
+ */
+export function getGatewayUptime() {
+  if (!gatewayStartTime || !isGatewayRunning()) return null;
+  return Math.floor((Date.now() - gatewayStartTime) / 1000);
 }

@@ -1,21 +1,21 @@
 version: '3.8'
 
 services:
-  moltbot:
+  openclaw:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: moltbot-dev
+      dockerfile: Dockerfile.local
+    container_name: openclaw-dev
     ports:
       - "8080:8080"
     environment:
       - PORT=8080
       - SETUP_PASSWORD=${SETUP_PASSWORD:-dev-password}
-      - MOLTBOT_STATE_DIR=/data/.moltbot
-      - MOLTBOT_WORKSPACE_DIR=/data/workspace
+      - OPENCLAW_STATE_DIR=/data/.openclaw
+      - OPENCLAW_WORKSPACE_DIR=/data/workspace
       - INTERNAL_GATEWAY_PORT=18789
     volumes:
-      - moltbot_data:/data
+      - openclaw_data:/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -25,5 +25,5 @@ services:
       start_period: 60s
 
 volumes:
-  moltbot_data:
+  openclaw_data:
     driver: local

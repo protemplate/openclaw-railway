@@ -1,0 +1,325 @@
+#!/bin/bash
+# ==============================================================================
+# Mock OpenClaw CLI for local development and testing
+#
+# Simulates the openclaw CLI so that the wrapper server can be tested locally
+# without needing the real openclaw binary or upstream repository.
+# ==============================================================================
+
+set -e
+
+COMMAND="${1:-help}"
+shift 2>/dev/null || true
+
+STATE_DIR="${OPENCLAW_STATE_DIR:-/data/.openclaw}"
+
+case "$COMMAND" in
+  gateway)
+    # Parse --port and --verbose flags
+    PORT="18789"
+    VERBOSE=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --port) PORT="$2"; shift 2 ;;
+        --verbose) VERBOSE="true"; shift ;;
+        *) shift ;;
+      esac
+    done
+
+    [ "$VERBOSE" = "true" ] && echo "[mock-gateway] Starting on port $PORT..."
+
+    # Start a minimal HTTP server that responds 200 JSON on all paths
+    # This satisfies waitForGateway() which checks /health, /, /openclaw
+    exec node -e "
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+  const body = JSON.stringify({
+    status: 'ok',
+    mock: true,
+    path: req.url,
+    timestamp: new Date().toISOString()
+  });
+  res.writeHead(200, {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(body)
+  });
+  res.end(body);
+});
+
+server.listen(${PORT}, '127.0.0.1', () => {
+  console.log('[mock-gateway] Listening on 127.0.0.1:${PORT}');
+});
+
+process.on('SIGTERM', () => {
+  console.log('[mock-gateway] Received SIGTERM, shutting down...');
+  server.close(() => process.exit(0));
+});
+
+process.on('SIGINT', () => {
+  console.log('[mock-gateway] Received SIGINT, shutting down...');
+  server.close(() => process.exit(0));
+});
+"
+    ;;
+
+  onboard)
+    # Parse all flags
+    NON_INTERACTIVE=""
+    JSON_MODE=""
+    GATEWAY_TOKEN=""
+    FLOW=""
+    AUTH_FLAG=""
+    AUTH_SECRET=""
+    AUTH_PROVIDER=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --non-interactive) NON_INTERACTIVE="true"; shift ;;
+        --accept-risk) shift ;;
+        --json) JSON_MODE="true"; shift ;;
+        --gateway-token) GATEWAY_TOKEN="$2"; shift 2 ;;
+        --flow) FLOW="$2"; shift 2 ;;
+        --anthropic-api-key) AUTH_FLAG="anthropic"; AUTH_SECRET="$2"; shift 2 ;;
+        --openai-api-key) AUTH_FLAG="openai"; AUTH_SECRET="$2"; shift 2 ;;
+        --gemini-api-key) AUTH_FLAG="gemini"; AUTH_SECRET="$2"; shift 2 ;;
+        --openrouter-api-key) AUTH_FLAG="openrouter"; AUTH_SECRET="$2"; shift 2 ;;
+        --auth-choice) AUTH_FLAG="$2"; shift 2 ;;
+        --token) AUTH_SECRET="$2"; shift 2 ;;
+        --token-provider) AUTH_PROVIDER="$2"; shift 2 ;;
+        *) shift ;;
+      esac
+    done
+
+    mkdir -p "$STATE_DIR"
+
+    if [ "$NON_INTERACTIVE" = "true" ]; then
+      # Determine model based on auth provider
+      MODEL="anthropic/claude-sonnet-4"
+      case "$AUTH_FLAG" in
+        token)
+          case "$AUTH_PROVIDER" in
+            anthropic) MODEL="anthropic/claude-sonnet-4" ;;
+            *) MODEL="anthropic/claude-sonnet-4" ;;
+          esac
+          ;;
+        openai*) MODEL="openai/gpt-4o" ;;
+        gemini*) MODEL="google/gemini-2.5-flash" ;;
+        openrouter*) MODEL="openrouter/auto" ;;
+      esac
+
+      # Build gateway config
+      GW_PORT=18789
+      GW_TOKEN_JSON=""
+      if [ -n "$GATEWAY_TOKEN" ]; then
+        GW_TOKEN_JSON="\"auth\": { \"token\": \"$GATEWAY_TOKEN\" },"
+      fi
+
+      FLOW_JSON=""
+      if [ -n "$FLOW" ]; then
+        FLOW_JSON="\"flow\": \"$FLOW\","
+      fi
+
+      # Write config
+      cat > "$STATE_DIR/openclaw.json" <<CONF
+{
+  "agent": {
+    "name": "openclaw-dev",
+    ${FLOW_JSON}
+    "model": "$MODEL"
+  },
+  "platforms": {},
+  "gateway": {
+    ${GW_TOKEN_JSON}
+    "port": $GW_PORT
+  }
+}
+CONF
+
+      if [ "$JSON_MODE" = "true" ]; then
+        echo "{\"success\":true,\"message\":\"Configuration written\",\"configPath\":\"$STATE_DIR/openclaw.json\"}"
+      else
+        echo "[mock-onboard] Configuration written to $STATE_DIR/openclaw.json"
+      fi
+      exit 0
+    fi
+
+    # Interactive mode: show banner and prompt
+    echo ""
+    echo -e "\033[1;36m  ____                    ____ _"
+    echo -e " / __ \\                  / ___| |"
+    echo -e "| |  | |_ __   ___ _ __| |   | | __ ___      __"
+    echo -e "| |  | | '_ \\ / _ \\ '_ \\ |   | |/ _\` \\ \\ /\\ / /"
+    echo -e "| |__| | |_) |  __/ | | | |___| | (_| |\\ V  V /"
+    echo -e " \\____/| .__/ \\___|_| |_|\\____|_|\\__,_| \\_/\\_/"
+    echo -e "       | |"
+    echo -e "       |_|\033[0m"
+    echo ""
+    echo -e "\033[1mWelcome to OpenClaw Setup Wizard\033[0m"
+    echo ""
+    echo "This wizard will help you configure your OpenClaw instance."
+    echo ""
+    echo -e "\033[33mPress Enter to continue...\033[0m"
+    read -r
+
+    echo ""
+    echo -e "\033[1;32m[1/3]\033[0m Configuring AI model..."
+    echo "  Using: anthropic/claude-sonnet-4"
+    sleep 0.5
+
+    echo -e "\033[1;32m[2/3]\033[0m Setting up workspace..."
+    echo "  Workspace: ${OPENCLAW_WORKSPACE_DIR:-/data/workspace}"
+    sleep 0.5
+
+    echo -e "\033[1;32m[3/3]\033[0m Writing configuration..."
+    cat > "$STATE_DIR/openclaw.json" <<CONF
+{
+  "agent": {
+    "name": "openclaw-dev",
+    "model": "anthropic/claude-sonnet-4"
+  },
+  "platforms": {},
+  "gateway": {
+    "port": 18789
+  }
+}
+CONF
+    sleep 0.5
+
+    echo ""
+    echo -e "\033[1;32mSetup complete!\033[0m"
+    echo ""
+    echo "Configuration saved to: $STATE_DIR/openclaw.json"
+    echo ""
+    echo "You can now start the gateway from the web UI."
+    echo ""
+    exit 0
+    ;;
+
+  config)
+    # Handle: openclaw config set --json KEY VALUE
+    SUBCMD="${1:-}"
+    shift 2>/dev/null || true
+
+    case "$SUBCMD" in
+      set)
+        JSON_MODE=""
+        KEY=""
+        VALUE=""
+        while [[ $# -gt 0 ]]; do
+          case "$1" in
+            --json) JSON_MODE="true"; shift ;;
+            *)
+              if [ -z "$KEY" ]; then
+                KEY="$1"
+              else
+                VALUE="$1"
+              fi
+              shift
+              ;;
+          esac
+        done
+
+        if [ -z "$KEY" ] || [ -z "$VALUE" ]; then
+          echo '{"success":false,"error":"Usage: openclaw config set [--json] KEY VALUE"}' >&2
+          exit 1
+        fi
+
+        CONFIG_FILE="$STATE_DIR/openclaw.json"
+        mkdir -p "$STATE_DIR"
+
+        # Read existing config or start with empty object
+        if [ -f "$CONFIG_FILE" ]; then
+          EXISTING=$(cat "$CONFIG_FILE")
+        else
+          EXISTING="{}"
+        fi
+
+        # Use node to merge the key/value into existing config
+        # KEY is a dot-separated path like "channels.telegram"
+        NEW_CONFIG=$(node -e "
+const config = JSON.parse(process.argv[1]);
+const key = process.argv[2];
+const value = JSON.parse(process.argv[3]);
+const parts = key.split('.');
+let obj = config;
+for (let i = 0; i < parts.length - 1; i++) {
+  if (!obj[parts[i]] || typeof obj[parts[i]] !== 'object') obj[parts[i]] = {};
+  obj = obj[parts[i]];
+}
+obj[parts[parts.length - 1]] = value;
+console.log(JSON.stringify(config, null, 2));
+" "$EXISTING" "$KEY" "$VALUE" 2>&1)
+
+        if [ $? -ne 0 ]; then
+          echo "{\"success\":false,\"error\":\"Failed to merge config: $NEW_CONFIG\"}" >&2
+          exit 1
+        fi
+
+        echo "$NEW_CONFIG" > "$CONFIG_FILE"
+
+        if [ "$JSON_MODE" = "true" ]; then
+          echo "{\"success\":true,\"key\":\"$KEY\"}"
+        else
+          echo "[mock-config] Set $KEY in $CONFIG_FILE"
+        fi
+        ;;
+
+      *)
+        echo "Unknown config subcommand: $SUBCMD" >&2
+        echo "Usage: openclaw config set [--json] KEY VALUE" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+
+  pairing)
+    SUBCMD="${1:-list}"
+    shift 2>/dev/null || true
+
+    case "$SUBCMD" in
+      approve)
+        CHANNEL="${1:-}"
+        CODE="${2:-}"
+        if [ -z "$CHANNEL" ] || [ -z "$CODE" ]; then
+          echo '{"success":false,"error":"Usage: openclaw pairing approve <channel> <code>"}' >&2
+          exit 1
+        fi
+        echo "{\"success\":true,\"message\":\"Pairing approved for channel '$CHANNEL' with code '$CODE'\"}"
+        ;;
+      list)
+        echo "No pending pairing requests."
+        ;;
+      *)
+        echo "Unknown pairing subcommand: $SUBCMD" >&2
+        echo "Usage: openclaw pairing {approve|list}" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+
+  version)
+    echo "openclaw 0.0.0-mock (local development)"
+    ;;
+
+  help|--help|-h)
+    echo "OpenClaw CLI (mock)"
+    echo ""
+    echo "Usage: openclaw <command> [options]"
+    echo ""
+    echo "Commands:"
+    echo "  gateway    Start the OpenClaw gateway server"
+    echo "  onboard    Run the setup wizard"
+    echo "  config     Manage configuration"
+    echo "  pairing    Manage channel pairing requests"
+    echo "  version    Show version information"
+    echo "  help       Show this help message"
+    echo ""
+    echo "This is a mock CLI for local development."
+    ;;
+
+  *)
+    echo "Unknown command: $COMMAND" >&2
+    echo "Run 'openclaw help' for usage information." >&2
+    exit 1
+    ;;
+esac

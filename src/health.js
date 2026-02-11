@@ -1,5 +1,5 @@
 /**
- * Health check endpoints for MoltBot wrapper server
+ * Health check endpoints for OpenClaw wrapper server
  *
  * Provides three levels of health checks:
  * - /health       - Basic liveness check
@@ -39,7 +39,7 @@ export function getGatewayStatus() {
 router.get('/', (req, res) => {
   res.json({
     status: 'ok',
-    service: 'moltbot-railway',
+    service: 'openclaw-railway',
     timestamp: new Date().toISOString()
   });
 });

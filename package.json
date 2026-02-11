@@ -1,7 +1,7 @@
 {
-  "name": "moltbot-railway-wrapper",
+  "name": "openclaw-railway-wrapper",
   "version": "1.0.0",
-  "description": "Wrapper server for MoltBot Railway deployment",
+  "description": "Wrapper server for OpenClaw Railway deployment",
   "main": "src/server.js",
   "type": "module",
   "engines": {
@@ -14,10 +14,12 @@
   "dependencies": {
     "express": "^5.0.1",
     "http-proxy": "^1.18.1",
-    "archiver": "^7.0.1"
+    "archiver": "^7.0.1",
+    "node-pty": "^1.0.0",
+    "ws": "^8.18.0"
   },
   "keywords": [
-    "moltbot",
+    "openclaw",
     "railway",
     "chatbot",
     "ai",

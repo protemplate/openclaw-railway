@@ -1,0 +1,40 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies (rebuilt in container)
+node_modules
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Runtime data directories
+data/
+.openclaw/
+workspace/
+
+# Logs
+*.log
+logs/
+
+# Documentation (keep README for reference)
+CLAUDE.md
+LICENSE
+*.md
+!README.md
+
+# Railway config (not needed in image)
+railway.json

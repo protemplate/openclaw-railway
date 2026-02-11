@@ -1,14 +1,14 @@
-# MoltBot Railway Template
+# OpenClaw Railway Template
 
-Deploy [MoltBot](https://github.com/moltbot/moltbot), a personal AI assistant for messaging platforms, to [Railway](https://railway.app) with one click.
+Deploy [OpenClaw](https://github.com/openclaw/openclaw), a personal AI assistant for messaging platforms, to [Railway](https://railway.app) with one click.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/new?template=https://github.com/protemplate/moltbot-railway)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/new?template=https://github.com/protemplate/openclaw-railway)
 
 ## Features
 
 - One-click deployment to Railway
 - Web-based setup wizard (password protected)
-- Supports all MoltBot messaging platforms (Telegram, Discord, Slack, WhatsApp, and more)
+- Supports all OpenClaw messaging platforms (Telegram, Discord, Slack, WhatsApp, and more)
 - Multiple AI provider support (Anthropic, OpenAI, Groq)
 - Persistent data storage with Railway volumes
 - Comprehensive health checks for monitoring
@@ -32,8 +32,8 @@ Deploy [MoltBot](https://github.com/moltbot/moltbot), a personal AI assistant fo
 
 ```bash
 # Clone the repository
-git clone https://github.com/protemplate/moltbot-railway
-cd moltbot-railway
+git clone https://github.com/protemplate/openclaw-railway
+cd openclaw-railway
 
 # Quick start with auto-generated password
 make run
@@ -41,7 +41,7 @@ make run
 # Or use docker-compose
 make deploy-local
 
-# Access MoltBot at http://localhost:8080/setup
+# Access OpenClaw at http://localhost:8080/setup
 ```
 
 ## Configuration
@@ -51,16 +51,16 @@ make deploy-local
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `SETUP_PASSWORD` | Password to protect the setup wizard | - | Yes |
-| `MOLTBOT_STATE_DIR` | Directory for MoltBot configuration and state | `/data/.moltbot` | No |
-| `MOLTBOT_WORKSPACE_DIR` | Directory for file storage | `/data/workspace` | No |
-| `MOLTBOT_GATEWAY_TOKEN` | Gateway authentication token (auto-generated if not set) | Auto-generated | No |
-| `INTERNAL_GATEWAY_PORT` | Internal port for MoltBot gateway | `18789` | No |
+| `OPENCLAW_STATE_DIR` | Directory for OpenClaw configuration and state | `/data/.openclaw` | No |
+| `OPENCLAW_WORKSPACE_DIR` | Directory for file storage | `/data/workspace` | No |
+| `OPENCLAW_GATEWAY_TOKEN` | Gateway authentication token (auto-generated if not set) | Auto-generated | No |
+| `INTERNAL_GATEWAY_PORT` | Internal port for OpenClaw gateway | `18789` | No |
 
 ### Railway Volume Configuration
 
 **Important:** You must configure a volume in Railway for data persistence.
 
-1. Go to your MoltBot service in Railway
+1. Go to your OpenClaw service in Railway
 2. Navigate to the **Volumes** tab
 3. Click **Add Volume**
 4. Set the mount path to `/data`
@@ -75,7 +75,7 @@ Without a volume, all configuration and data will be lost on redeploy.
 ```bash
 # Build and run
 make build              # Build Docker image
-make run                # Run MoltBot locally
+make run                # Run OpenClaw locally
 make stop               # Stop running container
 
 # Testing
@@ -112,20 +112,20 @@ https://your-app.railway.app/setup
 ```
 
 The setup wizard allows you to:
-- Start/stop the MoltBot gateway
+- Start/stop the OpenClaw gateway
 - View gateway status and token
 - Export configuration backups
 
 ### Configuring Messaging Platforms
 
-After starting the gateway, configure your messaging platform by editing the MoltBot configuration file:
+After starting the gateway, configure your messaging platform by editing the OpenClaw configuration file:
 
 ```bash
 # Access container shell
 make shell
 
 # Edit configuration
-nano /data/.moltbot/moltbot.json
+nano /data/.openclaw/openclaw.json
 ```
 
 Example Telegram configuration:
@@ -144,19 +144,19 @@ Example Telegram configuration:
 }
 ```
 
-See the [MoltBot documentation](https://github.com/moltbot/moltbot) for detailed platform configuration.
+See the [OpenClaw documentation](https://github.com/openclaw/openclaw) for detailed platform configuration.
 
 ## Security
 
 ### Setup Password
 
-The setup password protects your MoltBot configuration from unauthorized access.
+The setup password protects your OpenClaw configuration from unauthorized access.
 
 **Generate a secure password:**
 ```bash
 make generate-password
 # or
-openssl rand -base64 32
+openssl rand -hex 24
 ```
 
 ### Best Practices
@@ -170,7 +170,7 @@ openssl rand -base64 32
 ### Container Security
 
 This template follows security best practices:
-- Runs as non-root user (`moltbot:moltbot`)
+- Runs as non-root user (`openclaw:openclaw`)
 - Uses tini as init system for proper signal handling
 - Minimal runtime dependencies
 - No unnecessary packages installed
@@ -181,9 +181,9 @@ Railway's private networking is automatically supported for service-to-service c
 
 ### Access Points
 
-Your MoltBot instance is accessible at:
+Your OpenClaw instance is accessible at:
 - **Public**: `https://your-app.railway.app`
-- **Private**: `http://moltbot.railway.internal:PORT` (within your Railway project)
+- **Private**: `http://openclaw.railway.internal:PORT` (within your Railway project)
 
 **Important:** Always include the PORT in private network URLs. Without it, connections default to port 80 and will fail.
 
@@ -191,7 +191,7 @@ Your MoltBot instance is accessible at:
 
 To make inter-service communication predictable:
 
-1. Go to your MoltBot service in Railway
+1. Go to your OpenClaw service in Railway
 2. Navigate to **Variables** tab
 3. Add: `PORT=8080`
 4. Redeploy the service
@@ -201,7 +201,7 @@ To make inter-service communication predictable:
 From other Railway services:
 ```bash
 # Set in your client service's variables
-MOLTBOT_URL=${{MoltBot.RAILWAY_PRIVATE_DOMAIN}}:${{MoltBot.PORT}}
+OPENCLAW_URL=${{OpenClaw.RAILWAY_PRIVATE_DOMAIN}}:${{OpenClaw.PORT}}
 ```
 
 ## Architecture
@@ -209,7 +209,7 @@ MOLTBOT_URL=${{MoltBot.RAILWAY_PRIVATE_DOMAIN}}:${{MoltBot.PORT}}
 ### Project Structure
 
 ```
-moltbot-railway/
+openclaw-railway/
 ├── .env.example           # Environment variable template
 ├── Dockerfile             # Multi-stage Docker build
 ├── docker-compose.yml     # Local development
@@ -230,7 +230,7 @@ moltbot-railway/
 1. **Wrapper Server**: An Express server handles incoming requests
 2. **Health Checks**: `/health/*` endpoints are always available without authentication
 3. **Setup Protection**: `/setup` requires password authentication
-4. **Gateway Manager**: Spawns and monitors the MoltBot gateway process
+4. **Gateway Manager**: Spawns and monitors the OpenClaw gateway process
 5. **Reverse Proxy**: All other traffic is proxied to the internal gateway
 6. **WebSocket Support**: Upgrades are handled for real-time communication
 
@@ -239,8 +239,8 @@ moltbot-railway/
 Single volume mount at `/data`:
 ```
 /data/
-├── .moltbot/              # MoltBot configuration and state
-│   ├── moltbot.json       # Main configuration file
+├── .openclaw/             # OpenClaw configuration and state
+│   ├── openclaw.json      # Main configuration file
 │   └── gateway.token      # Auto-generated gateway token
 └── workspace/             # File storage for workspace features
 ```
@@ -278,9 +278,9 @@ railway logs
 
 ### Getting Help
 
-- [MoltBot Documentation](https://github.com/moltbot/moltbot)
+- [OpenClaw Documentation](https://github.com/openclaw/openclaw)
 - [Railway Documentation](https://docs.railway.app)
-- [Report Issues](https://github.com/protemplate/moltbot-railway/issues)
+- [Report Issues](https://github.com/protemplate/openclaw-railway/issues)
 
 ## Development
 
@@ -300,7 +300,7 @@ railway logs
 make test
 
 # Test specific functionality
-make build && docker run --rm -e SETUP_PASSWORD=test moltbot-railway curl http://localhost:8080/health
+make build && docker run --rm -e SETUP_PASSWORD=test openclaw-railway curl http://localhost:8080/health
 ```
 
 ## License
@@ -309,7 +309,7 @@ This template is open source and available under the [MIT License](LICENSE).
 
 ## Acknowledgments
 
-- [MoltBot](https://github.com/moltbot/moltbot) for the amazing AI assistant framework
+- [OpenClaw](https://github.com/openclaw/openclaw) for the amazing AI assistant framework
 - [Railway](https://railway.app) for the deployment platform
 - The open source community for continuous improvements
 

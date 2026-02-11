@@ -2,7 +2,7 @@
 set -e
 
 # ==============================================================================
-# MoltBot Railway Template - Entrypoint Script
+# OpenClaw Railway Template - Entrypoint Script
 # Handles Railway PORT binding and graceful startup
 # ==============================================================================
 
@@ -29,14 +29,14 @@ else
 fi
 
 # Ensure data directories exist with correct permissions
-mkdir -p "$MOLTBOT_STATE_DIR" "$MOLTBOT_WORKSPACE_DIR"
+mkdir -p "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR"
 
 # Log startup info
 echo ""
-echo "MoltBot Railway Template"
+echo "OpenClaw Railway Template"
 echo "========================"
-echo "State directory: $MOLTBOT_STATE_DIR"
-echo "Workspace directory: $MOLTBOT_WORKSPACE_DIR"
+echo "State directory: $OPENCLAW_STATE_DIR"
+echo "Workspace directory: $OPENCLAW_WORKSPACE_DIR"
 echo "Internal gateway port: $INTERNAL_GATEWAY_PORT"
 echo "External port: $PORT"
 echo ""

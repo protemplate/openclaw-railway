@@ -9,6 +9,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from '
 import { join } from 'path';
 import crypto from 'crypto';
 import { setGatewayReady } from './health.js';
+import { migrateConfig, getDefaultConfig } from './schema/index.js';
 
 let gatewayProcess = null;
 let isShuttingDown = false;
@@ -97,16 +98,8 @@ export async function startGateway() {
   const configFile = join(stateDir, 'openclaw.json');
   if (!existsSync(configFile)) {
     console.log('Creating minimal configuration...');
-    const minimalConfig = {
-      agent: {
-        model: 'anthropic/claude-sonnet-4'
-      },
-      gateway: {
-        port: parseInt(port, 10)
-      }
-    };
     mkdirSync(stateDir, { recursive: true });
-    writeFileSync(configFile, JSON.stringify(minimalConfig, null, 2));
+    writeFileSync(configFile, JSON.stringify(getDefaultConfig(port), null, 2));
     console.log('Configuration created at', configFile);
   }
 
@@ -115,6 +108,17 @@ export async function startGateway() {
 
   // Ensure token is in config file for gateway auth
   const config = JSON.parse(readFileSync(configFile, 'utf-8'));
+
+  // Migrate legacy config keys (agent.* → agents.defaults.* + tools.*)
+  const { migrated, changes } = migrateConfig(config);
+  if (migrated) {
+    console.log('Migrated legacy config keys:');
+    for (const change of changes) {
+      console.log(`  ${change}`);
+    }
+  }
+
+  // Inject gateway settings (always overwritten by wrapper)
   config.gateway = config.gateway || {};
   config.gateway.port = parseInt(port, 10);
   config.gateway.auth = { mode: 'token', token };
@@ -124,6 +128,20 @@ export async function startGateway() {
   config.gateway.trustedProxies = ['127.0.0.1', '::1'];
   delete config.gateway.token;
   writeFileSync(configFile, JSON.stringify(config, null, 2));
+
+  // Run doctor --fix to auto-repair any config validation issues
+  // (e.g., dmPolicy="open" requires allowFrom to include "*")
+  const doctorResult = await runCmd('doctor', ['--fix'], {
+    HOME: stateDir,
+    OPENCLAW_STATE_DIR: stateDir,
+    OPENCLAW_WORKSPACE_DIR: workspaceDir
+  });
+  if (doctorResult.code === 0) {
+    const output = (doctorResult.stdout + doctorResult.stderr).trim();
+    if (output) console.log(`[doctor] ${output}`);
+  } else {
+    console.warn(`[doctor] exited with code ${doctorResult.code}: ${doctorResult.stderr.trim()}`);
+  }
 
   // Start the gateway
   // Using: openclaw gateway --port PORT --verbose
@@ -180,6 +198,22 @@ export async function startGateway() {
 
   // Wait for gateway to be ready
   await waitForGateway(port);
+
+  // The gateway may rewrite the config file with its own token after startup.
+  // Sync: read the token the gateway is actually using and update our token file
+  // so getGatewayToken() returns the correct value for proxy auth and /openclaw redirect.
+  try {
+    const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
+    const liveToken = liveConfig.gateway?.auth?.token;
+    if (liveToken && liveToken !== token) {
+      console.log('Gateway changed auth token on startup — syncing token file');
+      const tokenFile = join(stateDir, 'gateway.token');
+      writeFileSync(tokenFile, liveToken, { mode: 0o600 });
+    }
+  } catch (err) {
+    console.error('Failed to sync gateway token:', err.message);
+  }
+
   setGatewayReady(true);
   console.log('Gateway is ready');
 }
@@ -228,7 +262,7 @@ async function runOnboard() {
  * @param {string[]} args - Arguments to pass after the subcommand
  * @returns {Promise<{stdout: string, stderr: string, code: number}>}
  */
-export function runCmd(command, args = []) {
+export function runCmd(command, args = [], extraEnv = {}) {
   const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
   const workspaceDir = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace';
 
@@ -241,7 +275,8 @@ export function runCmd(command, args = []) {
         ...process.env,
         HOME: stateDir,
         OPENCLAW_STATE_DIR: stateDir,
-        OPENCLAW_WORKSPACE_DIR: workspaceDir
+        OPENCLAW_WORKSPACE_DIR: workspaceDir,
+        ...extraEnv
       },
       stdio: ['ignore', 'pipe', 'pipe']
     });

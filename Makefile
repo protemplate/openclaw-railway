@@ -23,7 +23,6 @@ build: ## Build Docker image (production, requires openclaw repo)
 run: build ## Run OpenClaw locally (production build)
 	@echo "Running OpenClaw locally..."
 	$(eval SETUP_PASSWORD := $(if $(SETUP_PASSWORD),$(SETUP_PASSWORD),$(shell openssl rand -hex 24)))
-	@echo "Setup Password: $(SETUP_PASSWORD)"
 	docker run -d --name openclaw-dev \
 		-p 8080:8080 \
 		-e PORT=8080 \
@@ -34,7 +33,7 @@ run: build ## Run OpenClaw locally (production build)
 		$(IMAGE_NAME):latest
 	@echo ""
 	@echo "OpenClaw is running at http://localhost:8080"
-	@echo "Setup wizard: http://localhost:8080/setup?password=$(SETUP_PASSWORD)"
+	@echo "Setup wizard: http://localhost:8080/onboard?password=$(SETUP_PASSWORD)"
 
 stop: ## Stop running OpenClaw container
 	@echo "Stopping OpenClaw..."
@@ -75,10 +74,10 @@ test-local: build-local ## Test the local dev build and endpoints
 	@curl -s http://localhost:8081/health/ready | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8081/health/ready
 	@echo ""
 	@echo "--- Testing auth protection (should return 401) ---"
-	@curl -s -o /dev/null -w "Setup without auth: HTTP %{http_code} (expected 401)\n" http://localhost:8081/setup
+	@curl -s -o /dev/null -w "Setup without auth: HTTP %{http_code} (expected 401)\n" http://localhost:8081/onboard
 	@echo ""
 	@echo "--- Testing auth with password (should return 200) ---"
-	@curl -s -o /dev/null -w "Setup with auth: HTTP %{http_code} (expected 200)\n" "http://localhost:8081/setup?password=test-password"
+	@curl -s -o /dev/null -w "Setup with auth: HTTP %{http_code} (expected 200)\n" "http://localhost:8081/onboard?password=test-password"
 	@echo ""
 	@echo "Cleaning up..."
 	@docker stop openclaw-test-local 2>/dev/null || true
@@ -112,10 +111,10 @@ test: build ## Test the Docker build and basic functionality
 	curl -s http://localhost:8081/health/ready | jq .
 	@echo ""
 	@echo "Testing auth protection..."
-	curl -s -o /dev/null -w "Setup without auth: %{http_code} (expected 401)\n" http://localhost:8081/setup
+	curl -s -o /dev/null -w "Setup without auth: %{http_code} (expected 401)\n" http://localhost:8081/onboard
 	@echo ""
 	@echo "Testing auth with password..."
-	curl -s -o /dev/null -w "Setup with auth: %{http_code} (expected 200)\n" "http://localhost:8081/setup?password=test-password"
+	curl -s -o /dev/null -w "Setup with auth: %{http_code} (expected 200)\n" "http://localhost:8081/onboard?password=test-password"
 	@echo ""
 	@echo "Cleaning up..."
 	docker stop openclaw-test

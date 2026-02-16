@@ -1,0 +1,28 @@
+{
+  "$id": "session",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Session Configuration",
+  "description": "Conversation session settings",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "description": "Session scope (per-user, per-channel, global)",
+      "enum": ["user", "channel", "global"]
+    },
+    "reset": {
+      "type": "object",
+      "description": "Session reset/expiry settings",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "afterMinutes": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": true
+    },
+    "dmScope": {
+      "type": "string",
+      "description": "DM session scope"
+    }
+  },
+  "additionalProperties": true
+}

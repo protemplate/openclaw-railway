@@ -1,0 +1,78 @@
+{
+  "$id": "tools",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tools Configuration",
+  "description": "Tool policies, execution, and permissions",
+  "type": "object",
+  "properties": {
+    "allow": {
+      "type": "array",
+      "description": "Allowlisted tool names or patterns",
+      "items": { "type": "string" }
+    },
+    "deny": {
+      "type": "array",
+      "description": "Denylisted tool names or patterns",
+      "items": { "type": "string" }
+    },
+    "elevated": {
+      "type": "array",
+      "description": "Tools that require elevated permissions",
+      "items": { "type": "string" }
+    },
+    "exec": {
+      "oneOf": [
+        { "type": "boolean" },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "shell": { "type": "string" },
+            "timeout": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": true
+        }
+      ],
+      "description": "Shell execution settings (formerly agent.bash)"
+    },
+    "webSearch": {
+      "oneOf": [
+        { "type": "boolean" },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "provider": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      ],
+      "description": "Web search tool settings"
+    },
+    "sandbox": {
+      "type": "object",
+      "description": "Sandbox tool policies",
+      "properties": {
+        "tools": {
+          "type": "object",
+          "description": "Per-sandbox tool overrides",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "subagents": {
+      "type": "object",
+      "description": "Sub-agent tool policies",
+      "properties": {
+        "tools": {
+          "type": "object",
+          "description": "Per-subagent tool overrides",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

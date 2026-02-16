@@ -1,7 +1,7 @@
 /**
  * Authentication middleware for OpenClaw setup wizard
  *
- * Protects /setup endpoint with password authentication
+ * Protects /onboard endpoint with password authentication
  */
 
 /**
@@ -28,6 +28,13 @@ export function createAuthMiddleware(password) {
 
     // Check query parameter (for browser access)
     if (req.query.password === password) {
+      // Set cookie so subsequent requests don't need the query param
+      res.cookie('openclaw_auth', password, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      });
       return next();
     }
 

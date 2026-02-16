@@ -13,7 +13,7 @@
  * @returns {string} HTML content
  */
 export function getLoginPageHTML({ redirect, error }) {
-  const redirectValue = redirect || '/setup';
+  const redirectValue = redirect || '/onboard';
   const errorHTML = error
     ? `<div class="error-message">${error}</div>`
     : '';

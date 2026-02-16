@@ -25,7 +25,7 @@ Deploy [OpenClaw](https://github.com/openclaw/openclaw), a personal AI assistant
 2. Set your `SETUP_PASSWORD` environment variable
 3. Add a volume mounted at `/data` for persistent storage
 4. Deploy and wait for the service to start
-5. Visit `https://your-app.railway.app/setup` and enter your password
+5. Visit `https://your-app.railway.app/onboard` and enter your password
 6. Start the gateway and configure your messaging platform
 
 ### Local Development
@@ -41,7 +41,7 @@ make run
 # Or use docker-compose
 make deploy-local
 
-# Access OpenClaw at http://localhost:8080/setup
+# Access OpenClaw at http://localhost:8080/onboard
 ```
 
 ## Configuration
@@ -101,14 +101,14 @@ make generate-password  # Generate secure setup password
 
 ### Setup Wizard
 
-Access the setup wizard at `/setup` with your `SETUP_PASSWORD`:
+Access the setup wizard at `/onboard` with your `SETUP_PASSWORD`:
 
 ```bash
 # Via query parameter
-https://your-app.railway.app/setup?password=YOUR_PASSWORD
+https://your-app.railway.app/onboard?password=YOUR_PASSWORD
 
 # Or enter password on the login page
-https://your-app.railway.app/setup
+https://your-app.railway.app/onboard
 ```
 
 The setup wizard allows you to:
@@ -163,7 +163,7 @@ openssl rand -hex 24
 
 1. **Always use a strong setup password** - The setup wizard can start/stop the gateway and export backups
 2. **Store sensitive tokens securely** - Use Railway's secret environment variables for API keys
-3. **Keep backups** - Use the `/setup/export` endpoint to download configuration backups
+3. **Keep backups** - Use the `/onboard/export` endpoint to download configuration backups
 4. **Monitor health endpoints** - Set up Railway notifications for health check failures
 5. **Use HTTPS** - Railway provides automatic SSL for all deployments
 
@@ -229,7 +229,7 @@ openclaw-railway/
 
 1. **Wrapper Server**: An Express server handles incoming requests
 2. **Health Checks**: `/health/*` endpoints are always available without authentication
-3. **Setup Protection**: `/setup` requires password authentication
+3. **Setup Protection**: `/onboard` requires password authentication
 4. **Gateway Manager**: Spawns and monitors the OpenClaw gateway process
 5. **Reverse Proxy**: All other traffic is proxied to the internal gateway
 6. **WebSocket Support**: Upgrades are handled for real-time communication

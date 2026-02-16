@@ -68,7 +68,7 @@ router.get('/ready', (req, res) => {
     res.status(503).json({
       status: 'not_ready',
       gateway: 'not_started',
-      message: 'Complete setup at /setup to start the gateway',
+      message: 'Complete setup at /onboard to start the gateway',
       lastCheck: status.lastCheck,
       timestamp: new Date().toISOString()
     });

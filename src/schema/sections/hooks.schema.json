@@ -1,0 +1,24 @@
+{
+  "$id": "hooks",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hooks Configuration",
+  "description": "Webhook ingress and external integrations",
+  "type": "object",
+  "properties": {
+    "webhooks": {
+      "type": "object",
+      "description": "Incoming webhook configurations",
+      "additionalProperties": true
+    },
+    "gmail": {
+      "type": "object",
+      "description": "Gmail integration settings",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "credentials": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

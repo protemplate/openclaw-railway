@@ -67,8 +67,8 @@ export function createTerminalServer(httpServer, password) {
   httpServer.on('upgrade', (req, socket, head) => {
     const url = parseUrl(req.url, true);
 
-    // Only handle /setup/ws and /ui/ws endpoints
-    if (url.pathname !== '/setup/ws' && url.pathname !== '/ui/ws') {
+    // Only handle /onboard/ws and /ui/ws endpoints
+    if (url.pathname !== '/onboard/ws' && url.pathname !== '/ui/ws') {
       return; // Let other handlers (like proxy) handle it
     }
 

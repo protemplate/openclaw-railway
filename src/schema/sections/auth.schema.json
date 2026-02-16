@@ -1,0 +1,36 @@
+{
+  "$id": "auth",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Auth Configuration",
+  "description": "API key profiles and authentication providers",
+  "type": "object",
+  "properties": {
+    "profiles": {
+      "type": "object",
+      "description": "Named authentication profiles",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "description": "Provider name (e.g. anthropic, openai, groq)"
+            },
+            "apiKey": {
+              "type": "string",
+              "description": "API key for this provider"
+            },
+            "baseUrl": {
+              "type": "string",
+              "description": "Custom API base URL",
+              "format": "uri"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

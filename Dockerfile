@@ -68,11 +68,21 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
 # - tini: proper PID 1 handling for signal forwarding
 # - curl: health checks
 # - ca-certificates: HTTPS requests
+# - openjdk-17-jre-headless: required by signal-cli for Signal channel
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tini \
     curl \
     ca-certificates \
+    openjdk-17-jre-headless \
     && rm -rf /var/lib/apt/lists/*
+
+# Install signal-cli for Signal channel support
+ARG SIGNAL_CLI_VERSION=0.13.24
+RUN curl -L -o /tmp/signal-cli.tar.gz \
+    "https://github.com/AsamK/signal-cli/releases/download/v${SIGNAL_CLI_VERSION}/signal-cli-${SIGNAL_CLI_VERSION}.tar.gz" \
+    && tar xf /tmp/signal-cli.tar.gz -C /opt \
+    && ln -sf /opt/signal-cli-${SIGNAL_CLI_VERSION}/bin/signal-cli /usr/local/bin/signal-cli \
+    && rm /tmp/signal-cli.tar.gz
 
 # Create non-root user for security
 RUN groupadd --system --gid 1001 openclaw && \

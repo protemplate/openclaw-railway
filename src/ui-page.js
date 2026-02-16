@@ -446,6 +446,161 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       border: 1px solid var(--border-strong);
     }
 
+    /* Config editor tabs */
+    .config-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 15px;
+      overflow-x: auto;
+      gap: 2px;
+    }
+    .config-tab {
+      padding: 8px 16px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .config-tab:hover {
+      color: var(--text);
+      background: var(--bg-hover);
+    }
+    .config-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .config-tab-panel {
+      display: none;
+    }
+    .config-tab-panel.active {
+      display: block;
+    }
+    .schema-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .schema-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .schema-field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .schema-field .field-help {
+      color: var(--muted-strong);
+      font-size: 11px;
+    }
+    .schema-field input[type="text"],
+    .schema-field input[type="number"],
+    .schema-field input[type="password"],
+    .schema-field select,
+    .schema-field textarea {
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--font-body);
+      transition: border-color 0.2s;
+    }
+    .schema-field input:focus,
+    .schema-field select:focus,
+    .schema-field textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+    }
+    .schema-field input:read-only {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .schema-field textarea {
+      min-height: 80px;
+      resize: vertical;
+      font-family: var(--mono);
+    }
+    .schema-field .field-error {
+      color: var(--accent);
+      font-size: 11px;
+    }
+    .schema-field .toggle-switch {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .schema-field .toggle-switch input[type="checkbox"] {
+      width: 36px;
+      height: 20px;
+      accent-color: var(--teal);
+      cursor: pointer;
+    }
+    .tag-input-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 6px 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      min-height: 36px;
+      align-items: center;
+    }
+    .tag-input-container:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+    }
+    .tag-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      background: var(--bg-hover);
+      border-radius: 3px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+    .tag-item .tag-remove {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .tag-item .tag-remove:hover {
+      color: var(--accent);
+    }
+    .tag-input {
+      border: none !important;
+      background: none !important;
+      padding: 2px 4px !important;
+      min-width: 80px;
+      flex: 1;
+      box-shadow: none !important;
+    }
+    .section-description {
+      color: var(--muted-strong);
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+    .section-empty {
+      color: var(--muted-strong);
+      font-size: 13px;
+      font-style: italic;
+      padding: 20px 0;
+    }
+
     /* Token box */
     .token-box {
       background: var(--bg-elevated);
@@ -565,7 +720,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         <span class="subtitle">Management</span>
       </h1>
       <div class="header-right">
-        <a href="/setup?password=${encodeURIComponent(password)}" class="nav-link">&larr; Setup</a>
+        <a href="/onboard?password=${encodeURIComponent(password)}" class="nav-link">&larr; Setup</a>
         <div class="mode-toggle">
           <button id="mode-simple" class="active" onclick="setMode('simple')">Simple</button>
           <button id="mode-advanced" onclick="setMode('advanced')">Advanced</button>
@@ -644,10 +799,45 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             </div>
           </div>
 
-          <!-- Configuration Editor -->
+          <!-- Configuration Editor (Tabbed) -->
           <div class="card">
             <h2>Configuration Editor</h2>
-            <textarea id="config-editor" class="config-editor" spellcheck="false">Loading...</textarea>
+            <div class="config-tabs" id="config-tabs">
+              <button class="config-tab active" data-tab="agents" onclick="switchConfigTab('agents')">Agents</button>
+              <button class="config-tab" data-tab="channels" onclick="switchConfigTab('channels')">Channels</button>
+              <button class="config-tab" data-tab="gateway" onclick="switchConfigTab('gateway')">Gateway</button>
+              <button class="config-tab" data-tab="tools" onclick="switchConfigTab('tools')">Tools</button>
+              <button class="config-tab" data-tab="session" onclick="switchConfigTab('session')">Session</button>
+              <button class="config-tab" data-tab="skills" onclick="switchConfigTab('skills')">Skills</button>
+              <button class="config-tab" data-tab="raw" onclick="switchConfigTab('raw')">Raw JSON</button>
+            </div>
+            <div id="tab-agents" class="config-tab-panel active">
+              <div class="section-description">Model selection, persona, and agent behavior defaults</div>
+              <div class="schema-form" id="form-agents"></div>
+            </div>
+            <div id="tab-channels" class="config-tab-panel">
+              <div class="section-description">Messaging platform connections</div>
+              <div class="schema-form" id="form-channels"></div>
+            </div>
+            <div id="tab-gateway" class="config-tab-panel">
+              <div class="section-description">HTTP server, auth, and TLS settings</div>
+              <div class="schema-form" id="form-gateway"></div>
+            </div>
+            <div id="tab-tools" class="config-tab-panel">
+              <div class="section-description">Tool permissions, execution, and sandboxing</div>
+              <div class="schema-form" id="form-tools"></div>
+            </div>
+            <div id="tab-session" class="config-tab-panel">
+              <div class="section-description">Conversation scope and reset behavior</div>
+              <div class="schema-form" id="form-session"></div>
+            </div>
+            <div id="tab-skills" class="config-tab-panel">
+              <div class="section-description">Bundled and installed skill packs</div>
+              <div class="schema-form" id="form-skills"></div>
+            </div>
+            <div id="tab-raw" class="config-tab-panel">
+              <textarea id="config-editor" class="config-editor" spellcheck="false">Loading...</textarea>
+            </div>
             <div class="config-actions">
               <button class="btn-success" onclick="saveConfig(false)">Save</button>
               <button class="btn-primary" onclick="saveConfig(true)">Save &amp; Restart</button>
@@ -672,10 +862,10 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
               <button id="btn-restart" class="btn-primary" onclick="gatewayRestart()" ${gatewayInfo.running ? '' : 'disabled'}>
                 Restart Gateway
               </button>
-              <a href="/setup?password=${encodeURIComponent(password)}" class="btn btn-secondary">
+              <a href="/onboard?password=${encodeURIComponent(password)}" class="btn btn-secondary">
                 Setup Wizard
               </a>
-              <a href="/setup/export?password=${encodeURIComponent(password)}" class="btn btn-secondary">
+              <a href="/onboard/export?password=${encodeURIComponent(password)}" class="btn btn-secondary">
                 Export Backup
               </a>
             </div>
@@ -1024,7 +1214,336 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         });
       };
 
-      // ----- Configuration editor -----
+      // ----- Configuration editor (tabbed) -----
+      var activeTab = 'agents';
+      var configSchemas = null;
+
+      // Field metadata for form rendering
+      var fieldMeta = {
+        'agents.defaults.model.primary': { label: 'Primary Model', help: 'e.g. anthropic/claude-sonnet-4', widget: 'text', placeholder: 'anthropic/claude-sonnet-4' },
+        'agents.defaults.model.fallbacks': { label: 'Fallback Models', help: 'Comma-separated fallback model identifiers', widget: 'tags' },
+        'agents.defaults.persona': { label: 'Persona', help: 'System prompt / personality', widget: 'textarea' },
+        'agents.defaults.maxTokens': { label: 'Max Tokens', widget: 'number' },
+        'agents.defaults.temperature': { label: 'Temperature', help: '0-2', widget: 'number' },
+        'gateway.port': { label: 'Port', help: 'Managed by wrapper', widget: 'number', readonly: true },
+        'gateway.auth.mode': { label: 'Auth Mode', widget: 'select', options: ['none', 'token', 'basic'] },
+        'gateway.auth.token': { label: 'Auth Token', widget: 'password' },
+        'tools.allow': { label: 'Allowed Tools', widget: 'tags' },
+        'tools.deny': { label: 'Denied Tools', widget: 'tags' },
+        'tools.exec': { label: 'Shell Execution', widget: 'toggle' },
+        'session.scope': { label: 'Scope', widget: 'select', options: ['user', 'channel', 'global'] },
+        'session.reset.enabled': { label: 'Auto-reset', widget: 'toggle' },
+        'session.reset.afterMinutes': { label: 'Reset After (min)', widget: 'number' },
+        'memory.backend': { label: 'Backend', widget: 'select', options: ['builtin', 'qdrant'] }
+      };
+
+      window.switchConfigTab = function(tab) {
+        activeTab = tab;
+        document.querySelectorAll('.config-tab').forEach(function(el) {
+          el.classList.toggle('active', el.getAttribute('data-tab') === tab);
+        });
+        document.querySelectorAll('.config-tab-panel').forEach(function(el) {
+          el.classList.toggle('active', el.id === 'tab-' + tab);
+        });
+        // Sync raw editor when switching to raw tab
+        if (tab === 'raw' && savedConfig) {
+          document.getElementById('config-editor').value = JSON.stringify(getConfigFromForms(), null, 2);
+        }
+      };
+
+      // Get a nested value from an object by dot-path
+      function getPath(obj, path) {
+        var parts = path.split('.');
+        var cur = obj;
+        for (var i = 0; i < parts.length; i++) {
+          if (cur == null) return undefined;
+          cur = cur[parts[i]];
+        }
+        return cur;
+      }
+
+      // Set a nested value on an object by dot-path
+      function setPath(obj, path, value) {
+        var parts = path.split('.');
+        var cur = obj;
+        for (var i = 0; i < parts.length - 1; i++) {
+          if (cur[parts[i]] == null || typeof cur[parts[i]] !== 'object') {
+            cur[parts[i]] = {};
+          }
+          cur = cur[parts[i]];
+        }
+        cur[parts[parts.length - 1]] = value;
+      }
+
+      // Build the current config from form fields + untouched sections from savedConfig
+      function getConfigFromForms() {
+        var config = savedConfig ? JSON.parse(JSON.stringify(savedConfig)) : {};
+
+        // Read each form field and write into config
+        document.querySelectorAll('[data-config-path]').forEach(function(el) {
+          var path = el.getAttribute('data-config-path');
+          var meta = fieldMeta[path] || {};
+          var val;
+
+          if (meta.widget === 'toggle' || el.type === 'checkbox') {
+            val = el.checked;
+          } else if (meta.widget === 'tags') {
+            var container = el.closest('.tag-input-container');
+            if (container) {
+              var tags = [];
+              container.querySelectorAll('.tag-item').forEach(function(tag) {
+                tags.push(tag.getAttribute('data-value'));
+              });
+              val = tags.length > 0 ? tags : undefined;
+            }
+          } else if (meta.widget === 'number' || el.type === 'number') {
+            val = el.value !== '' ? Number(el.value) : undefined;
+          } else {
+            val = el.value !== '' ? el.value : undefined;
+          }
+
+          if (val !== undefined) {
+            setPath(config, path, val);
+          }
+        });
+
+        return config;
+      }
+
+      // Render a single form field
+      function renderField(container, path, value) {
+        var meta = fieldMeta[path] || {};
+        var widget = meta.widget || 'text';
+        var label = meta.label || path.split('.').pop();
+
+        var fieldDiv = document.createElement('div');
+        fieldDiv.className = 'schema-field';
+
+        var labelEl = document.createElement('label');
+        labelEl.textContent = label;
+        fieldDiv.appendChild(labelEl);
+
+        if (meta.help) {
+          var helpEl = document.createElement('span');
+          helpEl.className = 'field-help';
+          helpEl.textContent = meta.help;
+          fieldDiv.appendChild(helpEl);
+        }
+
+        if (widget === 'textarea') {
+          var ta = document.createElement('textarea');
+          ta.setAttribute('data-config-path', path);
+          ta.value = value || '';
+          ta.placeholder = meta.placeholder || '';
+          fieldDiv.appendChild(ta);
+        } else if (widget === 'select') {
+          var sel = document.createElement('select');
+          sel.setAttribute('data-config-path', path);
+          (meta.options || []).forEach(function(opt) {
+            var option = document.createElement('option');
+            option.value = opt;
+            option.textContent = opt;
+            if (opt === value) option.selected = true;
+            sel.appendChild(option);
+          });
+          fieldDiv.appendChild(sel);
+        } else if (widget === 'toggle') {
+          var toggleDiv = document.createElement('div');
+          toggleDiv.className = 'toggle-switch';
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.setAttribute('data-config-path', path);
+          cb.checked = !!value;
+          toggleDiv.appendChild(cb);
+          var toggleLabel = document.createElement('span');
+          toggleLabel.textContent = value ? 'Enabled' : 'Disabled';
+          toggleLabel.style.color = 'var(--muted)';
+          toggleLabel.style.fontSize = '12px';
+          cb.addEventListener('change', function() {
+            toggleLabel.textContent = cb.checked ? 'Enabled' : 'Disabled';
+          });
+          toggleDiv.appendChild(toggleLabel);
+          fieldDiv.appendChild(toggleDiv);
+        } else if (widget === 'tags') {
+          var tagContainer = document.createElement('div');
+          tagContainer.className = 'tag-input-container';
+
+          var items = Array.isArray(value) ? value : [];
+          items.forEach(function(item) {
+            appendTag(tagContainer, item);
+          });
+
+          var tagInput = document.createElement('input');
+          tagInput.type = 'text';
+          tagInput.className = 'tag-input';
+          tagInput.setAttribute('data-config-path', path);
+          tagInput.placeholder = items.length === 0 ? (meta.placeholder || 'Type and press Enter') : '';
+          tagInput.addEventListener('keydown', function(e) {
+            if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim()) {
+              e.preventDefault();
+              appendTag(tagContainer, tagInput.value.trim());
+              tagInput.value = '';
+            }
+            if (e.key === 'Backspace' && tagInput.value === '') {
+              var lastTag = tagContainer.querySelector('.tag-item:last-of-type');
+              if (lastTag) lastTag.remove();
+            }
+          });
+          tagContainer.appendChild(tagInput);
+          fieldDiv.appendChild(tagContainer);
+        } else if (widget === 'password') {
+          var inp = document.createElement('input');
+          inp.type = 'password';
+          inp.setAttribute('data-config-path', path);
+          inp.value = value || '';
+          inp.placeholder = meta.placeholder || '';
+          if (meta.readonly) inp.readOnly = true;
+          fieldDiv.appendChild(inp);
+        } else {
+          var inp2 = document.createElement('input');
+          inp2.type = widget === 'number' ? 'number' : 'text';
+          inp2.setAttribute('data-config-path', path);
+          inp2.value = value != null ? value : '';
+          inp2.placeholder = meta.placeholder || '';
+          if (meta.readonly) inp2.readOnly = true;
+          fieldDiv.appendChild(inp2);
+        }
+
+        container.appendChild(fieldDiv);
+      }
+
+      function appendTag(container, value) {
+        var tagEl = document.createElement('span');
+        tagEl.className = 'tag-item';
+        tagEl.setAttribute('data-value', value);
+        tagEl.textContent = value;
+        var removeBtn = document.createElement('span');
+        removeBtn.className = 'tag-remove';
+        removeBtn.textContent = '\\u00d7';
+        removeBtn.onclick = function() { tagEl.remove(); };
+        tagEl.appendChild(removeBtn);
+        // Insert before the input
+        var input = container.querySelector('.tag-input');
+        if (input) {
+          container.insertBefore(tagEl, input);
+        } else {
+          container.appendChild(tagEl);
+        }
+      }
+
+      // Render all form fields for a given section
+      function renderSectionForm(section, config) {
+        var formEl = document.getElementById('form-' + section);
+        if (!formEl) return;
+        formEl.textContent = '';
+
+        var sectionData = config ? config[section] : null;
+        var fieldsRendered = 0;
+
+        // Find all fieldMeta entries that belong to this section
+        Object.keys(fieldMeta).forEach(function(path) {
+          if (path.indexOf(section + '.') === 0) {
+            var value = getPath(config || {}, path);
+            renderField(formEl, path, value);
+            fieldsRendered++;
+          }
+        });
+
+        // For channels and skills, render dynamically from config data
+        if (section === 'channels' && sectionData) {
+          Object.keys(sectionData).forEach(function(chName) {
+            var ch = sectionData[chName];
+            var chDiv = document.createElement('div');
+            chDiv.className = 'schema-field';
+            chDiv.style.padding = '8px';
+            chDiv.style.background = 'var(--bg-elevated)';
+            chDiv.style.borderRadius = '5px';
+            chDiv.style.border = '1px solid var(--border)';
+
+            var chLabel = document.createElement('label');
+            chLabel.style.fontWeight = '600';
+            chLabel.style.fontSize = '13px';
+            chLabel.textContent = chName.charAt(0).toUpperCase() + chName.slice(1);
+            chDiv.appendChild(chLabel);
+
+            var toggleDiv = document.createElement('div');
+            toggleDiv.className = 'toggle-switch';
+            toggleDiv.style.marginTop = '6px';
+            var toggleCb = document.createElement('input');
+            toggleCb.type = 'checkbox';
+            toggleCb.setAttribute('data-config-path', 'channels.' + chName + '.enabled');
+            toggleCb.checked = ch.enabled !== false;
+            toggleDiv.appendChild(toggleCb);
+            var toggleText = document.createElement('span');
+            toggleText.textContent = ch.enabled !== false ? 'Enabled' : 'Disabled';
+            toggleText.style.color = 'var(--muted)';
+            toggleText.style.fontSize = '12px';
+            toggleCb.addEventListener('change', function() {
+              toggleText.textContent = toggleCb.checked ? 'Enabled' : 'Disabled';
+            });
+            toggleDiv.appendChild(toggleText);
+            chDiv.appendChild(toggleDiv);
+
+            formEl.appendChild(chDiv);
+            fieldsRendered++;
+          });
+        }
+
+        if (section === 'skills' && sectionData && sectionData.entries) {
+          Object.keys(sectionData.entries).forEach(function(skillName) {
+            var skill = sectionData.entries[skillName];
+            var skillDiv = document.createElement('div');
+            skillDiv.className = 'schema-field';
+            skillDiv.style.padding = '8px';
+            skillDiv.style.background = 'var(--bg-elevated)';
+            skillDiv.style.borderRadius = '5px';
+            skillDiv.style.border = '1px solid var(--border)';
+
+            var skillLabel = document.createElement('label');
+            skillLabel.style.fontWeight = '600';
+            skillLabel.style.fontSize = '13px';
+            skillLabel.textContent = skillName;
+            skillDiv.appendChild(skillLabel);
+
+            var toggleDiv = document.createElement('div');
+            toggleDiv.className = 'toggle-switch';
+            toggleDiv.style.marginTop = '6px';
+            var toggleCb = document.createElement('input');
+            toggleCb.type = 'checkbox';
+            toggleCb.setAttribute('data-config-path', 'skills.entries.' + skillName + '.enabled');
+            toggleCb.checked = skill.enabled !== false;
+            toggleDiv.appendChild(toggleCb);
+            var toggleText = document.createElement('span');
+            toggleText.textContent = skill.enabled !== false ? 'Enabled' : 'Disabled';
+            toggleText.style.color = 'var(--muted)';
+            toggleText.style.fontSize = '12px';
+            toggleCb.addEventListener('change', function() {
+              toggleText.textContent = toggleCb.checked ? 'Enabled' : 'Disabled';
+            });
+            toggleDiv.appendChild(toggleText);
+            skillDiv.appendChild(toggleDiv);
+
+            formEl.appendChild(skillDiv);
+            fieldsRendered++;
+          });
+        }
+
+        if (fieldsRendered === 0) {
+          var emptyEl = document.createElement('div');
+          emptyEl.className = 'section-empty';
+          emptyEl.textContent = 'No ' + section + ' settings configured. Edit in Raw JSON tab to add.';
+          formEl.appendChild(emptyEl);
+        }
+      }
+
+      // Render all section forms from config
+      function renderAllForms(config) {
+        var sections = ['agents', 'channels', 'gateway', 'tools', 'session', 'skills'];
+        sections.forEach(function(section) {
+          renderSectionForm(section, config);
+        });
+      }
+
       function loadConfig() {
         fetch('/ui/api/config?' + authParam())
           .then(function(res) { return res.json(); })
@@ -1033,10 +1552,21 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             var editor = document.getElementById('config-editor');
             editor.value = config ? JSON.stringify(config, null, 2) : '{}';
 
-            // Update model display
-            if (config && config.agent && config.agent.model) {
-              document.getElementById('gw-model').textContent = config.agent.model;
+            // Update model display (support both new and legacy shapes)
+            var model = null;
+            if (config) {
+              model = (config.agents && config.agents.defaults && config.agents.defaults.model)
+                ? (typeof config.agents.defaults.model === 'object'
+                    ? config.agents.defaults.model.primary
+                    : config.agents.defaults.model)
+                : (config.agent ? config.agent.model : null);
             }
+            if (model) {
+              document.getElementById('gw-model').textContent = model;
+            }
+
+            // Render form tabs
+            renderAllForms(config);
           })
           .catch(function() {
             document.getElementById('config-editor').value = '// Failed to load config';
@@ -1044,17 +1574,21 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       }
 
       window.saveConfig = function(restart) {
-        var editor = document.getElementById('config-editor');
         var msgEl = document.getElementById('config-msg');
         var newConfig;
 
-        try {
-          newConfig = JSON.parse(editor.value);
-        } catch (e) {
-          msgEl.className = 'config-msg error';
-          msgEl.textContent = 'Invalid JSON: ' + e.message;
-          msgEl.classList.remove('hidden');
-          return;
+        // If on raw tab, read from textarea; otherwise build from forms
+        if (activeTab === 'raw') {
+          try {
+            newConfig = JSON.parse(document.getElementById('config-editor').value);
+          } catch (e) {
+            msgEl.className = 'config-msg error';
+            msgEl.textContent = 'Invalid JSON: ' + e.message;
+            msgEl.classList.remove('hidden');
+            return;
+          }
+        } else {
+          newConfig = getConfigFromForms();
         }
 
         fetch('/ui/api/config?' + authParam(), {
@@ -1067,8 +1601,15 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           if (data.success) {
             savedConfig = newConfig;
             msgEl.className = 'config-msg success';
-            msgEl.textContent = 'Configuration saved.' + (restart ? ' Restarting gateway...' : '');
+            var msg = 'Configuration saved.';
+            if (data.migrated) msg += ' (legacy keys auto-migrated)';
+            if (restart) msg += ' Restarting gateway...';
+            msgEl.textContent = msg;
             msgEl.classList.remove('hidden');
+
+            // Refresh forms with saved config
+            renderAllForms(savedConfig);
+            document.getElementById('config-editor').value = JSON.stringify(savedConfig, null, 2);
 
             if (restart) {
               fetch('/ui/api/gateway/restart?' + authParam(), { method: 'POST' })
@@ -1076,10 +1617,14 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             }
           } else {
             msgEl.className = 'config-msg error';
-            msgEl.textContent = data.error || 'Failed to save';
+            var errMsg = data.error || 'Failed to save';
+            if (data.errors && data.errors.length) {
+              errMsg += ': ' + data.errors.map(function(e) { return (e.path || '/') + ' ' + e.message; }).join('; ');
+            }
+            msgEl.textContent = errMsg;
             msgEl.classList.remove('hidden');
           }
-          setTimeout(function() { msgEl.classList.add('hidden'); }, 5000);
+          setTimeout(function() { msgEl.classList.add('hidden'); }, 8000);
         })
         .catch(function(err) {
           msgEl.className = 'config-msg error';
@@ -1091,6 +1636,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       window.revertConfig = function() {
         if (savedConfig) {
           document.getElementById('config-editor').value = JSON.stringify(savedConfig, null, 2);
+          renderAllForms(savedConfig);
           var msgEl = document.getElementById('config-msg');
           msgEl.className = 'config-msg success';
           msgEl.textContent = 'Reverted to last saved configuration.';

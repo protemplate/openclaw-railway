@@ -1,0 +1,82 @@
+{
+  "$id": "agents",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Agents Configuration",
+  "description": "Agent defaults and named agent profiles",
+  "type": "object",
+  "properties": {
+    "defaults": {
+      "type": "object",
+      "description": "Default settings for all agents",
+      "properties": {
+        "model": {
+          "type": "object",
+          "description": "Model configuration",
+          "properties": {
+            "primary": {
+              "type": "string",
+              "description": "Primary model identifier (e.g. anthropic/claude-sonnet-4)",
+              "minLength": 1
+            },
+            "fallbacks": {
+              "type": "array",
+              "description": "Fallback models if primary is unavailable",
+              "items": { "type": "string", "minLength": 1 }
+            }
+          },
+          "additionalProperties": true
+        },
+        "imageModel": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            {
+              "type": "object",
+              "properties": {
+                "primary": { "type": "string", "minLength": 1 }
+              },
+              "additionalProperties": true
+            }
+          ],
+          "description": "Image generation model"
+        },
+        "persona": {
+          "type": "string",
+          "description": "Agent persona/system prompt"
+        },
+        "workspace": {
+          "type": "object",
+          "description": "Workspace settings",
+          "additionalProperties": true
+        },
+        "sandbox": {
+          "type": "object",
+          "description": "Sandbox execution environment settings",
+          "additionalProperties": true
+        },
+        "heartbeat": {
+          "type": "object",
+          "description": "Heartbeat/keep-alive settings",
+          "additionalProperties": true
+        },
+        "maxTokens": {
+          "type": "integer",
+          "description": "Maximum tokens per response",
+          "minimum": 1
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Sampling temperature",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "maxTurns": {
+          "type": "integer",
+          "description": "Maximum conversation turns",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

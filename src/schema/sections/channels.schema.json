@@ -1,0 +1,29 @@
+{
+  "$id": "channels",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Channels Configuration",
+  "description": "Messaging platform channel configurations",
+  "type": "object",
+  "patternProperties": {
+    "^(telegram|discord|slack|whatsapp|signal|irc|zalo|mattermost|matrix|line|feishu|nostr|nextcloud-talk|twitch|tlon|googlechat|msteams)$": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this channel is active"
+        },
+        "dmPolicy": {
+          "type": "string",
+          "description": "Direct message policy",
+          "enum": ["open", "allowlist", "blocklist", "none"]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": {
+    "type": "object",
+    "description": "Custom or future channel configuration",
+    "additionalProperties": true
+  }
+}

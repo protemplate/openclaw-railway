@@ -1,0 +1,53 @@
+{
+  "$id": "openclaw-config",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OpenClaw Configuration",
+  "description": "Root schema for openclaw.json configuration file",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference URL"
+    },
+    "agents": {
+      "$ref": "agents"
+    },
+    "channels": {
+      "$ref": "channels"
+    },
+    "gateway": {
+      "$ref": "gateway"
+    },
+    "tools": {
+      "$ref": "tools"
+    },
+    "auth": {
+      "$ref": "auth"
+    },
+    "session": {
+      "$ref": "session"
+    },
+    "models": {
+      "$ref": "models"
+    },
+    "memory": {
+      "$ref": "memory"
+    },
+    "skills": {
+      "$ref": "skills"
+    },
+    "hooks": {
+      "$ref": "hooks"
+    },
+    "cron": {
+      "$ref": "cron"
+    },
+    "meta": { "$ref": "misc#/properties/meta" },
+    "env": { "$ref": "misc#/properties/env" },
+    "logging": { "$ref": "misc#/properties/logging" },
+    "diagnostics": { "$ref": "misc#/properties/diagnostics" },
+    "ui": { "$ref": "misc#/properties/ui" },
+    "browser": { "$ref": "misc#/properties/browser" }
+  },
+  "additionalProperties": true
+}

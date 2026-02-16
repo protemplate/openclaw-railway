@@ -1,0 +1,78 @@
+{
+  "$id": "gateway",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Gateway Configuration",
+  "description": "HTTP gateway server settings",
+  "type": "object",
+  "properties": {
+    "port": {
+      "type": "integer",
+      "description": "Port for the gateway to listen on",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "bind": {
+      "type": "string",
+      "description": "Bind address (e.g. loopback, 0.0.0.0)",
+      "enum": ["loopback", "0.0.0.0", "127.0.0.1", "::1"]
+    },
+    "auth": {
+      "type": "object",
+      "description": "Authentication configuration",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "description": "Authentication mode",
+          "enum": ["none", "token", "basic"]
+        },
+        "token": {
+          "type": "string",
+          "description": "Authentication token (when mode is token)"
+        },
+        "username": {
+          "type": "string",
+          "description": "Basic auth username"
+        },
+        "password": {
+          "type": "string",
+          "description": "Basic auth password"
+        }
+      },
+      "additionalProperties": true
+    },
+    "controlUi": {
+      "type": "object",
+      "description": "Built-in control UI settings",
+      "properties": {
+        "basePath": {
+          "type": "string",
+          "description": "Base path for the control UI"
+        },
+        "allowInsecureAuth": {
+          "type": "boolean",
+          "description": "Allow insecure auth over HTTP"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable/disable the control UI"
+        }
+      },
+      "additionalProperties": true
+    },
+    "trustedProxies": {
+      "type": "array",
+      "description": "List of trusted proxy IP addresses",
+      "items": { "type": "string" }
+    },
+    "tls": {
+      "type": "object",
+      "description": "TLS/SSL configuration",
+      "properties": {
+        "cert": { "type": "string" },
+        "key": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

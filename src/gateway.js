@@ -127,21 +127,23 @@ export async function startGateway() {
   config.gateway.controlUi.allowInsecureAuth = true;
   config.gateway.trustedProxies = ['127.0.0.1', '::1'];
   delete config.gateway.token;
-  writeFileSync(configFile, JSON.stringify(config, null, 2));
 
-  // Run doctor --fix to auto-repair any config validation issues
-  // (e.g., dmPolicy="open" requires allowFrom to include "*")
-  const doctorResult = await runCmd('doctor', ['--fix'], {
-    HOME: stateDir,
-    OPENCLAW_STATE_DIR: stateDir,
-    OPENCLAW_WORKSPACE_DIR: workspaceDir
-  });
-  if (doctorResult.code === 0) {
-    const output = (doctorResult.stdout + doctorResult.stderr).trim();
-    if (output) console.log(`[doctor] ${output}`);
-  } else {
-    console.warn(`[doctor] exited with code ${doctorResult.code}: ${doctorResult.stderr.trim()}`);
+  // Fix channel config validation: dmPolicy="open" requires allowFrom to include "*"
+  if (config.channels) {
+    for (const [name, channel] of Object.entries(config.channels)) {
+      if (channel && channel.dmPolicy === 'open') {
+        if (!Array.isArray(channel.allowFrom)) {
+          channel.allowFrom = ['*'];
+          console.log(`Fixed channels.${name}.allowFrom: set to ["*"] for dmPolicy="open"`);
+        } else if (!channel.allowFrom.includes('*')) {
+          channel.allowFrom.push('*');
+          console.log(`Fixed channels.${name}.allowFrom: added "*" for dmPolicy="open"`);
+        }
+      }
+    }
   }
+
+  writeFileSync(configFile, JSON.stringify(config, null, 2));
 
   // Start the gateway
   // Using: openclaw gateway --port PORT --verbose
@@ -157,7 +159,8 @@ export async function startGateway() {
       ...process.env,
       HOME: stateDir,
       OPENCLAW_STATE_DIR: stateDir,
-      OPENCLAW_WORKSPACE_DIR: workspaceDir
+      OPENCLAW_WORKSPACE_DIR: workspaceDir,
+      OPENCLAW_BUNDLED_SKILLS_DIR: join(stateDir, 'skills')
     },
     stdio: ['ignore', 'pipe', 'pipe']
   });
@@ -271,6 +274,45 @@ export function runCmd(command, args = [], extraEnv = {}) {
     let stderr = '';
 
     const child = spawn('openclaw', [command, ...args], {
+      env: {
+        ...process.env,
+        HOME: stateDir,
+        OPENCLAW_STATE_DIR: stateDir,
+        OPENCLAW_WORKSPACE_DIR: workspaceDir,
+        ...extraEnv
+      },
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    child.stdout.on('data', (data) => { stdout += data.toString(); });
+    child.stderr.on('data', (data) => { stderr += data.toString(); });
+
+    child.on('error', (err) => {
+      resolve({ stdout, stderr: stderr + err.message, code: 1 });
+    });
+
+    child.on('exit', (code) => {
+      resolve({ stdout, stderr, code: code ?? 1 });
+    });
+  });
+}
+
+/**
+ * Run an arbitrary command (not prefixed with 'openclaw') and return its output
+ * @param {string} command - The full command name (e.g., 'npx')
+ * @param {string[]} args - Arguments to pass to the command
+ * @param {Object} extraEnv - Additional environment variables
+ * @returns {Promise<{stdout: string, stderr: string, code: number}>}
+ */
+export function runExec(command, args = [], extraEnv = {}) {
+  const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
+  const workspaceDir = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace';
+
+  return new Promise((resolve) => {
+    let stdout = '';
+    let stderr = '';
+
+    const child = spawn(command, args, {
       env: {
         ...process.env,
         HOME: stateDir,

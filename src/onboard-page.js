@@ -641,6 +641,84 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
     .skill-emoji { font-size: 28px; margin-bottom: 6px; }
     .skill-name { font-weight: 600; font-size: 13px; color: var(--text); }
     .skill-desc { font-size: 11px; color: var(--muted-strong); margin-top: 2px; }
+    .skill-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--teal-bright);
+      background: rgba(20, 184, 166, 0.12);
+      border: 1px solid rgba(20, 184, 166, 0.25);
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin-top: 4px;
+    }
+    .skill-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .skill-section-header h4 {
+      margin: 0;
+    }
+    .skill-section-header a {
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .skill-section-header a:hover { text-decoration: underline; }
+    .skill-search {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 14px;
+      font-family: var(--font-body);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 10px;
+    }
+    .skill-search:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+    }
+    .skill-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .skill-filter-chip {
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--bg-elevated);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .skill-filter-chip:hover {
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+    .skill-filter-chip.active {
+      border-color: var(--teal);
+      background: rgba(20, 184, 166, 0.12);
+      color: var(--teal-bright);
+    }
+    .skill-empty-state {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      padding: 20px 0;
+      display: none;
+    }
 
     /* ===================== Step 5: Review & Deploy ===================== */
     .review-summary {
@@ -799,6 +877,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       .step-connector { min-width: 16px; margin: 0 4px; }
       .provider-grid { grid-template-columns: repeat(2, 1fr); }
       .skill-grid { grid-template-columns: repeat(2, 1fr); }
+      .skill-section-header { flex-wrap: wrap; gap: 4px; }
       .wizard-nav { gap: 8px; }
       .wizard-nav button { flex: 1; justify-content: center; }
       .card { padding: 20px; }
@@ -823,7 +902,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
     </p>
     <div class="configured-links">
       <a href="/ui?password=${encodeURIComponent(password)}" class="btn btn-primary">Open Management Panel</a>
-      <a href="/openclaw" class="btn btn-secondary">Open OpenClaw UI</a>
+      <a href="/openclaw" class="btn btn-secondary">Open OpenClaw Gateway Dashboard</a>
     </div>
     <button class="btn-text" onclick="showReconfigureWarning()">Reconfigure from scratch</button>
   </div>
@@ -957,7 +1036,22 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
     <div class="step-panel" id="step-4">
       <div class="card">
         <p class="skills-desc">Choose skills to enhance your assistant. You can add more later.</p>
-        <div class="skill-grid" id="skill-grid"></div>
+
+        <h4 class="channel-category-label">Default Skills</h4>
+        <input type="text" class="skill-search" id="default-skill-search" placeholder="Search skills..." />
+        <div class="skill-filters" id="default-skill-filters"></div>
+        <div class="skill-grid" id="skill-grid-default"></div>
+        <p class="skill-empty-state" id="default-skill-empty">No skills match your search.</p>
+
+        <div class="skill-section-header" style="margin-top: 24px;">
+          <h4 class="channel-category-label" style="margin: 0;">Build with Claude Skills</h4>
+          <a href="https://buildwithclaude.com/skills" target="_blank" rel="noopener">Browse all &rarr;</a>
+        </div>
+        <p id="bwc-loading" style="color: var(--muted); font-size: 13px;">Loading skills...</p>
+        <input type="text" class="skill-search" id="bwc-skill-search" placeholder="Search skills..." style="display: none;" />
+        <div class="skill-filters" id="bwc-skill-filters"></div>
+        <div class="skill-grid" id="skill-grid-bwc"></div>
+        <p class="skill-empty-state" id="bwc-skill-empty">No skills match your search.</p>
       </div>
       <div class="wizard-nav">
         <button class="btn-secondary" onclick="goToStep(3)">&larr; Back</button>
@@ -986,7 +1080,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           <p class="success-sub">Your AI assistant is ready to go.</p>
           <div class="success-links">
             <a href="/ui?password=${encodeURIComponent(password)}" class="btn btn-primary">Open Management Panel</a>
-            <a href="/openclaw" class="btn btn-secondary">Open OpenClaw UI</a>
+            <a href="/openclaw" class="btn btn-secondary">Open OpenClaw Gateway Dashboard</a>
           </div>
         </div>
       </div>
@@ -1010,21 +1104,26 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       var selectedAuthChoice = null;
       var enabledChannels = {};
       channelGroups.forEach(function(ch) { enabledChannels[ch.name] = false; });
-      var selectedSkills = [];
+      var selectedSkills = []; // Array of {slug, source} objects
+      var defaultSkillFilter = 'Popular';
+      var defaultSkillSearch = '';
+      var bwcSkillFilter = 'Popular';
+      var bwcSkillSearch = '';
+      var bwcSkillsData = [];
+      var BWC_POPULAR_COUNT = 6;
 
       var AVAILABLE_SKILLS = [
-        { slug: 'weather', emoji: '\\u{1F324}\\uFE0F', name: 'Weather', desc: 'Get weather and forecasts, no API key needed' },
-        { slug: 'github', emoji: '\\u{1F419}', name: 'GitHub', desc: 'Interact with GitHub via the gh CLI' },
-        { slug: 'summarize', emoji: '\\u{1F9FE}', name: 'Summarize', desc: 'Summarize URLs, PDFs, and videos' },
-        { slug: 'coding-agent', emoji: '\\u{1F4BB}', name: 'Coding Agent', desc: 'Run coding agents like Claude Code or Codex' },
-        { slug: 'openai-image-gen', emoji: '\\u{1F3A8}', name: 'Image Generation', desc: 'Generate images with OpenAI DALL-E' },
-        { slug: 'clawhub', emoji: '\\u{1F3EA}', name: 'ClawHub', desc: 'Discover and install community skills' },
-        { slug: 'notion', emoji: '\\u{1F4DD}', name: 'Notion', desc: 'Read and manage Notion pages and databases' },
-        { slug: 'obsidian', emoji: '\\u{1F4D3}', name: 'Obsidian', desc: 'Search and manage Obsidian vault notes' },
-        { slug: 'trello', emoji: '\\u{1F4CB}', name: 'Trello', desc: 'Manage Trello boards, lists, and cards' },
-        { slug: 'spotify-player', emoji: '\\u{1F3B5}', name: 'Spotify', desc: 'Control Spotify playback from chat' },
-        { slug: 'session-logs', emoji: '\\u{1F4CA}', name: 'Session Logs', desc: 'View and search conversation logs' },
-        { slug: 'model-usage', emoji: '\\u{1F4C8}', name: 'Model Usage', desc: 'Track AI model token usage and costs' }
+        { slug: 'weather', emoji: '\\u{1F324}\\uFE0F', name: 'Weather', desc: 'Get weather and forecasts, no API key needed', category: 'Utilities', popular: true },
+        { slug: 'github', emoji: '\\u{1F419}', name: 'GitHub', desc: 'Interact with GitHub via the gh CLI', category: 'Developer', popular: true },
+        { slug: 'summarize', emoji: '\\u{1F9FE}', name: 'Summarize', desc: 'Summarize URLs, PDFs, and videos', category: 'Productivity', popular: true },
+        { slug: 'coding-agent', emoji: '\\u{1F4BB}', name: 'Coding Agent', desc: 'Run coding agents like Claude Code or Codex', category: 'Developer', popular: true },
+        { slug: 'openai-image-gen', emoji: '\\u{1F3A8}', name: 'Image Generation', desc: 'Generate images with OpenAI DALL-E', category: 'AI & Creative', popular: true },
+        { slug: 'notion', emoji: '\\u{1F4DD}', name: 'Notion', desc: 'Read and manage Notion pages and databases', category: 'Productivity', popular: false },
+        { slug: 'obsidian', emoji: '\\u{1F4D3}', name: 'Obsidian', desc: 'Search and manage Obsidian vault notes', category: 'Productivity', popular: false },
+        { slug: 'trello', emoji: '\\u{1F4CB}', name: 'Trello', desc: 'Manage Trello boards, lists, and cards', category: 'Productivity', popular: false },
+        { slug: 'spotify-player', emoji: '\\u{1F3B5}', name: 'Spotify', desc: 'Control Spotify playback from chat', category: 'Entertainment', popular: false },
+        { slug: 'session-logs', emoji: '\\u{1F4CA}', name: 'Session Logs', desc: 'View and search conversation logs', category: 'Utilities', popular: false },
+        { slug: 'model-usage', emoji: '\\u{1F4C8}', name: 'Model Usage', desc: 'Track AI model token usage and costs', category: 'Utilities', popular: false }
       ];
 
       // Luminance check: lighten dark brand colors for visibility on dark background
@@ -1480,41 +1579,177 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       };
 
       // ========== Skills ==========
-      function buildSkillGrid() {
-        var grid = document.getElementById('skill-grid');
-        AVAILABLE_SKILLS.forEach(function(skill) {
-          var card = document.createElement('div');
-          card.className = 'skill-card';
-          card.setAttribute('data-slug', skill.slug);
-          card.onclick = function() { toggleSkill(skill.slug); };
+      function isSkillSelected(slug, source) {
+        for (var i = 0; i < selectedSkills.length; i++) {
+          if (selectedSkills[i].slug === slug && selectedSkills[i].source === source) return true;
+        }
+        return false;
+      }
 
-          var emoji = document.createElement('div');
-          emoji.className = 'skill-emoji';
-          emoji.textContent = skill.emoji;
-          card.appendChild(emoji);
+      function createSkillCard(skill, source) {
+        var card = document.createElement('div');
+        card.className = 'skill-card';
+        if (isSkillSelected(skill.slug, source)) card.className += ' selected';
+        card.setAttribute('data-slug', skill.slug);
+        card.setAttribute('data-source', source);
+        card.onclick = function() { toggleSkill(skill.slug, source); };
 
-          var name = document.createElement('div');
-          name.className = 'skill-name';
-          name.textContent = skill.name;
-          card.appendChild(name);
+        var emoji = document.createElement('div');
+        emoji.className = 'skill-emoji';
+        emoji.textContent = skill.emoji || '\\u{1F9E9}';
+        card.appendChild(emoji);
 
-          var desc = document.createElement('div');
-          desc.className = 'skill-desc';
-          desc.textContent = skill.desc;
-          card.appendChild(desc);
+        var name = document.createElement('div');
+        name.className = 'skill-name';
+        name.textContent = skill.name;
+        card.appendChild(name);
 
-          grid.appendChild(card);
+        var desc = document.createElement('div');
+        desc.className = 'skill-desc';
+        desc.textContent = skill.desc || skill.description || '';
+        card.appendChild(desc);
+
+        if (skill.category) {
+          var badge = document.createElement('div');
+          badge.className = 'skill-badge';
+          badge.textContent = skill.category;
+          card.appendChild(badge);
+        }
+
+        return card;
+      }
+
+      function buildFilterChips(containerId, categories, activeFilter, onSelect) {
+        var container = document.getElementById(containerId);
+        container.textContent = '';
+
+        var allFilters = ['Popular'].concat(categories);
+        allFilters.forEach(function(label) {
+          var chip = document.createElement('span');
+          chip.className = 'skill-filter-chip';
+          if (activeFilter === label) chip.className += ' active';
+          chip.textContent = label;
+          chip.onclick = function() {
+            // Toggle: clicking active chip deselects (shows all)
+            onSelect(activeFilter === label ? null : label);
+          };
+          container.appendChild(chip);
         });
       }
 
-      window.toggleSkill = function(slug) {
-        var idx = selectedSkills.indexOf(slug);
+      function getDefaultCategories() {
+        var cats = {};
+        AVAILABLE_SKILLS.forEach(function(s) { if (s.category) cats[s.category] = true; });
+        return Object.keys(cats);
+      }
+
+      function buildSkillGrid() {
+        var grid = document.getElementById('skill-grid-default');
+        var emptyEl = document.getElementById('default-skill-empty');
+        grid.textContent = '';
+
+        // Build filter chips
+        buildFilterChips('default-skill-filters', getDefaultCategories(), defaultSkillFilter, function(filter) {
+          defaultSkillFilter = filter;
+          buildSkillGrid();
+        });
+
+        // Filter skills
+        var filtered = AVAILABLE_SKILLS.filter(function(skill) {
+          if (defaultSkillFilter === 'Popular') return skill.popular;
+          if (defaultSkillFilter) return skill.category === defaultSkillFilter;
+          return true;
+        });
+        if (defaultSkillSearch) {
+          var q = defaultSkillSearch.toLowerCase();
+          filtered = filtered.filter(function(skill) {
+            return skill.name.toLowerCase().indexOf(q) !== -1 || skill.desc.toLowerCase().indexOf(q) !== -1;
+          });
+        }
+
+        // Render
+        filtered.forEach(function(skill) {
+          grid.appendChild(createSkillCard(skill, 'default'));
+        });
+
+        emptyEl.style.display = filtered.length === 0 ? 'block' : 'none';
+      }
+
+      // Fetch and render Build with Claude skills
+      function fetchBwcSkills() {
+        var loadingEl = document.getElementById('bwc-loading');
+
+        fetch('/onboard/api/bwc-skills?password=' + encodeURIComponent(password))
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            loadingEl.style.display = 'none';
+            var items = data.plugins || [];
+            if (items.length === 0) {
+              loadingEl.textContent = 'No skills available at the moment.';
+              loadingEl.style.display = 'block';
+              return;
+            }
+            bwcSkillsData = items;
+            document.getElementById('bwc-skill-search').style.display = 'block';
+            renderBwcSkills();
+          })
+          .catch(function() {
+            loadingEl.textContent = 'Could not load Build with Claude skills. You can add them later from the management panel.';
+          });
+      }
+
+      function getBwcCategories() {
+        var cats = {};
+        bwcSkillsData.forEach(function(s) { if (s.category) cats[s.category] = true; });
+        return Object.keys(cats);
+      }
+
+      function renderBwcSkills() {
+        var grid = document.getElementById('skill-grid-bwc');
+        var emptyEl = document.getElementById('bwc-skill-empty');
+        grid.textContent = '';
+
+        // Build filter chips
+        buildFilterChips('bwc-skill-filters', getBwcCategories(), bwcSkillFilter, function(filter) {
+          bwcSkillFilter = filter;
+          renderBwcSkills();
+        });
+
+        // Filter skills
+        var filtered = bwcSkillsData.filter(function(skill, idx) {
+          if (bwcSkillFilter === 'Popular') return idx < BWC_POPULAR_COUNT;
+          if (bwcSkillFilter) return skill.category === bwcSkillFilter;
+          return true;
+        });
+        if (bwcSkillSearch) {
+          var q = bwcSkillSearch.toLowerCase();
+          filtered = filtered.filter(function(skill) {
+            return skill.name.toLowerCase().indexOf(q) !== -1 || (skill.description || '').toLowerCase().indexOf(q) !== -1;
+          });
+        }
+
+        // Render
+        filtered.forEach(function(skill) {
+          grid.appendChild(createSkillCard(skill, 'buildwithclaude'));
+        });
+
+        emptyEl.style.display = filtered.length === 0 ? 'block' : 'none';
+      }
+
+      window.toggleSkill = function(slug, source) {
+        var idx = -1;
+        for (var i = 0; i < selectedSkills.length; i++) {
+          if (selectedSkills[i].slug === slug && selectedSkills[i].source === source) {
+            idx = i;
+            break;
+          }
+        }
         if (idx === -1) {
-          selectedSkills.push(slug);
+          selectedSkills.push({ slug: slug, source: source });
         } else {
           selectedSkills.splice(idx, 1);
         }
-        var card = document.querySelector('.skill-card[data-slug="' + slug + '"]');
+        var card = document.querySelector('.skill-card[data-slug="' + slug + '"][data-source="' + source + '"]');
         if (card) {
           card.classList.toggle('selected', idx === -1);
         }
@@ -1566,11 +1801,16 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         addRow('Channels', channelNames.length > 0 ? channelNames.join(', ') : 'None');
 
         if (selectedSkills.length > 0) {
-          var skillNames = selectedSkills.map(function(slug) {
+          var skillNames = selectedSkills.map(function(item) {
+            // Check default skills first
             for (var i = 0; i < AVAILABLE_SKILLS.length; i++) {
-              if (AVAILABLE_SKILLS[i].slug === slug) return AVAILABLE_SKILLS[i].name;
+              if (AVAILABLE_SKILLS[i].slug === item.slug) return AVAILABLE_SKILLS[i].name;
             }
-            return slug;
+            // Check BWC skills data array
+            for (var j = 0; j < bwcSkillsData.length; j++) {
+              if (bwcSkillsData[j].slug === item.slug) return bwcSkillsData[j].name;
+            }
+            return item.slug;
           });
           addRow('Skills', skillNames.join(', ') + ' (' + selectedSkills.length + ' selected)');
         } else {
@@ -1697,7 +1937,17 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         buildProviderGrid();
         buildChannelCards();
         buildSkillGrid();
+        fetchBwcSkills();
         updateStepIndicator();
+
+        document.getElementById('default-skill-search').addEventListener('input', function(e) {
+          defaultSkillSearch = e.target.value;
+          buildSkillGrid();
+        });
+        document.getElementById('bwc-skill-search').addEventListener('input', function(e) {
+          bwcSkillSearch = e.target.value;
+          renderBwcSkills();
+        });
       });
     })();
   </script>

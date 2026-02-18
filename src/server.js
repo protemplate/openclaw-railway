@@ -13,8 +13,9 @@
 
 import express from 'express';
 import { createServer } from 'http';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import JSZip from 'jszip';
 import archiver from 'archiver';
 import { siAnthropic, siGooglegemini, siOpenrouter, siVercel, siCloudflare, siOllama } from 'simple-icons';
 import { CHANNEL_GROUPS, buildChannelConfig, getChannelIcon } from './channels.js';
@@ -22,7 +23,7 @@ import { validate, migrateConfig, getAllSchemas } from './schema/index.js';
 
 import healthRouter, { setGatewayReady } from './health.js';
 import { createAuthMiddleware } from './auth.js';
-import { startGateway, stopGateway, isGatewayRunning, getGatewayInfo, getGatewayToken, runCmd, deleteConfig, getRecentLogs, getGatewayUptime } from './gateway.js';
+import { startGateway, stopGateway, isGatewayRunning, getGatewayInfo, getGatewayToken, runCmd, runExec, deleteConfig, getRecentLogs, getGatewayUptime } from './gateway.js';
 import { createProxy } from './proxy.js';
 import { createTerminalServer, closeAllSessions } from './terminal.js';
 import { getSetupPageHTML } from './onboard-page.js';
@@ -230,6 +231,54 @@ for (const group of AUTH_GROUPS) {
   }
 }
 
+/**
+ * Install a Build with Claude skill by downloading and extracting its zip
+ * @param {string} slug - Skill slug
+ * @param {string} skillsDir - Target directory for skills
+ * @returns {Promise<void>}
+ */
+async function installBwcSkill(slug, skillsDir) {
+  const url = `https://buildwithclaude.com/api/skills/${encodeURIComponent(slug)}/download`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to download skill "${slug}": ${res.status} ${res.statusText}`);
+  }
+  const buf = await res.arrayBuffer();
+  const zip = await JSZip.loadAsync(buf);
+
+  const targetDir = join(skillsDir, slug);
+  mkdirSync(targetDir, { recursive: true });
+
+  for (const [relativePath, entry] of Object.entries(zip.files)) {
+    if (entry.dir) {
+      mkdirSync(join(skillsDir, relativePath), { recursive: true });
+      continue;
+    }
+    const content = await entry.async('nodebuffer');
+    // Strip leading slug directory if the zip wraps files in a folder
+    const parts = relativePath.split('/');
+    let outPath;
+    if (parts[0] === slug && parts.length > 1) {
+      outPath = join(targetDir, parts.slice(1).join('/'));
+    } else {
+      outPath = join(skillsDir, relativePath);
+    }
+    const dir = join(outPath, '..');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(outPath, content);
+  }
+}
+
+/**
+ * Install a ClawHub skill via npx clawhub install
+ * @param {string} slug - Skill slug
+ * @param {string} skillsDir - Target directory for skills
+ * @returns {Promise<{stdout: string, stderr: string, code: number}>}
+ */
+async function installClawHubSkill(slug, skillsDir) {
+  return runExec('npx', ['clawhub', 'install', slug, '--dir', skillsDir]);
+}
+
 // Create Express app
 const app = express();
 
@@ -389,6 +438,20 @@ app.get('/onboard/api/status', authMiddleware, (req, res) => {
   });
 });
 
+// Proxy Build with Claude skills list (avoids browser CORS issues)
+app.get('/onboard/api/bwc-skills', authMiddleware, async (req, res) => {
+  try {
+    const response = await fetch('https://buildwithclaude.com/api/plugins/list?type=skill&limit=100');
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Upstream API error' });
+    }
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(502).json({ error: 'Failed to fetch skills from buildwithclaude.com' });
+  }
+});
+
 // Run setup (simple mode)
 app.post('/onboard/api/run', authMiddleware, async (req, res) => {
   try {
@@ -454,12 +517,42 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
       logs.push(`Configured channel: ${ch.name}`);
     }
 
+    // Install and enable skills
+    // skills can be either:
+    //   - Array<string> (legacy: ClawHub skill slugs)
+    //   - Array<{slug: string, source: 'clawhub' | 'buildwithclaude'}>
     if (skills && Array.isArray(skills)) {
+      const skillsDir = join(OPENCLAW_STATE_DIR, 'skills');
+      mkdirSync(skillsDir, { recursive: true });
+
       ocConfig.skills = ocConfig.skills || {};
       ocConfig.skills.entries = ocConfig.skills.entries || {};
-      for (const skillName of skills) {
-        ocConfig.skills.entries[skillName] = { enabled: true };
-        logs.push(`Enabled skill: ${skillName}`);
+
+      for (const item of skills) {
+        const slug = typeof item === 'string' ? item : item.slug;
+        const source = typeof item === 'string' ? 'clawhub' : (item.source || 'clawhub');
+
+        try {
+          if (source === 'buildwithclaude') {
+            logs.push(`Installing skill: ${slug} from buildwithclaude...`);
+            await installBwcSkill(slug, skillsDir);
+            logs.push(`Installed skill: ${slug}`);
+          } else {
+            logs.push(`Installing skill: ${slug} from clawhub...`);
+            const result = await installClawHubSkill(slug, skillsDir);
+            if (result.code !== 0) {
+              logs.push(`Warning: clawhub install ${slug} exited with code ${result.code}`);
+              if (result.stderr) logs.push(result.stderr.trim());
+            } else {
+              logs.push(`Installed skill: ${slug}`);
+            }
+          }
+        } catch (err) {
+          logs.push(`Warning: Failed to install skill ${slug}: ${err.message}`);
+        }
+
+        ocConfig.skills.entries[slug] = { enabled: true };
+        logs.push(`Enabled skill: ${slug}`);
       }
     }
 

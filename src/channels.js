@@ -261,7 +261,7 @@ for (const ch of CHANNEL_GROUPS) {
  * @returns {Object} Config object with enabled, dmPolicy, and field values
  */
 export function buildChannelConfig(channelName, fields) {
-  const config = { enabled: true, dmPolicy: 'open' };
+  const config = { enabled: true, dmPolicy: 'open', allowFrom: ['*'] };
   for (const [key, val] of Object.entries(fields || {})) {
     if (val) config[key] = val;
   }

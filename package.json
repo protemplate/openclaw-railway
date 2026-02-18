@@ -15,14 +15,15 @@
     "test:e2e": "node --test test/deploy-flow.test.js"
   },
   "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "archiver": "^7.0.1",
     "express": "^5.0.1",
     "http-proxy": "^1.18.1",
-    "archiver": "^7.0.1",
+    "jszip": "^3.10.1",
     "node-pty": "^1.0.0",
     "simple-icons": "^16.6.1",
-    "ws": "^8.18.0",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1"
+    "ws": "^8.18.0"
   },
   "keywords": [
     "openclaw",

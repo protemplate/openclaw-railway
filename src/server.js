@@ -103,7 +103,10 @@ const AUTH_GROUPS = [
     description: 'GPT-4o, o1, o3, DALL-E',
     emoji: '\u{1F916}',
     options: [
-      { label: 'API Key', value: 'openai-api-key', flag: '--openai-api-key' }
+      { label: 'API Key', value: 'openai-api-key', flag: '--openai-api-key' },
+      { label: 'Codex Subscription', value: 'openai-codex',
+        flag: ['--auth-choice', 'openai-codex'],
+        noSecret: true }
     ]
   },
   {
@@ -125,6 +128,20 @@ const AUTH_GROUPS = [
     ]
   },
   // === More Providers ===
+  {
+    provider: 'MiniMax',
+    category: 'more',
+    description: 'MiniMax M2.1 models',
+    emoji: '\u{1F4A1}',
+    options: [
+      { label: 'API Key', value: 'minimax-api-key',
+        flag: ['--auth-choice', 'minimax-api-key'],
+        secretFlag: '--minimax-api-key' },
+      { label: 'Coding Plan (OAuth)', value: 'minimax-portal',
+        flag: ['--auth-choice', 'minimax-portal'],
+        noSecret: true }
+    ]
+  },
   {
     provider: 'Venice AI',
     category: 'more',

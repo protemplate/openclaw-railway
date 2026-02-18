@@ -26,7 +26,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
 <head>
   <title>OpenClaw Setup</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"/>
   <style>
     :root {
       --bg: #12141a;
@@ -52,8 +52,8 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       --muted-strong: #52525b;
       --border: #27272a;
       --border-strong: #3f3f46;
-      --font-body: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-body: 'Space Grotesk', 'Noto Sans SC', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-display: 'Space Grotesk', 'Noto Sans SC', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
       --radius-sm: 6px;
       --radius-md: 8px;
@@ -104,6 +104,92 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       gap: 10px;
     }
     .wizard-header .logo { width: 28px; height: 28px; }
+
+    /* Language Selector */
+    .wizard-header { position: relative; }
+    .lang-selector {
+      position: absolute;
+      top: 0;
+      right: 0;
+    }
+    .lang-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      user-select: none;
+    }
+    .lang-btn:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-hover);
+    }
+    .lang-btn .lang-arrow {
+      font-size: 10px;
+      transition: transform 0.15s;
+    }
+    .lang-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      min-width: 180px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      z-index: 100;
+      padding: 4px;
+      animation: fadeIn 0.15s ease-out;
+    }
+    .lang-dropdown.open { display: block; }
+    .lang-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      transition: background 0.1s;
+    }
+    .lang-option:hover { background: var(--bg-hover); }
+    .lang-option .lang-flag { font-size: 16px; flex-shrink: 0; }
+    .lang-option .lang-name { flex: 1; }
+    .lang-check {
+      font-size: 12px;
+      color: var(--teal);
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+    .lang-check.active { opacity: 1; }
+    .configured-lang-selector {
+      margin-bottom: 16px;
+      display: inline-block;
+      position: relative;
+    }
+
+    @media (max-width: 600px) {
+      .lang-selector {
+        position: static;
+        text-align: center;
+        margin-bottom: 12px;
+      }
+      .lang-dropdown {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+      }
+    }
 
     /* Step indicator */
     .wizard-steps {
@@ -895,16 +981,30 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
   ${isConfigured ? `
   <!-- =============== Already Configured =============== -->
   <div id="configured-view" class="configured-card">
+    <div class="configured-lang-selector">
+      <button class="lang-btn" id="configured-lang-btn" onclick="toggleLangDropdown('configured-lang-dropdown')">
+        <span class="lang-flag" id="configured-lang-flag"></span>
+        <span id="configured-lang-name"></span>
+        <span class="lang-arrow">&#9662;</span>
+      </button>
+      <div class="lang-dropdown" id="configured-lang-dropdown">
+        <div class="lang-option" onclick="setLanguage('en')"><span class="lang-flag">&#127468;&#127463;</span><span class="lang-name">English</span><span class="lang-check" data-lang="en">&#10003;</span></div>
+        <div class="lang-option" onclick="setLanguage('zh-TW')"><span class="lang-flag">&#127481;&#127484;</span><span class="lang-name">&#32321;&#39636;&#20013;&#25991;</span><span class="lang-check" data-lang="zh-TW">&#10003;</span></div>
+        <div class="lang-option" onclick="setLanguage('zh-CN')"><span class="lang-flag">&#127464;&#127475;</span><span class="lang-name">&#31616;&#20307;&#20013;&#25991;</span><span class="lang-check" data-lang="zh-CN">&#10003;</span></div>
+        <div class="lang-option" onclick="setLanguage('ja')"><span class="lang-flag">&#127471;&#127477;</span><span class="lang-name">&#26085;&#26412;&#35486;</span><span class="lang-check" data-lang="ja">&#10003;</span></div>
+        <div class="lang-option" onclick="setLanguage('ko')"><span class="lang-flag">&#127472;&#127479;</span><span class="lang-name">&#54620;&#44397;&#50612;</span><span class="lang-check" data-lang="ko">&#10003;</span></div>
+      </div>
+    </div>
     <div class="configured-check">&#10003;</div>
-    <h2>OpenClaw is already configured</h2>
+    <h2 data-i18n="configured.title">OpenClaw is already configured</h2>
     <p class="configured-status">
       Gateway: <span class="${gatewayInfo.running ? 'running' : 'stopped'}">${gatewayInfo.running ? 'Running' : 'Stopped'}</span>
     </p>
     <div class="configured-links">
-      <a href="/ui?password=${encodeURIComponent(password)}" class="btn btn-primary">Open Management Panel</a>
-      <a href="/openclaw" class="btn btn-secondary">Open OpenClaw Gateway Dashboard</a>
+      <a href="/ui?password=${encodeURIComponent(password)}" class="btn btn-primary" data-i18n="configured.openPanel">Open Management Panel</a>
+      <a href="/openclaw" class="btn btn-secondary" data-i18n="configured.openDashboard">Open OpenClaw Gateway Dashboard</a>
     </div>
-    <button class="btn-text" onclick="showReconfigureWarning()">Reconfigure from scratch</button>
+    <button class="btn-text" onclick="showReconfigureWarning()" data-i18n="configured.reconfigure">Reconfigure from scratch</button>
   </div>
   ` : ''}
 
@@ -913,35 +1013,49 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
     <div class="wizard-header">
       <h1>
         <svg class="logo" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lobster-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff4d4d"/><stop offset="100%" stop-color="#991b1b"/></linearGradient></defs><path d="M60 10 C30 10 15 35 15 55 C15 75 30 95 45 100 L45 110 L55 110 L55 100 C55 100 60 102 65 100 L65 110 L75 110 L75 100 C90 95 105 75 105 55 C105 35 90 10 60 10Z" fill="url(#lobster-gradient)"/><path d="M20 45 C5 40 0 50 5 60 C10 70 20 65 25 55 C28 48 25 45 20 45Z" fill="url(#lobster-gradient)"/><path d="M100 45 C115 40 120 50 115 60 C110 70 100 65 95 55 C92 48 95 45 100 45Z" fill="url(#lobster-gradient)"/><path d="M45 15 Q35 5 30 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/><path d="M75 15 Q85 5 90 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/><circle cx="45" cy="35" r="6" fill="#050810"/><circle cx="75" cy="35" r="6" fill="#050810"/><circle cx="46" cy="34" r="2.5" fill="#00e5cc"/><circle cx="76" cy="34" r="2.5" fill="#00e5cc"/></svg>
-        OpenClaw Setup
+        <span data-i18n="pageTitle">OpenClaw Setup</span>
       </h1>
+      <div class="lang-selector">
+        <button class="lang-btn" id="wizard-lang-btn" onclick="toggleLangDropdown('wizard-lang-dropdown')">
+          <span class="lang-flag" id="wizard-lang-flag"></span>
+          <span id="wizard-lang-name"></span>
+          <span class="lang-arrow">&#9662;</span>
+        </button>
+        <div class="lang-dropdown" id="wizard-lang-dropdown">
+          <div class="lang-option" onclick="setLanguage('en')"><span class="lang-flag">&#127468;&#127463;</span><span class="lang-name">English</span><span class="lang-check" data-lang="en">&#10003;</span></div>
+          <div class="lang-option" onclick="setLanguage('zh-TW')"><span class="lang-flag">&#127481;&#127484;</span><span class="lang-name">&#32321;&#39636;&#20013;&#25991;</span><span class="lang-check" data-lang="zh-TW">&#10003;</span></div>
+          <div class="lang-option" onclick="setLanguage('zh-CN')"><span class="lang-flag">&#127464;&#127475;</span><span class="lang-name">&#31616;&#20307;&#20013;&#25991;</span><span class="lang-check" data-lang="zh-CN">&#10003;</span></div>
+          <div class="lang-option" onclick="setLanguage('ja')"><span class="lang-flag">&#127471;&#127477;</span><span class="lang-name">&#26085;&#26412;&#35486;</span><span class="lang-check" data-lang="ja">&#10003;</span></div>
+          <div class="lang-option" onclick="setLanguage('ko')"><span class="lang-flag">&#127472;&#127479;</span><span class="lang-name">&#54620;&#44397;&#50612;</span><span class="lang-check" data-lang="ko">&#10003;</span></div>
+        </div>
+      </div>
     </div>
 
     <!-- Step indicator -->
     <div class="wizard-steps">
       <div class="wizard-step active" data-step="1" onclick="clickStep(1)">
         <div class="step-circle"><span>1</span></div>
-        <span class="step-label">Welcome</span>
+        <span class="step-label" data-i18n="steps.welcome">Welcome</span>
       </div>
       <div class="step-connector" data-connector="1"></div>
       <div class="wizard-step disabled" data-step="2" onclick="clickStep(2)">
         <div class="step-circle"><span>2</span></div>
-        <span class="step-label">AI Provider</span>
+        <span class="step-label" data-i18n="steps.provider">AI Provider</span>
       </div>
       <div class="step-connector" data-connector="2"></div>
       <div class="wizard-step disabled" data-step="3" onclick="clickStep(3)">
         <div class="step-circle"><span>3</span></div>
-        <span class="step-label">Channels</span>
+        <span class="step-label" data-i18n="steps.channels">Channels</span>
       </div>
       <div class="step-connector" data-connector="3"></div>
       <div class="wizard-step disabled" data-step="4" onclick="clickStep(4)">
         <div class="step-circle"><span>4</span></div>
-        <span class="step-label">Skills</span>
+        <span class="step-label" data-i18n="steps.skills">Skills</span>
       </div>
       <div class="step-connector" data-connector="4"></div>
       <div class="wizard-step disabled" data-step="5" onclick="clickStep(5)">
         <div class="step-circle"><span>5</span></div>
-        <span class="step-label">Deploy</span>
+        <span class="step-label" data-i18n="steps.deploy">Deploy</span>
       </div>
     </div>
 
@@ -949,31 +1063,31 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
     <div class="step-panel active" id="step-1">
       <div class="card" style="text-align: center;">
         <svg class="welcome-logo" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wlg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff4d4d"/><stop offset="100%" stop-color="#991b1b"/></linearGradient></defs><path d="M60 10 C30 10 15 35 15 55 C15 75 30 95 45 100 L45 110 L55 110 L55 100 C55 100 60 102 65 100 L65 110 L75 110 L75 100 C90 95 105 75 105 55 C105 35 90 10 60 10Z" fill="url(#wlg)"/><path d="M20 45 C5 40 0 50 5 60 C10 70 20 65 25 55 C28 48 25 45 20 45Z" fill="url(#wlg)"/><path d="M100 45 C115 40 120 50 115 60 C110 70 100 65 95 55 C92 48 95 45 100 45Z" fill="url(#wlg)"/><path d="M45 15 Q35 5 30 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/><path d="M75 15 Q85 5 90 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/><circle cx="45" cy="35" r="6" fill="#050810"/><circle cx="75" cy="35" r="6" fill="#050810"/><circle cx="46" cy="34" r="2.5" fill="#00e5cc"/><circle cx="76" cy="34" r="2.5" fill="#00e5cc"/></svg>
-        <h2 class="welcome-heading">Welcome to OpenClaw</h2>
-        <p class="welcome-sub">Your personal AI assistant for Telegram, Discord, Slack, and more</p>
+        <h2 class="welcome-heading" data-i18n="step1.heading">Welcome to OpenClaw</h2>
+        <p class="welcome-sub" data-i18n="step1.subtitle">Your personal AI assistant for Telegram, Discord, Slack, and more</p>
 
         <ul class="welcome-steps" style="text-align: left; max-width: 380px; margin: 0 auto 24px;">
-          <li><span class="step-icon">1</span> Connect an AI provider</li>
-          <li><span class="step-icon">2</span> Add messaging channels</li>
-          <li><span class="step-icon">3</span> Pick skills</li>
-          <li><span class="step-icon">4</span> Deploy and start chatting</li>
+          <li><span class="step-icon">1</span> <span data-i18n="step1.list1">Connect an AI provider</span></li>
+          <li><span class="step-icon">2</span> <span data-i18n="step1.list2">Add messaging channels</span></li>
+          <li><span class="step-icon">3</span> <span data-i18n="step1.list3">Pick skills</span></li>
+          <li><span class="step-icon">4</span> <span data-i18n="step1.list4">Deploy and start chatting</span></li>
         </ul>
 
         <div class="before-section" style="text-align: left;">
-          <h3>Before you begin</h3>
-          <p style="color: var(--muted); font-size: 13px; margin: 0 0 10px 0;">You'll need an API key from at least one provider:</p>
+          <h3 data-i18n="step1.beforeTitle">Before you begin</h3>
+          <p style="color: var(--muted); font-size: 13px; margin: 0 0 10px 0;" data-i18n="step1.beforeDesc">You'll need an API key from at least one provider:</p>
           <div class="key-links">
             <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="key-link">Anthropic</a>
             <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" class="key-link">OpenAI</a>
             <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="key-link">Google Gemini</a>
             <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" class="key-link">OpenRouter</a>
-            <span class="key-link" style="cursor: default; color: var(--muted); border-color: var(--border);">+ 8 more providers</span>
+            <span class="key-link" style="cursor: default; color: var(--muted); border-color: var(--border);" data-i18n="step1.moreProviders">+ 8 more providers</span>
           </div>
         </div>
       </div>
       <div class="wizard-nav">
         <div></div>
-        <button class="btn-primary" onclick="goToStep(2)">Get Started &rarr;</button>
+        <button class="btn-primary" onclick="goToStep(2)" data-i18n="step1.getStarted">Get Started &rarr;</button>
       </div>
     </div>
 
@@ -981,28 +1095,28 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
     <div class="step-panel" id="step-2">
       <div class="card">
         <div class="form-group">
-          <label class="form-label">Select your AI provider</label>
-          <h4 class="provider-category-label">Popular</h4>
+          <label class="form-label" data-i18n="step2.selectProvider">Select your AI provider</label>
+          <h4 class="provider-category-label" data-i18n="step2.popular">Popular</h4>
           <div class="provider-grid" id="provider-grid-popular"></div>
-          <h4 class="provider-category-label">More Providers</h4>
+          <h4 class="provider-category-label" data-i18n="step2.moreProviders">More Providers</h4>
           <div class="provider-grid" id="provider-grid-more"></div>
         </div>
 
         <div class="form-group" id="auth-methods-group" style="display: none;">
           <div class="auth-methods">
-            <label class="auth-methods-label">Authentication Method</label>
+            <label class="auth-methods-label" data-i18n="step2.authMethod">Authentication Method</label>
             <div class="radio-group" id="auth-radio-group"></div>
           </div>
         </div>
 
         <div class="form-group" id="secret-group" style="display: none;">
-          <label class="form-label" for="secret-input" id="secret-label">API Key</label>
-          <input id="secret-input" type="password" class="form-input" placeholder="Enter your key or token..."/>
-          <p class="form-hint" id="secret-hint">Your key is sent directly to OpenClaw and never stored by this UI.</p>
+          <label class="form-label" for="secret-input" id="secret-label" data-i18n="step2.apiKey">API Key</label>
+          <input id="secret-input" type="password" class="form-input" data-i18n-placeholder="step2.apiKeyPlaceholder" placeholder="Enter your key or token..."/>
+          <p class="form-hint" id="secret-hint" data-i18n="step2.apiKeyHint">Your key is sent directly to OpenClaw and never stored by this UI.</p>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="flow-select">Agent Persona (optional)</label>
+          <label class="form-label" for="flow-select" data-i18n="step2.persona">Agent Persona (optional)</label>
           <select id="flow-select" class="form-select">
             <option value="">Default</option>
             <option value="assistant">Assistant</option>
@@ -1014,48 +1128,48 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         <div id="step2-error" class="inline-error"></div>
       </div>
       <div class="wizard-nav">
-        <button class="btn-secondary" onclick="goToStep(1)">&larr; Back</button>
-        <button class="btn-primary" onclick="validateAndGoToStep(3)">Next: Channels &rarr;</button>
+        <button class="btn-secondary" onclick="goToStep(1)" data-i18n="nav.back">&larr; Back</button>
+        <button class="btn-primary" onclick="validateAndGoToStep(3)" data-i18n="step2.next">Next: Channels &rarr;</button>
       </div>
     </div>
 
     <!-- ===== Step 3: Channels ===== -->
     <div class="step-panel" id="step-3">
       <div class="card">
-        <p class="channels-desc">Optionally connect messaging platforms. You can add channels later from the Management Panel.</p>
+        <p class="channels-desc" data-i18n="step3.desc">Optionally connect messaging platforms. You can add channels later from the Management Panel.</p>
 
         <div class="channel-cards" id="channel-cards-container"></div>
       </div>
       <div class="wizard-nav">
-        <button class="btn-secondary" onclick="goToStep(2)">&larr; Back</button>
-        <button class="btn-primary" onclick="goToStep(4)">Next: Skills &rarr;</button>
+        <button class="btn-secondary" onclick="goToStep(2)" data-i18n="nav.back">&larr; Back</button>
+        <button class="btn-primary" onclick="goToStep(4)" data-i18n="step3.next">Next: Skills &rarr;</button>
       </div>
     </div>
 
     <!-- ===== Step 4: Skills ===== -->
     <div class="step-panel" id="step-4">
       <div class="card">
-        <p class="skills-desc">Choose skills to enhance your assistant. You can add more later.</p>
+        <p class="skills-desc" data-i18n="step4.desc">Choose skills to enhance your assistant. You can add more later.</p>
 
-        <h4 class="channel-category-label">Default Skills</h4>
-        <input type="text" class="skill-search" id="default-skill-search" placeholder="Search skills..." />
+        <h4 class="channel-category-label" data-i18n="step4.defaultSkills">Default Skills</h4>
+        <input type="text" class="skill-search" id="default-skill-search" data-i18n-placeholder="step4.searchPlaceholder" placeholder="Search skills..." />
         <div class="skill-filters" id="default-skill-filters"></div>
         <div class="skill-grid" id="skill-grid-default"></div>
-        <p class="skill-empty-state" id="default-skill-empty">No skills match your search.</p>
+        <p class="skill-empty-state" id="default-skill-empty" data-i18n="step4.noMatch">No skills match your search.</p>
 
         <div class="skill-section-header" style="margin-top: 24px;">
-          <h4 class="channel-category-label" style="margin: 0;">Build with Claude Skills</h4>
-          <a href="https://buildwithclaude.com/skills" target="_blank" rel="noopener">Browse all &rarr;</a>
+          <h4 class="channel-category-label" style="margin: 0;" data-i18n="step4.bwcTitle">Build with Claude Skills</h4>
+          <a href="https://buildwithclaude.com/skills" target="_blank" rel="noopener" data-i18n="step4.bwcBrowse">Browse all &rarr;</a>
         </div>
-        <p id="bwc-loading" style="color: var(--muted); font-size: 13px;">Loading skills...</p>
-        <input type="text" class="skill-search" id="bwc-skill-search" placeholder="Search skills..." style="display: none;" />
+        <p id="bwc-loading" style="color: var(--muted); font-size: 13px;" data-i18n="step4.bwcLoading">Loading skills...</p>
+        <input type="text" class="skill-search" id="bwc-skill-search" data-i18n-placeholder="step4.searchPlaceholder" placeholder="Search skills..." style="display: none;" />
         <div class="skill-filters" id="bwc-skill-filters"></div>
         <div class="skill-grid" id="skill-grid-bwc"></div>
-        <p class="skill-empty-state" id="bwc-skill-empty">No skills match your search.</p>
+        <p class="skill-empty-state" id="bwc-skill-empty" data-i18n="step4.noMatch">No skills match your search.</p>
       </div>
       <div class="wizard-nav">
-        <button class="btn-secondary" onclick="goToStep(3)">&larr; Back</button>
-        <button class="btn-primary" onclick="goToStep(5)">Next: Deploy &rarr;</button>
+        <button class="btn-secondary" onclick="goToStep(3)" data-i18n="nav.back">&larr; Back</button>
+        <button class="btn-primary" onclick="goToStep(5)" data-i18n="step4.next">Next: Deploy &rarr;</button>
       </div>
     </div>
 
@@ -1064,28 +1178,28 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       <div class="card">
         <div id="deploy-area">
           <div class="review-summary" id="review-summary"></div>
-          <button class="btn-deploy" id="deploy-btn" onclick="deploy()">Deploy OpenClaw</button>
+          <button class="btn-deploy" id="deploy-btn" onclick="deploy()" data-i18n="step5.deployBtn">Deploy OpenClaw</button>
         </div>
 
         <div class="deploy-progress" id="deploy-progress">
           <div class="deploy-spinner" id="deploy-spinner"></div>
-          <div class="deploy-status" id="deploy-status">Deploying...</div>
+          <div class="deploy-status" id="deploy-status" data-i18n="step5.deploying">Deploying...</div>
           <pre class="deploy-log" id="deploy-log"></pre>
-          <button class="btn-primary hidden" id="retry-btn" onclick="retryDeploy()">Retry</button>
+          <button class="btn-primary hidden" id="retry-btn" onclick="retryDeploy()" data-i18n="step5.retry">Retry</button>
         </div>
 
         <div class="deploy-success" id="deploy-success">
           <div class="success-check">&#10003;</div>
-          <h2 class="success-heading">OpenClaw is running!</h2>
-          <p class="success-sub">Your AI assistant is ready to go.</p>
+          <h2 class="success-heading" data-i18n="step5.success.heading">OpenClaw is running!</h2>
+          <p class="success-sub" data-i18n="step5.success.subtitle">Your AI assistant is ready to go.</p>
           <div class="success-links">
-            <a href="/ui?password=${encodeURIComponent(password)}" class="btn btn-primary">Open Management Panel</a>
-            <a href="/openclaw" class="btn btn-secondary">Open OpenClaw Gateway Dashboard</a>
+            <a href="/ui?password=${encodeURIComponent(password)}" class="btn btn-primary" data-i18n="step5.success.openPanel">Open Management Panel</a>
+            <a href="/openclaw" class="btn btn-secondary" data-i18n="step5.success.openDashboard">Open OpenClaw Gateway Dashboard</a>
           </div>
         </div>
       </div>
       <div class="wizard-nav" id="step5-nav">
-        <button class="btn-secondary" id="step5-back" onclick="goToStep(4)">&larr; Back</button>
+        <button class="btn-secondary" id="step5-back" onclick="goToStep(4)" data-i18n="nav.back">&larr; Back</button>
         <div></div>
       </div>
     </div>
@@ -1111,6 +1225,461 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       var bwcSkillSearch = '';
       var bwcSkillsData = [];
       var BWC_POPULAR_COUNT = 6;
+
+      // ========== i18n ==========
+      var LANG_META = {
+        en:      { flag: '\uD83C\uDDEC\uD83C\uDDE7', name: 'English' },
+        'zh-TW': { flag: '\uD83C\uDDF9\uD83C\uDDFC', name: '\u7E41\u9AD4\u4E2D\u6587' },
+        'zh-CN': { flag: '\uD83C\uDDE8\uD83C\uDDF3', name: '\u7B80\u4F53\u4E2D\u6587' },
+        ja:      { flag: '\uD83C\uDDEF\uD83C\uDDF5', name: '\u65E5\u672C\u8A9E' },
+        ko:      { flag: '\uD83C\uDDF0\uD83C\uDDF7', name: '\uD55C\uAD6D\uC5B4' }
+      };
+      var currentLang = 'en';
+
+      var TRANSLATIONS = {
+        en: {
+          'pageTitle': 'OpenClaw Setup',
+          'configured.title': 'OpenClaw is already configured',
+          'configured.openPanel': 'Open Management Panel',
+          'configured.openDashboard': 'Open OpenClaw Gateway Dashboard',
+          'configured.reconfigure': 'Reconfigure from scratch',
+          'configured.confirmReset': 'This will delete the current configuration and stop the gateway. Are you sure?',
+          'configured.resetFailed': 'Reset failed: {error}',
+          'steps.welcome': 'Welcome',
+          'steps.provider': 'AI Provider',
+          'steps.channels': 'Channels',
+          'steps.skills': 'Skills',
+          'steps.deploy': 'Deploy',
+          'step1.heading': 'Welcome to OpenClaw',
+          'step1.subtitle': 'Your personal AI assistant for Telegram, Discord, Slack, and more',
+          'step1.list1': 'Connect an AI provider',
+          'step1.list2': 'Add messaging channels',
+          'step1.list3': 'Pick skills',
+          'step1.list4': 'Deploy and start chatting',
+          'step1.beforeTitle': 'Before you begin',
+          'step1.beforeDesc': "You'll need an API key from at least one provider:",
+          'step1.moreProviders': '+ 8 more providers',
+          'step1.getStarted': 'Get Started \u2192',
+          'step2.selectProvider': 'Select your AI provider',
+          'step2.popular': 'Popular',
+          'step2.moreProviders': 'More Providers',
+          'step2.authMethod': 'Authentication Method',
+          'step2.apiKey': 'API Key',
+          'step2.apiKeyPlaceholder': 'Enter your key or token...',
+          'step2.apiKeyHint': 'Your key is sent directly to OpenClaw and never stored by this UI.',
+          'step2.apiKeyHintLink': 'Get your key from ',
+          'step2.persona': 'Agent Persona (optional)',
+          'step2.next': 'Next: Channels \u2192',
+          'step2.err.noProvider': 'Please select an AI provider.',
+          'step2.err.noAuth': 'Please select an authentication method.',
+          'step2.err.noKey': 'Please enter your API key or token.',
+          'step2.err.missingFields': 'Please fill in all required fields.',
+          'step3.desc': 'Optionally connect messaging platforms. You can add channels later from the Management Panel.',
+          'step3.next': 'Next: Skills \u2192',
+          'step3.catPopular': 'Popular',
+          'step3.catMore': 'More Channels',
+          'step4.desc': 'Choose skills to enhance your assistant. You can add more later.',
+          'step4.defaultSkills': 'Default Skills',
+          'step4.searchPlaceholder': 'Search skills...',
+          'step4.noMatch': 'No skills match your search.',
+          'step4.bwcTitle': 'Build with Claude Skills',
+          'step4.bwcBrowse': 'Browse all \u2192',
+          'step4.bwcLoading': 'Loading skills...',
+          'step4.bwcEmpty': 'No skills available at the moment.',
+          'step4.bwcError': 'Could not load Build with Claude skills. You can add them later from the management panel.',
+          'step4.next': 'Next: Deploy \u2192',
+          'step4.filterPopular': 'Popular',
+          'step5.deployBtn': 'Deploy OpenClaw',
+          'step5.deploying': 'Deploying...',
+          'step5.failed': 'Deployment failed',
+          'step5.retry': 'Retry',
+          'step5.success.heading': 'OpenClaw is running!',
+          'step5.success.subtitle': 'Your AI assistant is ready to go.',
+          'step5.success.openPanel': 'Open Management Panel',
+          'step5.success.openDashboard': 'Open OpenClaw Gateway Dashboard',
+          'nav.back': '\u2190 Back',
+          'review.provider': 'Provider',
+          'review.authMethod': 'Auth Method',
+          'review.persona': 'Persona',
+          'review.channels': 'Channels',
+          'review.skills': 'Skills',
+          'review.none': 'None',
+          'review.default': 'Default',
+          'review.skillCount': '{names} ({count} selected)'
+        },
+        'zh-TW': {
+          'pageTitle': 'OpenClaw \u8A2D\u5B9A',
+          'configured.title': 'OpenClaw \u5DF2\u7D93\u8A2D\u5B9A\u5B8C\u6210',
+          'configured.openPanel': '\u958B\u555F\u7BA1\u7406\u9762\u677F',
+          'configured.openDashboard': '\u958B\u555F OpenClaw \u7DB2\u95DC\u5100\u8868\u677F',
+          'configured.reconfigure': '\u91CD\u65B0\u8A2D\u5B9A',
+          'configured.confirmReset': '\u9019\u5C07\u522A\u9664\u76EE\u524D\u7684\u8A2D\u5B9A\u4E26\u505C\u6B62\u7DB2\u95DC\u3002\u78BA\u5B9A\u8981\u7E7C\u7E8C\u55CE\uFF1F',
+          'configured.resetFailed': '\u91CD\u8A2D\u5931\u6557\uFF1A{error}',
+          'steps.welcome': '\u6B61\u8FCE',
+          'steps.provider': 'AI \u63D0\u4F9B\u8005',
+          'steps.channels': '\u983B\u9053',
+          'steps.skills': '\u6280\u80FD',
+          'steps.deploy': '\u90E8\u7F72',
+          'step1.heading': '\u6B61\u8FCE\u4F7F\u7528 OpenClaw',
+          'step1.subtitle': '\u60A8\u7684\u500B\u4EBA AI \u52A9\u7406\uFF0C\u652F\u63F4 Telegram\u3001Discord\u3001Slack \u7B49\u5E73\u53F0',
+          'step1.list1': '\u9023\u63A5 AI \u63D0\u4F9B\u8005',
+          'step1.list2': '\u65B0\u589E\u8A0A\u606F\u983B\u9053',
+          'step1.list3': '\u9078\u64C7\u6280\u80FD',
+          'step1.list4': '\u90E8\u7F72\u4E26\u958B\u59CB\u804A\u5929',
+          'step1.beforeTitle': '\u958B\u59CB\u4E4B\u524D',
+          'step1.beforeDesc': '\u60A8\u9700\u8981\u81F3\u5C11\u4E00\u500B\u63D0\u4F9B\u8005\u7684 API \u91D1\u9470\uFF1A',
+          'step1.moreProviders': '+ \u53E6\u5916 8 \u500B\u63D0\u4F9B\u8005',
+          'step1.getStarted': '\u958B\u59CB\u8A2D\u5B9A \u2192',
+          'step2.selectProvider': '\u9078\u64C7\u60A8\u7684 AI \u63D0\u4F9B\u8005',
+          'step2.popular': '\u71B1\u9580',
+          'step2.moreProviders': '\u66F4\u591A\u63D0\u4F9B\u8005',
+          'step2.authMethod': '\u9A57\u8B49\u65B9\u5F0F',
+          'step2.apiKey': 'API \u91D1\u9470',
+          'step2.apiKeyPlaceholder': '\u8F38\u5165\u60A8\u7684\u91D1\u9470\u6216\u4EE3\u5E63...',
+          'step2.apiKeyHint': '\u60A8\u7684\u91D1\u9470\u76F4\u63A5\u50B3\u9001\u5230 OpenClaw\uFF0C\u4E0D\u6703\u88AB\u6B64 UI \u5132\u5B58\u3002',
+          'step2.apiKeyHintLink': '\u5F9E\u4EE5\u4E0B\u7DB2\u7AD9\u53D6\u5F97\u91D1\u9470\uFF1A',
+          'step2.persona': '\u52A9\u7406\u89D2\u8272\uFF08\u9078\u586B\uFF09',
+          'step2.next': '\u4E0B\u4E00\u6B65\uFF1A\u983B\u9053 \u2192',
+          'step2.err.noProvider': '\u8ACB\u9078\u64C7\u4E00\u500B AI \u63D0\u4F9B\u8005\u3002',
+          'step2.err.noAuth': '\u8ACB\u9078\u64C7\u9A57\u8B49\u65B9\u5F0F\u3002',
+          'step2.err.noKey': '\u8ACB\u8F38\u5165\u60A8\u7684 API \u91D1\u9470\u6216\u4EE3\u5E63\u3002',
+          'step2.err.missingFields': '\u8ACB\u586B\u5BEB\u6240\u6709\u5FC5\u586B\u6B04\u4F4D\u3002',
+          'step3.desc': '\u53EF\u9078\u64C7\u9023\u63A5\u8A0A\u606F\u5E73\u53F0\u3002\u60A8\u53EF\u4EE5\u7A0D\u5F8C\u5F9E\u7BA1\u7406\u9762\u677F\u65B0\u589E\u983B\u9053\u3002',
+          'step3.next': '\u4E0B\u4E00\u6B65\uFF1A\u6280\u80FD \u2192',
+          'step3.catPopular': '\u71B1\u9580',
+          'step3.catMore': '\u66F4\u591A\u983B\u9053',
+          'step4.desc': '\u9078\u64C7\u6280\u80FD\u4F86\u589E\u5F37\u60A8\u7684\u52A9\u7406\u3002\u60A8\u53EF\u4EE5\u7A0D\u5F8C\u518D\u65B0\u589E\u3002',
+          'step4.defaultSkills': '\u9810\u8A2D\u6280\u80FD',
+          'step4.searchPlaceholder': '\u641C\u5C0B\u6280\u80FD...',
+          'step4.noMatch': '\u6C92\u6709\u7B26\u5408\u641C\u5C0B\u7684\u6280\u80FD\u3002',
+          'step4.bwcTitle': 'Build with Claude \u6280\u80FD',
+          'step4.bwcBrowse': '\u700F\u89BD\u5168\u90E8 \u2192',
+          'step4.bwcLoading': '\u6B63\u5728\u8F09\u5165\u6280\u80FD...',
+          'step4.bwcEmpty': '\u76EE\u524D\u6C92\u6709\u53EF\u7528\u7684\u6280\u80FD\u3002',
+          'step4.bwcError': '\u7121\u6CD5\u8F09\u5165 Build with Claude \u6280\u80FD\u3002\u60A8\u53EF\u4EE5\u7A0D\u5F8C\u5F9E\u7BA1\u7406\u9762\u677F\u65B0\u589E\u3002',
+          'step4.next': '\u4E0B\u4E00\u6B65\uFF1A\u90E8\u7F72 \u2192',
+          'step4.filterPopular': '\u71B1\u9580',
+          'step5.deployBtn': '\u90E8\u7F72 OpenClaw',
+          'step5.deploying': '\u6B63\u5728\u90E8\u7F72...',
+          'step5.failed': '\u90E8\u7F72\u5931\u6557',
+          'step5.retry': '\u91CD\u8A66',
+          'step5.success.heading': 'OpenClaw \u5DF2\u555F\u52D5\uFF01',
+          'step5.success.subtitle': '\u60A8\u7684 AI \u52A9\u7406\u5DF2\u6E96\u5099\u5C31\u7DD2\u3002',
+          'step5.success.openPanel': '\u958B\u555F\u7BA1\u7406\u9762\u677F',
+          'step5.success.openDashboard': '\u958B\u555F OpenClaw \u7DB2\u95DC\u5100\u8868\u677F',
+          'nav.back': '\u2190 \u4E0A\u4E00\u6B65',
+          'review.provider': '\u63D0\u4F9B\u8005',
+          'review.authMethod': '\u9A57\u8B49\u65B9\u5F0F',
+          'review.persona': '\u52A9\u7406\u89D2\u8272',
+          'review.channels': '\u983B\u9053',
+          'review.skills': '\u6280\u80FD',
+          'review.none': '\u7121',
+          'review.default': '\u9810\u8A2D',
+          'review.skillCount': '{names}\uFF08\u5DF2\u9078 {count} \u500B\uFF09'
+        },
+        'zh-CN': {
+          'pageTitle': 'OpenClaw \u8BBE\u7F6E',
+          'configured.title': 'OpenClaw \u5DF2\u7ECF\u8BBE\u7F6E\u5B8C\u6210',
+          'configured.openPanel': '\u6253\u5F00\u7BA1\u7406\u9762\u677F',
+          'configured.openDashboard': '\u6253\u5F00 OpenClaw \u7F51\u5173\u4EEA\u8868\u677F',
+          'configured.reconfigure': '\u91CD\u65B0\u8BBE\u7F6E',
+          'configured.confirmReset': '\u8FD9\u5C06\u5220\u9664\u5F53\u524D\u914D\u7F6E\u5E76\u505C\u6B62\u7F51\u5173\u3002\u786E\u5B9A\u8981\u7EE7\u7EED\u5417\uFF1F',
+          'configured.resetFailed': '\u91CD\u7F6E\u5931\u8D25\uFF1A{error}',
+          'steps.welcome': '\u6B22\u8FCE',
+          'steps.provider': 'AI \u63D0\u4F9B\u8005',
+          'steps.channels': '\u9891\u9053',
+          'steps.skills': '\u6280\u80FD',
+          'steps.deploy': '\u90E8\u7F72',
+          'step1.heading': '\u6B22\u8FCE\u4F7F\u7528 OpenClaw',
+          'step1.subtitle': '\u60A8\u7684\u4E2A\u4EBA AI \u52A9\u7406\uFF0C\u652F\u6301 Telegram\u3001Discord\u3001Slack \u7B49\u5E73\u53F0',
+          'step1.list1': '\u8FDE\u63A5 AI \u63D0\u4F9B\u8005',
+          'step1.list2': '\u6DFB\u52A0\u6D88\u606F\u9891\u9053',
+          'step1.list3': '\u9009\u62E9\u6280\u80FD',
+          'step1.list4': '\u90E8\u7F72\u5E76\u5F00\u59CB\u804A\u5929',
+          'step1.beforeTitle': '\u5F00\u59CB\u4E4B\u524D',
+          'step1.beforeDesc': '\u60A8\u9700\u8981\u81F3\u5C11\u4E00\u4E2A\u63D0\u4F9B\u8005\u7684 API \u5BC6\u94A5\uFF1A',
+          'step1.moreProviders': '+ \u53E6\u5916 8 \u4E2A\u63D0\u4F9B\u8005',
+          'step1.getStarted': '\u5F00\u59CB\u8BBE\u7F6E \u2192',
+          'step2.selectProvider': '\u9009\u62E9\u60A8\u7684 AI \u63D0\u4F9B\u8005',
+          'step2.popular': '\u70ED\u95E8',
+          'step2.moreProviders': '\u66F4\u591A\u63D0\u4F9B\u8005',
+          'step2.authMethod': '\u9A8C\u8BC1\u65B9\u5F0F',
+          'step2.apiKey': 'API \u5BC6\u94A5',
+          'step2.apiKeyPlaceholder': '\u8F93\u5165\u60A8\u7684\u5BC6\u94A5\u6216\u4EE4\u724C...',
+          'step2.apiKeyHint': '\u60A8\u7684\u5BC6\u94A5\u76F4\u63A5\u53D1\u9001\u5230 OpenClaw\uFF0C\u4E0D\u4F1A\u88AB\u6B64 UI \u5B58\u50A8\u3002',
+          'step2.apiKeyHintLink': '\u4ECE\u4EE5\u4E0B\u7F51\u7AD9\u83B7\u53D6\u5BC6\u94A5\uFF1A',
+          'step2.persona': '\u52A9\u7406\u89D2\u8272\uFF08\u53EF\u9009\uFF09',
+          'step2.next': '\u4E0B\u4E00\u6B65\uFF1A\u9891\u9053 \u2192',
+          'step2.err.noProvider': '\u8BF7\u9009\u62E9\u4E00\u4E2A AI \u63D0\u4F9B\u8005\u3002',
+          'step2.err.noAuth': '\u8BF7\u9009\u62E9\u9A8C\u8BC1\u65B9\u5F0F\u3002',
+          'step2.err.noKey': '\u8BF7\u8F93\u5165\u60A8\u7684 API \u5BC6\u94A5\u6216\u4EE4\u724C\u3002',
+          'step2.err.missingFields': '\u8BF7\u586B\u5199\u6240\u6709\u5FC5\u586B\u5B57\u6BB5\u3002',
+          'step3.desc': '\u53EF\u9009\u62E9\u8FDE\u63A5\u6D88\u606F\u5E73\u53F0\u3002\u60A8\u53EF\u4EE5\u7A0D\u540E\u4ECE\u7BA1\u7406\u9762\u677F\u6DFB\u52A0\u9891\u9053\u3002',
+          'step3.next': '\u4E0B\u4E00\u6B65\uFF1A\u6280\u80FD \u2192',
+          'step3.catPopular': '\u70ED\u95E8',
+          'step3.catMore': '\u66F4\u591A\u9891\u9053',
+          'step4.desc': '\u9009\u62E9\u6280\u80FD\u6765\u589E\u5F3A\u60A8\u7684\u52A9\u7406\u3002\u60A8\u53EF\u4EE5\u7A0D\u540E\u518D\u6DFB\u52A0\u3002',
+          'step4.defaultSkills': '\u9ED8\u8BA4\u6280\u80FD',
+          'step4.searchPlaceholder': '\u641C\u7D22\u6280\u80FD...',
+          'step4.noMatch': '\u6CA1\u6709\u7B26\u5408\u641C\u7D22\u7684\u6280\u80FD\u3002',
+          'step4.bwcTitle': 'Build with Claude \u6280\u80FD',
+          'step4.bwcBrowse': '\u6D4F\u89C8\u5168\u90E8 \u2192',
+          'step4.bwcLoading': '\u6B63\u5728\u52A0\u8F7D\u6280\u80FD...',
+          'step4.bwcEmpty': '\u76EE\u524D\u6CA1\u6709\u53EF\u7528\u7684\u6280\u80FD\u3002',
+          'step4.bwcError': '\u65E0\u6CD5\u52A0\u8F7D Build with Claude \u6280\u80FD\u3002\u60A8\u53EF\u4EE5\u7A0D\u540E\u4ECE\u7BA1\u7406\u9762\u677F\u6DFB\u52A0\u3002',
+          'step4.next': '\u4E0B\u4E00\u6B65\uFF1A\u90E8\u7F72 \u2192',
+          'step4.filterPopular': '\u70ED\u95E8',
+          'step5.deployBtn': '\u90E8\u7F72 OpenClaw',
+          'step5.deploying': '\u6B63\u5728\u90E8\u7F72...',
+          'step5.failed': '\u90E8\u7F72\u5931\u8D25',
+          'step5.retry': '\u91CD\u8BD5',
+          'step5.success.heading': 'OpenClaw \u5DF2\u542F\u52A8\uFF01',
+          'step5.success.subtitle': '\u60A8\u7684 AI \u52A9\u7406\u5DF2\u51C6\u5907\u5C31\u7EEA\u3002',
+          'step5.success.openPanel': '\u6253\u5F00\u7BA1\u7406\u9762\u677F',
+          'step5.success.openDashboard': '\u6253\u5F00 OpenClaw \u7F51\u5173\u4EEA\u8868\u677F',
+          'nav.back': '\u2190 \u4E0A\u4E00\u6B65',
+          'review.provider': '\u63D0\u4F9B\u8005',
+          'review.authMethod': '\u9A8C\u8BC1\u65B9\u5F0F',
+          'review.persona': '\u52A9\u7406\u89D2\u8272',
+          'review.channels': '\u9891\u9053',
+          'review.skills': '\u6280\u80FD',
+          'review.none': '\u65E0',
+          'review.default': '\u9ED8\u8BA4',
+          'review.skillCount': '{names}\uFF08\u5DF2\u9009 {count} \u4E2A\uFF09'
+        },
+        ja: {
+          'pageTitle': 'OpenClaw \u30BB\u30C3\u30C8\u30A2\u30C3\u30D7',
+          'configured.title': 'OpenClaw \u306F\u8A2D\u5B9A\u6E08\u307F\u3067\u3059',
+          'configured.openPanel': '\u7BA1\u7406\u30D1\u30CD\u30EB\u3092\u958B\u304F',
+          'configured.openDashboard': 'OpenClaw \u30B2\u30FC\u30C8\u30A6\u30A7\u30A4\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u3092\u958B\u304F',
+          'configured.reconfigure': '\u6700\u521D\u304B\u3089\u518D\u8A2D\u5B9A',
+          'configured.confirmReset': '\u73FE\u5728\u306E\u8A2D\u5B9A\u3092\u524A\u9664\u3057\u3001\u30B2\u30FC\u30C8\u30A6\u30A7\u30A4\u3092\u505C\u6B62\u3057\u307E\u3059\u3002\u3088\u308D\u3057\u3044\u3067\u3059\u304B\uFF1F',
+          'configured.resetFailed': '\u30EA\u30BB\u30C3\u30C8\u5931\u6557\uFF1A{error}',
+          'steps.welcome': '\u3088\u3046\u3053\u305D',
+          'steps.provider': 'AI \u30D7\u30ED\u30D0\u30A4\u30C0',
+          'steps.channels': '\u30C1\u30E3\u30CD\u30EB',
+          'steps.skills': '\u30B9\u30AD\u30EB',
+          'steps.deploy': '\u30C7\u30D7\u30ED\u30A4',
+          'step1.heading': 'OpenClaw \u3078\u3088\u3046\u3053\u305D',
+          'step1.subtitle': 'Telegram\u3001Discord\u3001Slack \u306A\u3069\u306B\u5BFE\u5FDC\u3057\u305F\u500B\u4EBA\u7528 AI \u30A2\u30B7\u30B9\u30BF\u30F3\u30C8',
+          'step1.list1': 'AI \u30D7\u30ED\u30D0\u30A4\u30C0\u3092\u63A5\u7D9A',
+          'step1.list2': '\u30E1\u30C3\u30BB\u30FC\u30B8\u30C1\u30E3\u30CD\u30EB\u3092\u8FFD\u52A0',
+          'step1.list3': '\u30B9\u30AD\u30EB\u3092\u9078\u629E',
+          'step1.list4': '\u30C7\u30D7\u30ED\u30A4\u3057\u3066\u30C1\u30E3\u30C3\u30C8\u958B\u59CB',
+          'step1.beforeTitle': '\u59CB\u3081\u308B\u524D\u306B',
+          'step1.beforeDesc': '\u5C11\u306A\u304F\u3068\u3082 1 \u3064\u306E\u30D7\u30ED\u30D0\u30A4\u30C0\u306E API \u30AD\u30FC\u304C\u5FC5\u8981\u3067\u3059\uFF1A',
+          'step1.moreProviders': '+ \u4ED6 8 \u30D7\u30ED\u30D0\u30A4\u30C0',
+          'step1.getStarted': '\u59CB\u3081\u308B \u2192',
+          'step2.selectProvider': 'AI \u30D7\u30ED\u30D0\u30A4\u30C0\u3092\u9078\u629E',
+          'step2.popular': '\u4EBA\u6C17',
+          'step2.moreProviders': '\u305D\u306E\u4ED6\u306E\u30D7\u30ED\u30D0\u30A4\u30C0',
+          'step2.authMethod': '\u8A8D\u8A3C\u65B9\u6CD5',
+          'step2.apiKey': 'API \u30AD\u30FC',
+          'step2.apiKeyPlaceholder': '\u30AD\u30FC\u307E\u305F\u306F\u30C8\u30FC\u30AF\u30F3\u3092\u5165\u529B...',
+          'step2.apiKeyHint': '\u30AD\u30FC\u306F OpenClaw \u306B\u76F4\u63A5\u9001\u4FE1\u3055\u308C\u3001\u3053\u306E UI \u306B\u306F\u4FDD\u5B58\u3055\u308C\u307E\u305B\u3093\u3002',
+          'step2.apiKeyHintLink': '\u4EE5\u4E0B\u3067\u30AD\u30FC\u3092\u53D6\u5F97\uFF1A',
+          'step2.persona': '\u30A8\u30FC\u30B8\u30A7\u30F3\u30C8\u30DA\u30EB\u30BD\u30CA\uFF08\u4EFB\u610F\uFF09',
+          'step2.next': '\u6B21\u3078\uFF1A\u30C1\u30E3\u30CD\u30EB \u2192',
+          'step2.err.noProvider': 'AI \u30D7\u30ED\u30D0\u30A4\u30C0\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
+          'step2.err.noAuth': '\u8A8D\u8A3C\u65B9\u6CD5\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
+          'step2.err.noKey': 'API \u30AD\u30FC\u307E\u305F\u306F\u30C8\u30FC\u30AF\u30F3\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
+          'step2.err.missingFields': '\u3059\u3079\u3066\u306E\u5FC5\u9808\u9805\u76EE\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002',
+          'step3.desc': '\u30E1\u30C3\u30BB\u30FC\u30B8\u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0\u306E\u63A5\u7D9A\u306F\u4EFB\u610F\u3067\u3059\u3002\u5F8C\u3067\u7BA1\u7406\u30D1\u30CD\u30EB\u304B\u3089\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002',
+          'step3.next': '\u6B21\u3078\uFF1A\u30B9\u30AD\u30EB \u2192',
+          'step3.catPopular': '\u4EBA\u6C17',
+          'step3.catMore': '\u305D\u306E\u4ED6\u306E\u30C1\u30E3\u30CD\u30EB',
+          'step4.desc': '\u30A2\u30B7\u30B9\u30BF\u30F3\u30C8\u3092\u5F37\u5316\u3059\u308B\u30B9\u30AD\u30EB\u3092\u9078\u629E\u3002\u5F8C\u3067\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002',
+          'step4.defaultSkills': '\u30C7\u30D5\u30A9\u30EB\u30C8\u30B9\u30AD\u30EB',
+          'step4.searchPlaceholder': '\u30B9\u30AD\u30EB\u3092\u691C\u7D22...',
+          'step4.noMatch': '\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u30B9\u30AD\u30EB\u304C\u3042\u308A\u307E\u305B\u3093\u3002',
+          'step4.bwcTitle': 'Build with Claude \u30B9\u30AD\u30EB',
+          'step4.bwcBrowse': '\u3059\u3079\u3066\u898B\u308B \u2192',
+          'step4.bwcLoading': '\u30B9\u30AD\u30EB\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D...',
+          'step4.bwcEmpty': '\u73FE\u5728\u5229\u7528\u53EF\u80FD\u306A\u30B9\u30AD\u30EB\u306F\u3042\u308A\u307E\u305B\u3093\u3002',
+          'step4.bwcError': 'Build with Claude \u30B9\u30AD\u30EB\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u5F8C\u3067\u7BA1\u7406\u30D1\u30CD\u30EB\u304B\u3089\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002',
+          'step4.next': '\u6B21\u3078\uFF1A\u30C7\u30D7\u30ED\u30A4 \u2192',
+          'step4.filterPopular': '\u4EBA\u6C17',
+          'step5.deployBtn': 'OpenClaw \u3092\u30C7\u30D7\u30ED\u30A4',
+          'step5.deploying': '\u30C7\u30D7\u30ED\u30A4\u4E2D...',
+          'step5.failed': '\u30C7\u30D7\u30ED\u30A4\u5931\u6557',
+          'step5.retry': '\u30EA\u30C8\u30E9\u30A4',
+          'step5.success.heading': 'OpenClaw \u304C\u8D77\u52D5\u3057\u307E\u3057\u305F\uFF01',
+          'step5.success.subtitle': 'AI \u30A2\u30B7\u30B9\u30BF\u30F3\u30C8\u306E\u6E96\u5099\u304C\u3067\u304D\u307E\u3057\u305F\u3002',
+          'step5.success.openPanel': '\u7BA1\u7406\u30D1\u30CD\u30EB\u3092\u958B\u304F',
+          'step5.success.openDashboard': 'OpenClaw \u30B2\u30FC\u30C8\u30A6\u30A7\u30A4\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u3092\u958B\u304F',
+          'nav.back': '\u2190 \u623B\u308B',
+          'review.provider': '\u30D7\u30ED\u30D0\u30A4\u30C0',
+          'review.authMethod': '\u8A8D\u8A3C\u65B9\u6CD5',
+          'review.persona': '\u30DA\u30EB\u30BD\u30CA',
+          'review.channels': '\u30C1\u30E3\u30CD\u30EB',
+          'review.skills': '\u30B9\u30AD\u30EB',
+          'review.none': '\u306A\u3057',
+          'review.default': '\u30C7\u30D5\u30A9\u30EB\u30C8',
+          'review.skillCount': '{names}\uFF08{count} \u500B\u9078\u629E\uFF09'
+        },
+        ko: {
+          'pageTitle': 'OpenClaw \uC124\uC815',
+          'configured.title': 'OpenClaw\uC774 \uC774\uBBF8 \uC124\uC815\uB418\uC5C8\uC2B5\uB2C8\uB2E4',
+          'configured.openPanel': '\uAD00\uB9AC \uD328\uB110 \uC5F4\uAE30',
+          'configured.openDashboard': 'OpenClaw \uAC8C\uC774\uD2B8\uC6E8\uC774 \uB300\uC2DC\uBCF4\uB4DC \uC5F4\uAE30',
+          'configured.reconfigure': '\uCC98\uC74C\uBD80\uD130 \uC7AC\uC124\uC815',
+          'configured.confirmReset': '\uD604\uC7AC \uC124\uC815\uC744 \uC0AD\uC81C\uD558\uACE0 \uAC8C\uC774\uD2B8\uC6E8\uC774\uB97C \uC911\uC9C0\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
+          'configured.resetFailed': '\uC7AC\uC124\uC815 \uC2E4\uD328: {error}',
+          'steps.welcome': '\uD658\uC601',
+          'steps.provider': 'AI \uC81C\uACF5\uC790',
+          'steps.channels': '\uCC44\uB110',
+          'steps.skills': '\uC2A4\uD0AC',
+          'steps.deploy': '\uBC30\uD3EC',
+          'step1.heading': 'OpenClaw\uC5D0 \uC624\uC2E0 \uAC83\uC744 \uD658\uC601\uD569\uB2C8\uB2E4',
+          'step1.subtitle': 'Telegram, Discord, Slack \uB4F1\uC744 \uC9C0\uC6D0\uD558\uB294 \uAC1C\uC778 AI \uC5B4\uC2DC\uC2A4\uD134\uD2B8',
+          'step1.list1': 'AI \uC81C\uACF5\uC790 \uC5F0\uACB0',
+          'step1.list2': '\uBA54\uC2DC\uC9C0 \uCC44\uB110 \uCD94\uAC00',
+          'step1.list3': '\uC2A4\uD0AC \uC120\uD0DD',
+          'step1.list4': '\uBC30\uD3EC\uD558\uACE0 \uCC44\uD305 \uC2DC\uC791',
+          'step1.beforeTitle': '\uC2DC\uC791\uD558\uAE30 \uC804\uC5D0',
+          'step1.beforeDesc': '\uCD5C\uC18C \uD558\uB098\uC758 \uC81C\uACF5\uC790 API \uD0A4\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4:',
+          'step1.moreProviders': '+ 8\uAC1C \uCD94\uAC00 \uC81C\uACF5\uC790',
+          'step1.getStarted': '\uC2DC\uC791\uD558\uAE30 \u2192',
+          'step2.selectProvider': 'AI \uC81C\uACF5\uC790\uB97C \uC120\uD0DD\uD558\uC138\uC694',
+          'step2.popular': '\uC778\uAE30',
+          'step2.moreProviders': '\uAE30\uD0C0 \uC81C\uACF5\uC790',
+          'step2.authMethod': '\uC778\uC99D \uBC29\uBC95',
+          'step2.apiKey': 'API \uD0A4',
+          'step2.apiKeyPlaceholder': '\uD0A4 \uB610\uB294 \uD1A0\uD070\uC744 \uC785\uB825\uD558\uC138\uC694...',
+          'step2.apiKeyHint': '\uD0A4\uB294 OpenClaw\uC5D0 \uC9C1\uC811 \uC804\uC1A1\uB418\uBA70 \uC774 UI\uC5D0 \uC800\uC7A5\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.',
+          'step2.apiKeyHintLink': '\uB2E4\uC74C\uC5D0\uC11C \uD0A4\uB97C \uBC1B\uC73C\uC138\uC694: ',
+          'step2.persona': '\uC5D0\uC774\uC804\uD2B8 \uD398\uB974\uC18C\uB098 (\uC120\uD0DD)',
+          'step2.next': '\uB2E4\uC74C: \uCC44\uB110 \u2192',
+          'step2.err.noProvider': 'AI \uC81C\uACF5\uC790\uB97C \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.',
+          'step2.err.noAuth': '\uC778\uC99D \uBC29\uBC95\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.',
+          'step2.err.noKey': 'API \uD0A4 \uB610\uB294 \uD1A0\uD070\uC744 \uC785\uB825\uD574 \uC8FC\uC138\uC694.',
+          'step2.err.missingFields': '\uBAA8\uB4E0 \uD544\uC218 \uD56D\uBAA9\uC744 \uC785\uB825\uD574 \uC8FC\uC138\uC694.',
+          'step3.desc': '\uBA54\uC2DC\uC9C0 \uD50C\uB7AB\uD3FC \uC5F0\uACB0\uC740 \uC120\uD0DD \uC0AC\uD56D\uC785\uB2C8\uB2E4. \uB098\uC911\uC5D0 \uAD00\uB9AC \uD328\uB110\uC5D0\uC11C \uCD94\uAC00\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.',
+          'step3.next': '\uB2E4\uC74C: \uC2A4\uD0AC \u2192',
+          'step3.catPopular': '\uC778\uAE30',
+          'step3.catMore': '\uAE30\uD0C0 \uCC44\uB110',
+          'step4.desc': '\uC5B4\uC2DC\uC2A4\uD134\uD2B8\uB97C \uAC15\uD654\uD560 \uC2A4\uD0AC\uC744 \uC120\uD0DD\uD558\uC138\uC694. \uB098\uC911\uC5D0 \uCD94\uAC00\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.',
+          'step4.defaultSkills': '\uAE30\uBCF8 \uC2A4\uD0AC',
+          'step4.searchPlaceholder': '\uC2A4\uD0AC \uAC80\uC0C9...',
+          'step4.noMatch': '\uAC80\uC0C9\uACFC \uC77C\uCE58\uD558\uB294 \uC2A4\uD0AC\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
+          'step4.bwcTitle': 'Build with Claude \uC2A4\uD0AC',
+          'step4.bwcBrowse': '\uBAA8\uB450 \uBCF4\uAE30 \u2192',
+          'step4.bwcLoading': '\uC2A4\uD0AC \uB85C\uB529 \uC911...',
+          'step4.bwcEmpty': '\uD604\uC7AC \uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC2A4\uD0AC\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
+          'step4.bwcError': 'Build with Claude \uC2A4\uD0AC\uC744 \uB85C\uB4DC\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uB098\uC911\uC5D0 \uAD00\uB9AC \uD328\uB110\uC5D0\uC11C \uCD94\uAC00\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.',
+          'step4.next': '\uB2E4\uC74C: \uBC30\uD3EC \u2192',
+          'step4.filterPopular': '\uC778\uAE30',
+          'step5.deployBtn': 'OpenClaw \uBC30\uD3EC',
+          'step5.deploying': '\uBC30\uD3EC \uC911...',
+          'step5.failed': '\uBC30\uD3EC \uC2E4\uD328',
+          'step5.retry': '\uC7AC\uC2DC\uB3C4',
+          'step5.success.heading': 'OpenClaw\uC774 \uC2E4\uD589 \uC911\uC785\uB2C8\uB2E4!',
+          'step5.success.subtitle': 'AI \uC5B4\uC2DC\uC2A4\uD134\uD2B8\uAC00 \uC900\uBE44\uB418\uC5C8\uC2B5\uB2C8\uB2E4.',
+          'step5.success.openPanel': '\uAD00\uB9AC \uD328\uB110 \uC5F4\uAE30',
+          'step5.success.openDashboard': 'OpenClaw \uAC8C\uC774\uD2B8\uC6E8\uC774 \uB300\uC2DC\uBCF4\uB4DC \uC5F4\uAE30',
+          'nav.back': '\u2190 \uB4A4\uB85C',
+          'review.provider': '\uC81C\uACF5\uC790',
+          'review.authMethod': '\uC778\uC99D \uBC29\uBC95',
+          'review.persona': '\uD398\uB974\uC18C\uB098',
+          'review.channels': '\uCC44\uB110',
+          'review.skills': '\uC2A4\uD0AC',
+          'review.none': '\uC5C6\uC74C',
+          'review.default': '\uAE30\uBCF8\uAC12',
+          'review.skillCount': '{names} ({count}\uAC1C \uC120\uD0DD)'
+        }
+      };
+
+      function t(key, params) {
+        var dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+        var str = dict[key] || TRANSLATIONS.en[key] || key;
+        if (params) {
+          Object.keys(params).forEach(function(k) {
+            str = str.replace('{' + k + '}', params[k]);
+          });
+        }
+        return str;
+      }
+
+      function applyTranslations() {
+        document.title = t('pageTitle');
+        var els = document.querySelectorAll('[data-i18n]');
+        for (var i = 0; i < els.length; i++) {
+          els[i].textContent = t(els[i].getAttribute('data-i18n'));
+        }
+        var phEls = document.querySelectorAll('[data-i18n-placeholder]');
+        for (var j = 0; j < phEls.length; j++) {
+          phEls[j].placeholder = t(phEls[j].getAttribute('data-i18n-placeholder'));
+        }
+      }
+
+      function detectBrowserLang() {
+        var langs = navigator.languages || [navigator.language || 'en'];
+        for (var i = 0; i < langs.length; i++) {
+          var tag = langs[i].toLowerCase();
+          if (tag === 'zh-tw' || tag === 'zh-hant' || tag === 'zh-hk') return 'zh-TW';
+          if (tag === 'zh-cn' || tag === 'zh-hans' || tag === 'zh') return 'zh-CN';
+          if (tag.indexOf('ja') === 0) return 'ja';
+          if (tag.indexOf('ko') === 0) return 'ko';
+          if (tag.indexOf('en') === 0) return 'en';
+        }
+        return 'en';
+      }
+
+      function initLanguage() {
+        var stored = null;
+        try { stored = localStorage.getItem('openclaw_lang'); } catch (e) {}
+        currentLang = (stored && TRANSLATIONS[stored]) ? stored : detectBrowserLang();
+      }
+
+      function updateLangSelectorUI() {
+        var meta = LANG_META[currentLang] || LANG_META.en;
+        var ids = ['wizard', 'configured'];
+        ids.forEach(function(prefix) {
+          var flagEl = document.getElementById(prefix + '-lang-flag');
+          var nameEl = document.getElementById(prefix + '-lang-name');
+          if (flagEl) flagEl.textContent = meta.flag;
+          if (nameEl) nameEl.textContent = meta.name;
+        });
+        var checks = document.querySelectorAll('.lang-check');
+        for (var i = 0; i < checks.length; i++) {
+          checks[i].classList.toggle('active', checks[i].getAttribute('data-lang') === currentLang);
+        }
+      }
+
+      window.setLanguage = function(lang) {
+        if (!TRANSLATIONS[lang]) return;
+        currentLang = lang;
+        try { localStorage.setItem('openclaw_lang', lang); } catch (e) {}
+        updateLangSelectorUI();
+        applyTranslations();
+        // Re-render dynamic content
+        buildProviderGrid();
+        buildChannelCards();
+        buildSkillGrid();
+        if (bwcSkillsData.length > 0) renderBwcSkills();
+        if (currentStep === 5) populateReview();
+        // Close dropdowns
+        var dds = document.querySelectorAll('.lang-dropdown');
+        for (var i = 0; i < dds.length; i++) dds[i].classList.remove('open');
+      };
+
+      window.toggleLangDropdown = function(id) {
+        var dd = document.getElementById(id);
+        if (!dd) return;
+        var isOpen = dd.classList.contains('open');
+        // Close all dropdowns first
+        var dds = document.querySelectorAll('.lang-dropdown');
+        for (var i = 0; i < dds.length; i++) dds[i].classList.remove('open');
+        if (!isOpen) dd.classList.add('open');
+      };
+
+      // Close dropdown on outside click
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.lang-selector') && !e.target.closest('.configured-lang-selector')) {
+          var dds = document.querySelectorAll('.lang-dropdown');
+          for (var i = 0; i < dds.length; i++) dds[i].classList.remove('open');
+        }
+      });
 
       var AVAILABLE_SKILLS = [
         { slug: 'weather', emoji: '\\u{1F324}\\uFE0F', name: 'Weather', desc: 'Get weather and forecasts, no API key needed', category: 'Utilities', popular: true },
@@ -1150,9 +1719,10 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         'Together AI': 'https://api.together.xyz/settings/api-keys',
         'Vercel AI Gateway': 'https://vercel.com/docs/ai-gateway',
         'Moonshot AI': 'https://platform.moonshot.cn/console/api-keys',
-        'Kimi Coding': 'https://platform.moonshot.cn/console/api-keys',
-        'Z.AI (GLM)': 'https://open.bigmodel.cn/usercenter/apikeys',
+        'Kimi Coding': 'https://platform.kimi.ai/console/api-keys',
+        'Z.AI (GLM)': 'https://open.z.ai/usercenter/apikeys',
         'Cloudflare AI Gateway': 'https://dash.cloudflare.com/',
+        'MiniMax': 'https://platform.minimax.io',
         'Ollama': null
       };
 
@@ -1211,19 +1781,28 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         }
       };
 
+      function isNoSecretChoice() {
+        if (selectedProviderIndex === null || selectedAuthChoice === null) return false;
+        var opts = authGroups[selectedProviderIndex].options;
+        for (var i = 0; i < opts.length; i++) {
+          if (opts[i].value === selectedAuthChoice) return !!(opts[i].noSecret);
+        }
+        return false;
+      }
+
       window.validateAndGoToStep = function(n) {
         if (selectedProviderIndex === null) {
-          showStep2Error('Please select an AI provider.');
+          showStep2Error(t('step2.err.noProvider'));
           return;
         }
         if (selectedAuthChoice === null) {
-          showStep2Error('Please select an authentication method.');
+          showStep2Error(t('step2.err.noAuth'));
           return;
         }
-        if (selectedAuthChoice !== 'ollama') {
+        if (selectedAuthChoice !== 'ollama' && !isNoSecretChoice()) {
           var secretVal = document.getElementById('secret-input').value.trim();
           if (!secretVal) {
-            showStep2Error('Please enter your API key or token.');
+            showStep2Error(t('step2.err.noKey'));
             return;
           }
         }
@@ -1231,7 +1810,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         var extraInputs = document.querySelectorAll('.extra-field-input');
         for (var k = 0; k < extraInputs.length; k++) {
           if (!extraInputs[k].value.trim()) {
-            showStep2Error('Please fill in all required fields.');
+            showStep2Error(t('step2.err.missingFields'));
             return;
           }
         }
@@ -1252,6 +1831,8 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       function buildProviderGrid() {
         var popularGrid = document.getElementById('provider-grid-popular');
         var moreGrid = document.getElementById('provider-grid-more');
+        popularGrid.textContent = '';
+        moreGrid.textContent = '';
         authGroups.forEach(function(g, idx) {
           var card = document.createElement('div');
           card.className = 'provider-card';
@@ -1289,6 +1870,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
             card.appendChild(desc);
           }
 
+          if (idx === selectedProviderIndex) card.classList.add('selected');
           var targetGrid = (g.category === 'popular') ? popularGrid : moreGrid;
           targetGrid.appendChild(card);
         });
@@ -1355,7 +1937,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           }
         }
 
-        if (selectedAuthChoice === 'ollama') {
+        if (selectedAuthChoice === 'ollama' || isNoSecretChoice()) {
           secretGroup.style.display = 'none';
         } else if (selectedAuthChoice !== null) {
           secretGroup.style.display = 'block';
@@ -1364,7 +1946,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           // Build hint text safely using DOM methods
           secretHint.textContent = '';
           if (link) {
-            secretHint.appendChild(document.createTextNode('Get your key from '));
+            secretHint.appendChild(document.createTextNode(t('step2.apiKeyHintLink')));
             var a = document.createElement('a');
             a.href = link;
             a.target = '_blank';
@@ -1372,7 +1954,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
             a.textContent = link.replace('https://', '').split('/')[0];
             secretHint.appendChild(a);
           } else {
-            secretHint.textContent = 'Your key is sent directly to OpenClaw and never stored by this UI.';
+            secretHint.textContent = t('step2.apiKeyHint');
           }
 
           // Render extra fields if the option has them
@@ -1406,7 +1988,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
             var link = providerHelpLinks[group.provider];
             secretHint.textContent = '';
             if (link) {
-              secretHint.appendChild(document.createTextNode('Get your key from '));
+              secretHint.appendChild(document.createTextNode(t('step2.apiKeyHintLink')));
               var a = document.createElement('a');
               a.href = link;
               a.target = '_blank';
@@ -1414,7 +1996,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
               a.textContent = link.replace('https://', '').split('/')[0];
               secretHint.appendChild(a);
             } else {
-              secretHint.textContent = 'Your key is sent directly to OpenClaw and never stored by this UI.';
+              secretHint.textContent = t('step2.apiKeyHint');
             }
           } else {
             secretGroup.style.display = 'none';
@@ -1423,11 +2005,22 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       }
 
       // ========== Channels ==========
-      var CATEGORY_LABELS = { popular: 'Popular', more: 'More Channels' };
+      var CATEGORY_LABEL_KEYS = { popular: 'step3.catPopular', more: 'step3.catMore' };
       var CATEGORY_ORDER = ['popular', 'more'];
 
       function buildChannelCards() {
         var container = document.getElementById('channel-cards-container');
+        // Save field values before clearing
+        var savedFieldValues = {};
+        channelGroups.forEach(function(ch) {
+          if (ch.fields) {
+            ch.fields.forEach(function(f) {
+              var inp = document.getElementById('channel-field-' + ch.name + '-' + f.id);
+              if (inp) savedFieldValues[ch.name + '-' + f.id] = inp.value;
+            });
+          }
+        });
+        container.textContent = '';
 
         CATEGORY_ORDER.forEach(function(cat) {
           var channels = channelGroups.filter(function(ch) { return ch.category === cat; });
@@ -1435,7 +2028,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
 
           var label = document.createElement('h4');
           label.className = 'channel-category-label';
-          label.textContent = CATEGORY_LABELS[cat] || cat;
+          label.textContent = t(CATEGORY_LABEL_KEYS[cat] || cat);
           container.appendChild(label);
 
           channels.forEach(function(ch) {
@@ -1552,6 +2145,23 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
 
             card.appendChild(body);
             container.appendChild(card);
+
+            // Restore enabled state
+            if (enabledChannels[ch.name]) {
+              card.classList.add('enabled');
+              var toggle = document.getElementById('toggle-' + ch.name);
+              if (toggle) toggle.checked = true;
+            }
+            // Restore field values
+            if (ch.fields) {
+              ch.fields.forEach(function(f) {
+                var key = ch.name + '-' + f.id;
+                if (savedFieldValues[key] !== undefined) {
+                  var inp = document.getElementById('channel-field-' + key);
+                  if (inp) inp.value = savedFieldValues[key];
+                }
+              });
+            }
           });
         });
       }
@@ -1628,7 +2238,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           var chip = document.createElement('span');
           chip.className = 'skill-filter-chip';
           if (activeFilter === label) chip.className += ' active';
-          chip.textContent = label;
+          chip.textContent = label === 'Popular' ? t('step4.filterPopular') : label;
           chip.onclick = function() {
             // Toggle: clicking active chip deselects (shows all)
             onSelect(activeFilter === label ? null : label);
@@ -1685,7 +2295,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
             loadingEl.style.display = 'none';
             var items = data.plugins || [];
             if (items.length === 0) {
-              loadingEl.textContent = 'No skills available at the moment.';
+              loadingEl.textContent = t('step4.bwcEmpty');
               loadingEl.style.display = 'block';
               return;
             }
@@ -1694,7 +2304,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
             renderBwcSkills();
           })
           .catch(function() {
-            loadingEl.textContent = 'Could not load Build with Claude skills. You can add them later from the management panel.';
+            loadingEl.textContent = t('step4.bwcError');
           });
       }
 
@@ -1775,7 +2385,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         }
 
         if (selectedProviderIndex !== null) {
-          addRow('Provider', authGroups[selectedProviderIndex].provider);
+          addRow(t('review.provider'), authGroups[selectedProviderIndex].provider);
         }
         if (selectedAuthChoice) {
           var authLabel = selectedAuthChoice;
@@ -1788,17 +2398,17 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
               }
             }
           }
-          addRow('Auth Method', authLabel);
+          addRow(t('review.authMethod'), authLabel);
         }
 
         var flow = document.getElementById('flow-select').value;
-        addRow('Persona', flow || 'Default');
+        addRow(t('review.persona'), flow || t('review.default'));
 
         var channelNames = [];
         channelGroups.forEach(function(ch) {
           if (enabledChannels[ch.name]) channelNames.push(ch.displayName);
         });
-        addRow('Channels', channelNames.length > 0 ? channelNames.join(', ') : 'None');
+        addRow(t('review.channels'), channelNames.length > 0 ? channelNames.join(', ') : t('review.none'));
 
         if (selectedSkills.length > 0) {
           var skillNames = selectedSkills.map(function(item) {
@@ -1812,9 +2422,9 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
             }
             return item.slug;
           });
-          addRow('Skills', skillNames.join(', ') + ' (' + selectedSkills.length + ' selected)');
+          addRow(t('review.skills'), t('review.skillCount', { names: skillNames.join(', '), count: selectedSkills.length }));
         } else {
-          addRow('Skills', 'None');
+          addRow(t('review.skills'), t('review.none'));
         }
       }
 
@@ -1835,7 +2445,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         success.style.display = 'none';
         progress.style.display = 'block';
         spinner.classList.remove('error');
-        statusEl.textContent = 'Deploying...';
+        statusEl.textContent = t('step5.deploying');
         logEl.textContent = '';
         retryBtn.classList.add('hidden');
         backBtn.disabled = true;
@@ -1862,7 +2472,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
 
         var payload = {
           authChoice: selectedAuthChoice,
-          authSecret: selectedAuthChoice !== 'ollama' ? document.getElementById('secret-input').value.trim() : '',
+          authSecret: (selectedAuthChoice !== 'ollama' && !isNoSecretChoice()) ? document.getElementById('secret-input').value.trim() : '',
           extraFieldValues: extraFieldValues,
           flow: document.getElementById('flow-select').value,
           channels: channelsPayload,
@@ -1885,7 +2495,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
             document.getElementById('step5-nav').style.display = 'none';
           } else {
             spinner.classList.add('error');
-            statusEl.textContent = 'Deployment failed';
+            statusEl.textContent = t('step5.failed');
             retryBtn.classList.remove('hidden');
             backBtn.disabled = false;
             wizardLocked = false;
@@ -1894,7 +2504,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         .catch(function(err) {
           logEl.textContent += '\\nError: ' + err.message;
           spinner.classList.add('error');
-          statusEl.textContent = 'Deployment failed';
+          statusEl.textContent = t('step5.failed');
           retryBtn.classList.remove('hidden');
           backBtn.disabled = false;
           wizardLocked = false;
@@ -1907,7 +2517,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
 
       // ========== Already Configured: Reconfigure ==========
       window.showReconfigureWarning = function() {
-        if (!confirm('This will delete the current configuration and stop the gateway. Are you sure?')) return;
+        if (!confirm(t('configured.confirmReset'))) return;
 
         fetch('/onboard/api/reset?password=' + encodeURIComponent(password), {
           method: 'POST',
@@ -1924,7 +2534,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
             highestStep = 1;
             updateStepIndicator();
           } else {
-            alert('Reset failed: ' + (data.error || 'Unknown error'));
+            alert(t('configured.resetFailed', { error: data.error || 'Unknown error' }));
           }
         })
         .catch(function(err) {
@@ -1934,6 +2544,10 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
 
       // ========== Initialize ==========
       document.addEventListener('DOMContentLoaded', function() {
+        initLanguage();
+        updateLangSelectorUI();
+        applyTranslations();
+
         buildProviderGrid();
         buildChannelCards();
         buildSkillGrid();

@@ -67,8 +67,8 @@ export function createTerminalServer(httpServer, password) {
   httpServer.on('upgrade', (req, socket, head) => {
     const url = parseUrl(req.url, true);
 
-    // Only handle /onboard/ws and /ui/ws endpoints
-    if (url.pathname !== '/onboard/ws' && url.pathname !== '/ui/ws') {
+    // Only handle /onboard/ws and /lite/ws endpoints
+    if (url.pathname !== '/onboard/ws' && url.pathname !== '/lite/ws') {
       return; // Let other handlers (like proxy) handle it
     }
 
@@ -93,7 +93,7 @@ export function createTerminalServer(httpServer, password) {
     const workspaceDir = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace';
 
     // Determine command based on WebSocket path
-    const isUITerminal = parseUrl(req.url, true).pathname === '/ui/ws';
+    const isUITerminal = parseUrl(req.url, true).pathname === '/lite/ws';
     const command = isUITerminal ? '/bin/bash' : 'openclaw';
     const args = isUITerminal ? [] : ['onboard'];
 

@@ -1001,7 +1001,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       Gateway: <span class="${gatewayInfo.running ? 'running' : 'stopped'}">${gatewayInfo.running ? 'Running' : 'Stopped'}</span>
     </p>
     <div class="configured-links">
-      <a href="/ui?password=${encodeURIComponent(password)}" class="btn btn-primary" data-i18n="configured.openPanel">Open Management Panel</a>
+      <a href="/lite?password=${encodeURIComponent(password)}" class="btn btn-primary" data-i18n="configured.openPanel">Open Lite Panel</a>
       <a href="/openclaw" class="btn btn-secondary" data-i18n="configured.openDashboard">Open OpenClaw Gateway Dashboard</a>
     </div>
     <button class="btn-text" onclick="showReconfigureWarning()" data-i18n="configured.reconfigure">Reconfigure from scratch</button>
@@ -1136,7 +1136,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
     <!-- ===== Step 3: Channels ===== -->
     <div class="step-panel" id="step-3">
       <div class="card">
-        <p class="channels-desc" data-i18n="step3.desc">Optionally connect messaging platforms. You can add channels later from the Management Panel.</p>
+        <p class="channels-desc" data-i18n="step3.desc">Optionally connect messaging platforms. You can add channels later from the Lite Panel.</p>
 
         <div class="channel-cards" id="channel-cards-container"></div>
       </div>
@@ -1193,7 +1193,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           <h2 class="success-heading" data-i18n="step5.success.heading">OpenClaw is running!</h2>
           <p class="success-sub" data-i18n="step5.success.subtitle">Your AI assistant is ready to go.</p>
           <div class="success-links">
-            <a href="/ui?password=${encodeURIComponent(password)}" class="btn btn-primary" data-i18n="step5.success.openPanel">Open Management Panel</a>
+            <a href="/lite?password=${encodeURIComponent(password)}" class="btn btn-primary" data-i18n="step5.success.openPanel">Open Lite Panel</a>
             <a href="/openclaw" class="btn btn-secondary" data-i18n="step5.success.openDashboard">Open OpenClaw Gateway Dashboard</a>
           </div>
         </div>
@@ -1240,7 +1240,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         en: {
           'pageTitle': 'OpenClaw Setup',
           'configured.title': 'OpenClaw is already configured',
-          'configured.openPanel': 'Open Management Panel',
+          'configured.openPanel': 'Open Lite Panel',
           'configured.openDashboard': 'Open OpenClaw Gateway Dashboard',
           'configured.reconfigure': 'Reconfigure from scratch',
           'configured.confirmReset': 'This will delete the current configuration and stop the gateway. Are you sure?',
@@ -1274,7 +1274,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'step2.err.noAuth': 'Please select an authentication method.',
           'step2.err.noKey': 'Please enter your API key or token.',
           'step2.err.missingFields': 'Please fill in all required fields.',
-          'step3.desc': 'Optionally connect messaging platforms. You can add channels later from the Management Panel.',
+          'step3.desc': 'Optionally connect messaging platforms. You can add channels later from the Lite Panel.',
           'step3.next': 'Next: Skills \u2192',
           'step3.catPopular': 'Popular',
           'step3.catMore': 'More Channels',
@@ -1295,7 +1295,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'step5.retry': 'Retry',
           'step5.success.heading': 'OpenClaw is running!',
           'step5.success.subtitle': 'Your AI assistant is ready to go.',
-          'step5.success.openPanel': 'Open Management Panel',
+          'step5.success.openPanel': 'Open Lite Panel',
           'step5.success.openDashboard': 'Open OpenClaw Gateway Dashboard',
           'nav.back': '\u2190 Back',
           'review.provider': 'Provider',
@@ -1719,10 +1719,11 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         'Together AI': 'https://api.together.xyz/settings/api-keys',
         'Vercel AI Gateway': 'https://vercel.com/docs/ai-gateway',
         'Moonshot AI': 'https://platform.moonshot.cn/console/api-keys',
-        'Kimi Coding': 'https://platform.kimi.ai/console/api-keys',
-        'Z.AI (GLM)': 'https://open.z.ai/usercenter/apikeys',
+        'Kimi Coding': 'https://platform.moonshot.ai/',
+        'Z.AI (GLM)': 'https://z.ai/model-api',
         'Cloudflare AI Gateway': 'https://dash.cloudflare.com/',
         'MiniMax': 'https://platform.minimax.io',
+        'OpenCode Zen': 'https://opencode.ai',
         'Ollama': null
       };
 

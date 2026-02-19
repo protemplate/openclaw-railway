@@ -232,7 +232,7 @@ export const CHANNEL_GROUPS = [
     fields: [],
     helpUrl: 'https://docs.openclaw.ai/channels/googlechat',
     helpText: null,
-    note: 'Requires Google Cloud service account JSON. Configure via Terminal or Management Panel after deploy.'
+    note: 'Requires Google Cloud service account JSON. Configure via Terminal or Lite Panel after deploy.'
   },
   {
     name: 'msteams', displayName: 'MS Teams', description: 'Microsoft 365 messaging',

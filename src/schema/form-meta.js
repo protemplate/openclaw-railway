@@ -2,7 +2,7 @@
  * UI metadata for schema-driven form generation
  *
  * Provides labels, help text, grouping, widget hints, and display order
- * for each config section. This drives the tabbed config editor in /ui.
+ * for each config section. This drives the tabbed config editor in /lite.
  */
 
 /**

@@ -225,6 +225,15 @@ const AUTH_GROUPS = [
     ]
   },
   {
+    provider: 'OpenCode Zen',
+    category: 'more',
+    description: 'Claude, GPT and more via Zen',
+    emoji: '\u{26A1}',
+    options: [
+      { label: 'API Key', value: 'opencode-zen-api-key', flag: '--opencode-zen-api-key' }
+    ]
+  },
+  {
     provider: 'Ollama',
     category: 'more',
     description: 'Run models locally',
@@ -599,7 +608,7 @@ app.post('/onboard/api/reset', authMiddleware, async (req, res) => {
   }
 });
 
-// --- Management Panel (/ui) routes ---
+// --- Lite Management Panel (/lite) routes ---
 
 // Main UI page
 const uiHandler = (req, res) => {
@@ -625,11 +634,11 @@ const uiHandler = (req, res) => {
   }));
 };
 
-app.get('/ui', authMiddleware, uiHandler);
-app.post('/ui', authMiddleware, uiHandler);
+app.get('/lite', authMiddleware, uiHandler);
+app.post('/lite', authMiddleware, uiHandler);
 
-// UI API: Status
-app.get('/ui/api/status', authMiddleware, (req, res) => {
+// Lite API: Status
+app.get('/lite/api/status', authMiddleware, (req, res) => {
   const configFile = join(OPENCLAW_STATE_DIR, 'openclaw.json');
   const isConfigured = existsSync(configFile);
   const gatewayInfo = getGatewayInfo();
@@ -658,14 +667,14 @@ app.get('/ui/api/status', authMiddleware, (req, res) => {
   });
 });
 
-// UI API: Logs
-app.get('/ui/api/logs', authMiddleware, (req, res) => {
+// Lite API: Logs
+app.get('/lite/api/logs', authMiddleware, (req, res) => {
   const sinceId = parseInt(req.query.since, 10) || 0;
   res.json(getRecentLogs(sinceId));
 });
 
-// UI API: Gateway start
-app.post('/ui/api/gateway/start', authMiddleware, async (req, res) => {
+// Lite API: Gateway start
+app.post('/lite/api/gateway/start', authMiddleware, async (req, res) => {
   try {
     await startGateway();
     res.json({ success: true });
@@ -674,8 +683,8 @@ app.post('/ui/api/gateway/start', authMiddleware, async (req, res) => {
   }
 });
 
-// UI API: Gateway stop
-app.post('/ui/api/gateway/stop', authMiddleware, async (req, res) => {
+// Lite API: Gateway stop
+app.post('/lite/api/gateway/stop', authMiddleware, async (req, res) => {
   try {
     await stopGateway();
     res.json({ success: true });
@@ -684,8 +693,8 @@ app.post('/ui/api/gateway/stop', authMiddleware, async (req, res) => {
   }
 });
 
-// UI API: Gateway restart
-app.post('/ui/api/gateway/restart', authMiddleware, async (req, res) => {
+// Lite API: Gateway restart
+app.post('/lite/api/gateway/restart', authMiddleware, async (req, res) => {
   try {
     if (isGatewayRunning()) {
       await stopGateway();
@@ -697,8 +706,8 @@ app.post('/ui/api/gateway/restart', authMiddleware, async (req, res) => {
   }
 });
 
-// UI API: Pairing approval
-app.post('/ui/api/pairing/approve', authMiddleware, async (req, res) => {
+// Lite API: Pairing approval
+app.post('/lite/api/pairing/approve', authMiddleware, async (req, res) => {
   try {
     const { channel, code } = req.body;
     if (!channel || !code) {
@@ -722,8 +731,8 @@ app.post('/ui/api/pairing/approve', authMiddleware, async (req, res) => {
   }
 });
 
-// UI API: Get config
-app.get('/ui/api/config', authMiddleware, (req, res) => {
+// Lite API: Get config
+app.get('/lite/api/config', authMiddleware, (req, res) => {
   const configFile = join(OPENCLAW_STATE_DIR, 'openclaw.json');
   if (existsSync(configFile)) {
     try {
@@ -737,8 +746,8 @@ app.get('/ui/api/config', authMiddleware, (req, res) => {
   }
 });
 
-// UI API: Save config
-app.post('/ui/api/config', authMiddleware, (req, res) => {
+// Lite API: Save config
+app.post('/lite/api/config', authMiddleware, (req, res) => {
   try {
     const config = req.body;
 
@@ -816,7 +825,7 @@ server.on('upgrade', (req, socket, head) => {
   }
 
   // Skip terminal endpoints (handled by terminal server)
-  if (req.url.startsWith('/onboard/ws') || req.url.startsWith('/ui/ws')) {
+  if (req.url.startsWith('/onboard/ws') || req.url.startsWith('/lite/ws')) {
     return; // Already handled by createTerminalServer
   }
 
@@ -855,7 +864,7 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`OpenClaw wrapper server listening on port ${PORT}`);
   console.log(`Setup wizard: http://localhost:${PORT}/onboard`);
-  console.log(`Management panel: http://localhost:${PORT}/ui`);
+  console.log(`Lite panel: http://localhost:${PORT}/lite`);
   console.log(`Health check: http://localhost:${PORT}/health`);
 
   // Check if gateway should auto-start (if already configured)

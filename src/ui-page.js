@@ -1,7 +1,7 @@
 /**
- * Management panel HTML generator for OpenClaw
+ * Lite Management Panel HTML generator for OpenClaw
  *
- * Generates the /ui management panel with dual-mode UI:
+ * Generates the /lite management panel with dual-mode UI:
  * - Simple Mode (default): Dashboard with status, channels, logs, config editor
  * - Advanced Mode: xterm.js terminal with quick command buttons
  */
@@ -21,7 +21,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
   return `<!DOCTYPE html>
 <html>
 <head>
-  <title>OpenClaw Management</title>
+  <title>OpenClaw Lite Management</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5/css/xterm.min.css"/>
   <style>
@@ -686,27 +686,69 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       justify-content: space-between;
     }
 
-    /* Quick commands */
-    .quick-commands {
+    /* Command palette */
+    .cmd-categories {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
     }
-    .quick-cmd-btn {
-      padding: 8px 14px;
-      font-size: 12px;
+    .cmd-cat-pill {
+      padding: 4px 12px;
+      font-size: 11px;
       font-family: var(--mono);
       background: var(--bg-elevated);
       color: var(--muted);
       border: 1px solid var(--border);
-      border-radius: 5px;
+      border-radius: 20px;
       cursor: pointer;
       transition: all 0.2s;
+      white-space: nowrap;
     }
-    .quick-cmd-btn:hover {
+    .cmd-cat-pill:hover {
       color: var(--teal-bright);
       border-color: var(--teal);
-      background: rgba(20, 184, 166, 0.05);
+    }
+    .cmd-cat-pill.active {
+      background: var(--teal);
+      color: var(--bg);
+      border-color: var(--teal);
+    }
+    .cmd-list {
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .cmd-section-label {
+      font-size: 10px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      padding: 10px 0 4px;
+    }
+    .cmd-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .cmd-item:hover {
+      background: rgba(20, 184, 166, 0.08);
+    }
+    .cmd-name {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--teal-bright);
+      white-space: nowrap;
+    }
+    .cmd-desc {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .hidden { display: none !important; }
@@ -717,10 +759,10 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
     <div class="header">
       <h1>
         <svg class="logo" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lobster-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff4d4d"/><stop offset="100%" stop-color="#991b1b"/></linearGradient></defs><path d="M60 10 C30 10 15 35 15 55 C15 75 30 95 45 100 L45 110 L55 110 L55 100 C55 100 60 102 65 100 L65 110 L75 110 L75 100 C90 95 105 75 105 55 C105 35 90 10 60 10Z" fill="url(#lobster-gradient)"/><path d="M20 45 C5 40 0 50 5 60 C10 70 20 65 25 55 C28 48 25 45 20 45Z" fill="url(#lobster-gradient)"/><path d="M100 45 C115 40 120 50 115 60 C110 70 100 65 95 55 C92 48 95 45 100 45Z" fill="url(#lobster-gradient)"/><path d="M45 15 Q35 5 30 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/><path d="M75 15 Q85 5 90 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/><circle cx="45" cy="35" r="6" fill="#050810"/><circle cx="75" cy="35" r="6" fill="#050810"/><circle cx="46" cy="34" r="2.5" fill="#00e5cc"/><circle cx="76" cy="34" r="2.5" fill="#00e5cc"/></svg> OpenClaw
-        <span class="subtitle">Management</span>
+        <span class="subtitle">Lite</span>
       </h1>
       <div class="header-right">
-        <a href="/onboard?password=${encodeURIComponent(password)}" class="nav-link">&larr; Setup</a>
+        <a href="/onboard?password=${encodeURIComponent(password)}" class="nav-link">&larr; Onboarding Wizard</a>
         <div class="mode-toggle">
           <button id="mode-simple" class="active" onclick="setMode('simple')">Simple</button>
           <button id="mode-advanced" onclick="setMode('advanced')">Advanced</button>
@@ -863,7 +905,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
                 Restart Gateway
               </button>
               <a href="/onboard?password=${encodeURIComponent(password)}" class="btn btn-secondary">
-                Setup Wizard
+                Onboarding Wizard
               </a>
               <a href="/onboard/export?password=${encodeURIComponent(password)}" class="btn btn-secondary">
                 Export Backup
@@ -910,14 +952,14 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         </div>
       </div>
 
-      <div class="card">
-        <h2>Quick Commands</h2>
-        <div class="quick-commands">
-          <button class="quick-cmd-btn" onclick="sendQuickCmd('openclaw config list\\n')">openclaw config list</button>
-          <button class="quick-cmd-btn" onclick="sendQuickCmd('openclaw pairing list\\n')">openclaw pairing list</button>
-          <button class="quick-cmd-btn" onclick="sendQuickCmd('openclaw help\\n')">openclaw help</button>
-          <button class="quick-cmd-btn" onclick="sendQuickCmd('openclaw version\\n')">openclaw version</button>
+      <div class="card" style="padding: 0; overflow: hidden;">
+        <div style="padding: 15px 20px; border-bottom: 1px solid var(--border);">
+          <h2 style="margin-bottom: 12px;">Command Palette</h2>
+          <input type="text" id="cmd-search" class="form-input" placeholder="Search commands..."
+                 oninput="filterCommands()" style="margin-bottom: 10px;" />
+          <div class="cmd-categories" id="cmd-categories"></div>
         </div>
+        <div class="cmd-list" id="cmd-list" style="max-height: 350px; overflow-y: auto; padding: 10px 20px;"></div>
       </div>
     </div>
   </div>
@@ -988,7 +1030,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 
       // ----- Status polling -----
       function pollStatus() {
-        fetch('/ui/api/status?' + authParam())
+        fetch('/lite/api/status?' + authParam())
           .then(function(res) { return res.json(); })
           .then(function(data) {
             // Update gateway status badge
@@ -1021,7 +1063,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       }
 
       function pollLogs() {
-        fetch('/ui/api/logs?' + authParam() + '&since=' + lastLogId)
+        fetch('/lite/api/logs?' + authParam() + '&since=' + lastLogId)
           .then(function(res) { return res.json(); })
           .then(function(data) {
             if (data.entries && data.entries.length > 0) {
@@ -1071,7 +1113,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         var origText = btn.textContent;
         btn.textContent = 'Working...';
 
-        fetch('/ui/api/gateway/' + action + '?' + authParam(), { method: 'POST' })
+        fetch('/lite/api/gateway/' + action + '?' + authParam(), { method: 'POST' })
           .then(function(res) { return res.json(); })
           .then(function(data) {
             if (!data.success && data.error) {
@@ -1157,12 +1199,12 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 
       function toggleChannel(channelName, enable) {
         // Load current config, flip the enabled flag, save
-        fetch('/ui/api/config?' + authParam())
+        fetch('/lite/api/config?' + authParam())
           .then(function(res) { return res.json(); })
           .then(function(config) {
             if (config && config.channels && config.channels[channelName]) {
               config.channels[channelName].enabled = enable;
-              return fetch('/ui/api/config?' + authParam(), {
+              return fetch('/lite/api/config?' + authParam(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(config)
@@ -1191,7 +1233,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           return;
         }
 
-        fetch('/ui/api/pairing/approve?' + authParam(), {
+        fetch('/lite/api/pairing/approve?' + authParam(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channel: channel, code: code })
@@ -1545,7 +1587,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       }
 
       function loadConfig() {
-        fetch('/ui/api/config?' + authParam())
+        fetch('/lite/api/config?' + authParam())
           .then(function(res) { return res.json(); })
           .then(function(config) {
             savedConfig = config;
@@ -1591,7 +1633,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           newConfig = getConfigFromForms();
         }
 
-        fetch('/ui/api/config?' + authParam(), {
+        fetch('/lite/api/config?' + authParam(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newConfig)
@@ -1612,7 +1654,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             document.getElementById('config-editor').value = JSON.stringify(savedConfig, null, 2);
 
             if (restart) {
-              fetch('/ui/api/gateway/restart?' + authParam(), { method: 'POST' })
+              fetch('/lite/api/gateway/restart?' + authParam(), { method: 'POST' })
                 .then(function() { setTimeout(pollStatus, 2000); });
             }
           } else {
@@ -1732,7 +1774,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         updateTermStatus('Connecting...', '#f59e0b');
 
         var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        ws = new WebSocket(protocol + '//' + location.host + '/ui/ws?' + authParam());
+        ws = new WebSocket(protocol + '//' + location.host + '/lite/ws?' + authParam());
 
         ws.onopen = function() {
           term.clear();
@@ -1767,13 +1809,70 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         };
       }
 
-      // ----- Quick commands -----
+      // ----- Command palette -----
+      var COMMANDS = [
+        { cmd: 'openclaw status', desc: 'Session health & recent recipients', cat: 'status', fav: true },
+        { cmd: 'openclaw health', desc: 'Fetch health from running gateway', cat: 'status', fav: true },
+        { cmd: 'openclaw channels list', desc: 'Show configured channels', cat: 'channels', fav: true },
+        { cmd: 'openclaw logs --follow', desc: 'Tail gateway logs', cat: 'gateway', fav: true },
+        { cmd: 'openclaw --version', desc: 'Print version', cat: 'info', fav: true },
+
+        { cmd: 'openclaw gateway status', desc: 'Probe gateway RPC and show status', cat: 'gateway' },
+        { cmd: 'openclaw gateway health', desc: 'Fetch gateway health', cat: 'gateway' },
+        { cmd: 'openclaw logs', desc: 'Tail gateway file logs', cat: 'gateway' },
+
+        { cmd: 'openclaw config get .', desc: 'Print full config', cat: 'config' },
+        { cmd: 'openclaw doctor', desc: 'Run health checks and quick fixes', cat: 'config' },
+        { cmd: 'openclaw doctor --deep', desc: 'Deep health check', cat: 'config' },
+
+        { cmd: 'openclaw models list', desc: 'List available models', cat: 'models' },
+        { cmd: 'openclaw models status', desc: 'Auth overview and status', cat: 'models' },
+        { cmd: 'openclaw models scan', desc: 'Scan for available models', cat: 'models' },
+
+        { cmd: 'openclaw channels status', desc: 'Check channel health', cat: 'channels' },
+        { cmd: 'openclaw channels logs', desc: 'Show recent channel logs', cat: 'channels' },
+        { cmd: 'openclaw pairing list', desc: 'List pairing requests', cat: 'channels' },
+
+        { cmd: 'openclaw skills list', desc: 'List available skills', cat: 'skills' },
+        { cmd: 'openclaw skills check', desc: 'Summary of ready vs missing', cat: 'skills' },
+        { cmd: 'openclaw plugins list', desc: 'Discover installed plugins', cat: 'skills' },
+        { cmd: 'openclaw plugins doctor', desc: 'Report plugin load errors', cat: 'skills' },
+
+        { cmd: 'openclaw memory status', desc: 'Show memory index stats', cat: 'memory' },
+        { cmd: 'openclaw memory index', desc: 'Reindex memory files', cat: 'memory' },
+
+        { cmd: 'openclaw cron list', desc: 'List scheduled jobs', cat: 'cron' },
+        { cmd: 'openclaw cron status', desc: 'Show cron status', cat: 'cron' },
+
+        { cmd: 'openclaw sessions', desc: 'List conversation sessions', cat: 'sessions' },
+        { cmd: 'openclaw status --all', desc: 'Full status with all details', cat: 'status' },
+
+        { cmd: 'openclaw agents list', desc: 'List configured agents', cat: 'agents' },
+
+        { cmd: 'openclaw nodes status', desc: 'List nodes from gateway', cat: 'nodes' },
+        { cmd: 'openclaw nodes list', desc: 'List all nodes', cat: 'nodes' },
+        { cmd: 'openclaw nodes pending', desc: 'Show pending node approvals', cat: 'nodes' },
+        { cmd: 'openclaw devices', desc: 'List paired devices', cat: 'nodes' },
+
+        { cmd: 'openclaw security audit', desc: 'Audit config for common issues', cat: 'security' },
+        { cmd: 'openclaw security audit --deep', desc: 'Live gateway probe audit', cat: 'security' },
+
+        { cmd: 'openclaw browser status', desc: 'Show browser status', cat: 'browser' },
+        { cmd: 'openclaw browser tabs', desc: 'List open browser tabs', cat: 'browser' },
+
+        { cmd: 'openclaw hooks list', desc: 'List hooks', cat: 'system' },
+        { cmd: 'openclaw sandbox list', desc: 'List sandboxes', cat: 'system' },
+        { cmd: 'openclaw docs', desc: 'Search the live docs index', cat: 'system' },
+        { cmd: 'openclaw help', desc: 'Show help', cat: 'info' },
+      ];
+
+      var activeCat = 'all';
+
       window.sendQuickCmd = function(cmd) {
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'input', data: cmd }));
         } else {
           connectTerminal();
-          // Wait for connection then send
           setTimeout(function() {
             if (ws && ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({ type: 'input', data: cmd }));
@@ -1782,10 +1881,101 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         }
       };
 
+      function getCategories() {
+        var seen = {};
+        COMMANDS.forEach(function(c) { seen[c.cat] = true; });
+        return Object.keys(seen).sort();
+      }
+
+      function makeCmdItem(c) {
+        var div = document.createElement('div');
+        div.className = 'cmd-item';
+        div.addEventListener('click', function() { sendQuickCmd(c.cmd + '\\n'); });
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'cmd-name';
+        nameSpan.textContent = c.cmd;
+        var descSpan = document.createElement('span');
+        descSpan.className = 'cmd-desc';
+        descSpan.textContent = c.desc;
+        div.appendChild(nameSpan);
+        div.appendChild(descSpan);
+        return div;
+      }
+
+      function makeSectionLabel(text) {
+        var div = document.createElement('div');
+        div.className = 'cmd-section-label';
+        div.textContent = text;
+        return div;
+      }
+
+      function renderCategoryPills() {
+        var el = document.getElementById('cmd-categories');
+        if (!el) return;
+        el.textContent = '';
+        var cats = ['all'].concat(getCategories());
+        cats.forEach(function(c) {
+          var pill = document.createElement('span');
+          pill.className = 'cmd-cat-pill' + (activeCat === c ? ' active' : '');
+          pill.textContent = c;
+          pill.addEventListener('click', function() { setCategory(c); });
+          el.appendChild(pill);
+        });
+      }
+
+      window.setCategory = function(cat) {
+        activeCat = cat;
+        renderCategoryPills();
+        filterCommands();
+      };
+
+      window.filterCommands = function() {
+        var searchEl = document.getElementById('cmd-search');
+        var search = searchEl ? searchEl.value.toLowerCase() : '';
+        var filtered = COMMANDS.filter(function(c) {
+          var matchCat = activeCat === 'all' || c.cat === activeCat;
+          var matchSearch = !search || c.cmd.toLowerCase().indexOf(search) !== -1 || c.desc.toLowerCase().indexOf(search) !== -1 || c.cat.toLowerCase().indexOf(search) !== -1;
+          return matchCat && matchSearch;
+        });
+
+        var listEl = document.getElementById('cmd-list');
+        if (!listEl) return;
+        listEl.textContent = '';
+
+        if (activeCat === 'all' && !search) {
+          var favs = filtered.filter(function(c) { return c.fav; });
+          if (favs.length) {
+            listEl.appendChild(makeSectionLabel('favorites'));
+            favs.forEach(function(c) { listEl.appendChild(makeCmdItem(c)); });
+          }
+        }
+
+        var grouped = {};
+        filtered.forEach(function(c) {
+          if (!grouped[c.cat]) grouped[c.cat] = [];
+          grouped[c.cat].push(c);
+        });
+
+        getCategories().forEach(function(cat) {
+          if (!grouped[cat]) return;
+          listEl.appendChild(makeSectionLabel(cat));
+          grouped[cat].forEach(function(c) { listEl.appendChild(makeCmdItem(c)); });
+        });
+
+        if (!listEl.children.length) {
+          var empty = document.createElement('div');
+          empty.style.cssText = 'padding: 20px; text-align: center; color: var(--muted);';
+          empty.textContent = 'No commands match your search.';
+          listEl.appendChild(empty);
+        }
+      };
+
       // ----- Initialize -----
       document.addEventListener('DOMContentLoaded', function() {
         loadConfig();
         startPolling();
+        renderCategoryPills();
+        filterCommands();
       });
     })();
   </script>

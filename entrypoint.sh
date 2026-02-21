@@ -28,6 +28,11 @@ else
     echo "Using default port $PORT"
 fi
 
+# Fix volume ownership (Railway mounts volumes as root)
+if [ "$(id -u)" = "0" ]; then
+    chown -R openclaw:openclaw /data /app /openclaw 2>/dev/null || true
+fi
+
 # Ensure data directories exist with correct permissions
 mkdir -p "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" "$OPENCLAW_WORKSPACE_DIR/memory"
 
@@ -44,5 +49,9 @@ echo "Internal gateway port: $INTERNAL_GATEWAY_PORT"
 echo "External port: $PORT"
 echo ""
 
-# Start the wrapper server
-exec node /app/src/server.js
+# Start the wrapper server (drop to openclaw user if running as root)
+if [ "$(id -u)" = "0" ]; then
+    exec su -s /bin/bash openclaw -c "exec node /app/src/server.js"
+else
+    exec node /app/src/server.js
+fi

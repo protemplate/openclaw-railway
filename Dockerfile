@@ -121,9 +121,8 @@ RUN mkdir -p /data/.openclaw /data/workspace && \
     chown -R openclaw:openclaw /data /app /openclaw
 
 # Note: No VOLUME directive — Railway manages volumes externally
-
-# Switch to non-root user
-USER openclaw
+# Note: Running as root because Railway volumes mount as root.
+# The entrypoint handles dropping privileges after fixing permissions.
 
 # Default port (Railway overrides via PORT env var)
 EXPOSE 8080

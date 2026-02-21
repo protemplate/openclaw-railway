@@ -120,8 +120,7 @@ RUN chmod +x /entrypoint.sh
 RUN mkdir -p /data/.openclaw /data/workspace && \
     chown -R openclaw:openclaw /data /app /openclaw
 
-# Volume for persistent data (Railway mounts here)
-VOLUME /data
+# Note: No VOLUME directive — Railway manages volumes externally
 
 # Switch to non-root user
 USER openclaw

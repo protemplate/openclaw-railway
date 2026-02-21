@@ -7,6 +7,417 @@
  * - Advanced Mode: xterm.js terminal with quick command buttons
  */
 
+import { getLangSelectorCSS, getLangSelectorHTML, getI18nBootstrapJS } from './i18n.js';
+
+const LITE_TRANSLATIONS = {
+  en: {
+    'pageTitle': 'OpenClaw Lite Management',
+    'lite.header.onboardLink': '\u2190 Onboarding Wizard',
+    'lite.header.simpleMode': 'Simple',
+    'lite.header.advancedMode': 'Advanced',
+    'lite.status.running': 'Gateway Running',
+    'lite.status.stopped': 'Gateway Stopped',
+    'lite.status.uptime': 'Uptime',
+    'lite.stats.channels': 'Channels',
+    'lite.stats.skills': 'Skills',
+    'lite.stats.sessions': 'Sessions',
+    'lite.providers.title': 'Model Providers',
+    'lite.providers.subtitle': 'Connected AI providers',
+    'lite.providers.empty': 'No provider data available',
+    'lite.providers.noProviders': 'No providers configured',
+    'lite.providers.statusLabel': 'Status',
+    'lite.providers.modelLabel': 'Model',
+    'lite.providers.active': 'Active',
+    'lite.providers.connected': 'Connected',
+    'lite.providers.notConnected': 'Not connected',
+    'lite.channels.title': 'Channels',
+    'lite.channels.subtitle': 'Connected messaging channels',
+    'lite.channels.empty': 'No channels connected yet',
+    'lite.channels.setupLink': 'Set up in the onboarding wizard',
+    'lite.channels.configured': 'Configured',
+    'lite.channels.connectedLabel': 'Connected',
+    'lite.channels.yes': 'Yes',
+    'lite.channels.no': 'No',
+    'lite.usage.title': 'Daily Token Usage',
+    'lite.usage.subtitle': 'Last 7 days',
+    'lite.usage.total': 'Total',
+    'lite.usage.byType': 'By Type',
+    'lite.usage.totalTokens': 'Total tokens',
+    'lite.usage.noData': 'No usage data available',
+    'lite.usage.notAvailable': 'Usage data not available',
+    'lite.usage.loading': 'Loading usage data...',
+    'lite.usage.date': 'Date',
+    'lite.usage.tokens': 'Tokens',
+    'lite.usage.estCost': 'Est. cost',
+    'lite.usage.output': 'Output',
+    'lite.usage.input': 'Input',
+    'lite.usage.cacheWrite': 'Cache Write',
+    'lite.usage.cacheRead': 'Cache Read',
+    'lite.activity.title': 'Activity',
+    'lite.activity.autoScroll': 'Auto-scroll',
+    'lite.activity.clear': 'Clear',
+    'lite.activity.rawLogs': 'Raw Logs',
+    'lite.activity.gatewayOutput': 'Gateway output',
+    'lite.activity.patterns.gatewayStarted': 'Gateway started',
+    'lite.activity.patterns.gatewayStopped': 'Gateway stopped',
+    'lite.activity.patterns.messageReceived': 'Message received',
+    'lite.activity.patterns.messageSent': 'Message sent',
+    'lite.activity.patterns.channelConnected': 'Channel connected',
+    'lite.activity.patterns.channelDisconnected': 'Channel disconnected',
+    'lite.activity.patterns.errorDetected': 'Error detected',
+    'lite.activity.patterns.devicePaired': 'Device paired',
+    'lite.activity.patterns.skillLoaded': 'Skill loaded',
+    'lite.activity.patterns.sessionCreated': 'Session created',
+    'lite.activity.patterns.scheduledTaskRan': 'Scheduled task ran',
+    'lite.activity.patterns.memoryUpdated': 'Memory updated',
+    'lite.memory.title': 'Memory & Knowledge',
+    'lite.memory.subtitle': 'What your agent remembers',
+    'lite.memory.searchPlaceholder': 'Search memory...',
+    'lite.memory.searching': 'Searching...',
+    'lite.memory.noResults': 'No results found',
+    'lite.memory.notAvailable': 'Memory features not available',
+    'lite.memory.loading': 'Loading memory status...',
+    'lite.memory.status': 'Status',
+    'lite.memory.entries': 'Entries',
+    'lite.memory.backend': 'Backend',
+    'lite.memory.active': 'Active',
+    'lite.memory.searchFailed': 'Search failed',
+    'lite.security.title': 'Security Audit',
+    'lite.security.subtitle': 'Check config for security issues',
+    'lite.security.runAudit': 'Run Audit',
+    'lite.security.deepAudit': 'Deep Audit',
+    'lite.security.running': 'Running audit...',
+    'lite.security.runningDeep': 'Running deep audit...',
+    'lite.security.notAvailable': 'Audit not available',
+    'lite.security.passed': 'passed',
+    'lite.security.warnings': 'warnings',
+    'lite.security.failed': 'failed',
+    'lite.security.noFindings': 'No findings',
+    'lite.settings.title': 'Settings & Help',
+    'lite.settings.setupWizard': 'Setup Wizard',
+    'lite.settings.setupWizardDesc': 'Reconfigure providers, channels, and skills',
+    'lite.settings.advancedTerminal': 'Advanced Terminal',
+    'lite.settings.advancedTerminalDesc': 'Full CLI access and command palette',
+    'lite.settings.documentation': 'Documentation',
+    'lite.settings.documentationDesc': 'Guides, API reference, and tutorials',
+    'lite.quickActions.title': 'Quick Actions',
+    'lite.quickActions.start': 'Start Gateway',
+    'lite.quickActions.stop': 'Stop Gateway',
+    'lite.quickActions.restart': 'Restart Gateway',
+    'lite.quickActions.working': 'Working...',
+    'lite.maintenance.title': 'Maintenance',
+    'lite.maintenance.version': 'Version',
+    'lite.maintenance.downloadBackup': 'Download Backup',
+    'lite.maintenance.restoreBackup': 'Restore from Backup',
+    'lite.maintenance.upgradeAvailable': 'Upgrade Available',
+    'lite.maintenance.restoring': 'Restoring...',
+    'lite.maintenance.upgrading': 'Upgrading...',
+    'lite.maintenance.upgradeTo': 'Upgrade to {version}',
+    'lite.maintenance.redeployToUpdate': 'redeploy to update',
+    'lite.maintenance.available': '{version} available',
+    'lite.maintenance.restoreTitle': 'Restore from Backup',
+    'lite.maintenance.restoreMessage': 'This will replace your current configuration with the backup file "{filename}". An auto-backup will be created first. The gateway will be restarted.',
+    'lite.maintenance.upgradeTitle': 'Upgrade OpenClaw',
+    'lite.maintenance.upgradeMessage': 'This will install the latest version of OpenClaw via npm. An auto-backup will be created first. The gateway will be restarted.',
+    'lite.maintenance.invalidFile': 'Please select a .tar.gz, .tgz, or .zip file',
+    'lite.maintenance.restoreSuccess': 'Restore completed successfully',
+    'lite.maintenance.restoreFailed': 'Restore failed: {error}',
+    'lite.maintenance.restoreError': 'Restore error: {error}',
+    'lite.maintenance.upgradeSuccess': 'Upgrade completed successfully',
+    'lite.maintenance.upgradeFailed': 'Upgrade failed: {error}',
+    'lite.maintenance.upgradeError': 'Upgrade error: {error}',
+    'lite.confirm.cancel': 'Cancel',
+    'lite.confirm.continue': 'Continue',
+    'lite.token.title': 'Gateway Token',
+    'lite.token.description': 'Use this token to connect clients to your agent.',
+    'lite.token.show': 'Show',
+    'lite.token.hide': 'Hide',
+    'lite.token.copy': 'Copy',
+    'lite.token.copied': 'Token copied to clipboard',
+    'lite.systemInfo.title': 'System Info',
+    'lite.systemInfo.status': 'Status',
+    'lite.systemInfo.stateDir': 'State directory',
+    'lite.systemInfo.internalPort': 'Internal port',
+    'lite.systemInfo.pid': 'PID',
+    'lite.systemInfo.running': 'Running',
+    'lite.systemInfo.stopped': 'Stopped',
+    'lite.terminal.notConnected': 'Not connected',
+    'lite.terminal.connecting': 'Connecting...',
+    'lite.terminal.connected': 'Connected',
+    'lite.terminal.disconnected': 'Disconnected',
+    'lite.terminal.error': 'Error',
+    'lite.commandPalette.title': 'Command Palette',
+    'lite.commandPalette.searchPlaceholder': 'Search commands...',
+    'lite.commandPalette.noMatch': 'No commands match your search.'
+  },
+  'zh-TW': {
+    'pageTitle': 'OpenClaw \u7CBE\u7C21\u7BA1\u7406',
+    'lite.header.onboardLink': '\u2190 \u5F15\u5C0E\u7CBE\u9748',
+    'lite.header.simpleMode': '\u7C21\u6613',
+    'lite.header.advancedMode': '\u9032\u968E',
+    'lite.status.running': '\u7DB2\u95DC\u904B\u884C\u4E2D',
+    'lite.status.stopped': '\u7DB2\u95DC\u5DF2\u505C\u6B62',
+    'lite.status.uptime': '\u904B\u884C\u6642\u9593',
+    'lite.stats.channels': '\u983B\u9053',
+    'lite.stats.skills': '\u6280\u80FD',
+    'lite.stats.sessions': '\u5DE5\u4F5C\u968E\u6BB5',
+    'lite.providers.title': '\u6A21\u578B\u63D0\u4F9B\u8005',
+    'lite.providers.subtitle': '\u5DF2\u9023\u63A5\u7684 AI \u63D0\u4F9B\u8005',
+    'lite.providers.empty': '\u7121\u63D0\u4F9B\u8005\u8CC7\u6599',
+    'lite.providers.noProviders': '\u5C1A\u672A\u8A2D\u5B9A\u63D0\u4F9B\u8005',
+    'lite.providers.statusLabel': '\u72C0\u614B',
+    'lite.providers.modelLabel': '\u6A21\u578B',
+    'lite.providers.active': '\u4F7F\u7528\u4E2D',
+    'lite.providers.connected': '\u5DF2\u9023\u63A5',
+    'lite.providers.notConnected': '\u672A\u9023\u63A5',
+    'lite.channels.title': '\u983B\u9053',
+    'lite.channels.subtitle': '\u5DF2\u9023\u63A5\u7684\u8A0A\u606F\u983B\u9053',
+    'lite.channels.empty': '\u5C1A\u672A\u9023\u63A5\u983B\u9053',
+    'lite.channels.setupLink': '\u5728\u5F15\u5C0E\u7CBE\u9748\u4E2D\u8A2D\u5B9A',
+    'lite.channels.configured': '\u5DF2\u8A2D\u5B9A',
+    'lite.channels.connectedLabel': '\u5DF2\u9023\u63A5',
+    'lite.channels.yes': '\u662F',
+    'lite.channels.no': '\u5426',
+    'lite.usage.title': '\u6BCF\u65E5\u4EE3\u5E63\u7528\u91CF',
+    'lite.usage.subtitle': '\u904E\u53BB 7 \u5929',
+    'lite.usage.total': '\u7E3D\u8A08',
+    'lite.usage.byType': '\u4F9D\u985E\u578B',
+    'lite.usage.totalTokens': '\u7E3D\u4EE3\u5E63\u6578',
+    'lite.usage.noData': '\u7121\u7528\u91CF\u8CC7\u6599',
+    'lite.usage.notAvailable': '\u7528\u91CF\u8CC7\u6599\u4E0D\u53EF\u7528',
+    'lite.usage.date': '\u65E5\u671F',
+    'lite.usage.tokens': '\u4EE3\u5E63',
+    'lite.usage.estCost': '\u9810\u4F30\u8CBB\u7528',
+    'lite.usage.output': '\u8F38\u51FA',
+    'lite.usage.input': '\u8F38\u5165',
+    'lite.usage.cacheWrite': '\u5FEB\u53D6\u5BEB\u5165',
+    'lite.usage.cacheRead': '\u5FEB\u53D6\u8B80\u53D6',
+    'lite.activity.title': '\u6D3B\u52D5',
+    'lite.activity.autoScroll': '\u81EA\u52D5\u6372\u52D5',
+    'lite.activity.clear': '\u6E05\u9664',
+    'lite.activity.rawLogs': '\u539F\u59CB\u65E5\u8A8C',
+    'lite.activity.gatewayOutput': '\u7DB2\u95DC\u8F38\u51FA',
+    'lite.activity.patterns.gatewayStarted': '\u7DB2\u95DC\u5DF2\u555F\u52D5',
+    'lite.activity.patterns.gatewayStopped': '\u7DB2\u95DC\u5DF2\u505C\u6B62',
+    'lite.activity.patterns.messageReceived': '\u6536\u5230\u8A0A\u606F',
+    'lite.activity.patterns.messageSent': '\u8A0A\u606F\u5DF2\u50B3\u9001',
+    'lite.activity.patterns.channelConnected': '\u983B\u9053\u5DF2\u9023\u63A5',
+    'lite.activity.patterns.channelDisconnected': '\u983B\u9053\u5DF2\u65B7\u958B',
+    'lite.activity.patterns.errorDetected': '\u5075\u6E2C\u5230\u932F\u8AA4',
+    'lite.activity.patterns.devicePaired': '\u88DD\u7F6E\u5DF2\u914D\u5C0D',
+    'lite.activity.patterns.skillLoaded': '\u6280\u80FD\u5DF2\u8F09\u5165',
+    'lite.activity.patterns.sessionCreated': '\u5DE5\u4F5C\u968E\u6BB5\u5DF2\u5EFA\u7ACB',
+    'lite.activity.patterns.scheduledTaskRan': '\u6392\u7A0B\u4EFB\u52D9\u5DF2\u57F7\u884C',
+    'lite.activity.patterns.memoryUpdated': '\u8A18\u61B6\u5DF2\u66F4\u65B0',
+    'lite.memory.title': '\u8A18\u61B6\u8207\u77E5\u8B58',
+    'lite.memory.subtitle': '\u60A8\u7684\u52A9\u7406\u8A18\u5F97\u7684\u5167\u5BB9',
+    'lite.memory.searchPlaceholder': '\u641C\u5C0B\u8A18\u61B6...',
+    'lite.memory.searching': '\u641C\u5C0B\u4E2D...',
+    'lite.memory.noResults': '\u672A\u627E\u5230\u7D50\u679C',
+    'lite.memory.notAvailable': '\u8A18\u61B6\u529F\u80FD\u4E0D\u53EF\u7528',
+    'lite.memory.status': '\u72C0\u614B',
+    'lite.memory.entries': '\u689D\u76EE',
+    'lite.memory.backend': '\u5F8C\u7AEF',
+    'lite.memory.active': '\u4F7F\u7528\u4E2D',
+    'lite.memory.searchFailed': '\u641C\u5C0B\u5931\u6557',
+    'lite.security.title': '\u5B89\u5168\u5BE9\u8A08',
+    'lite.security.subtitle': '\u6AA2\u67E5\u8A2D\u5B9A\u7684\u5B89\u5168\u554F\u984C',
+    'lite.security.runAudit': '\u57F7\u884C\u5BE9\u8A08',
+    'lite.security.deepAudit': '\u6DF1\u5EA6\u5BE9\u8A08',
+    'lite.security.running': '\u57F7\u884C\u5BE9\u8A08\u4E2D...',
+    'lite.security.runningDeep': '\u57F7\u884C\u6DF1\u5EA6\u5BE9\u8A08\u4E2D...',
+    'lite.security.notAvailable': '\u5BE9\u8A08\u4E0D\u53EF\u7528',
+    'lite.security.passed': '\u901A\u904E',
+    'lite.security.warnings': '\u8B66\u544A',
+    'lite.security.failed': '\u5931\u6557',
+    'lite.security.noFindings': '\u7121\u767C\u73FE',
+    'lite.settings.title': '\u8A2D\u5B9A\u8207\u5E6B\u52A9',
+    'lite.settings.setupWizard': '\u8A2D\u5B9A\u7CBE\u9748',
+    'lite.settings.setupWizardDesc': '\u91CD\u65B0\u8A2D\u5B9A\u63D0\u4F9B\u8005\u3001\u983B\u9053\u548C\u6280\u80FD',
+    'lite.settings.advancedTerminal': '\u9032\u968E\u7D42\u7AEF',
+    'lite.settings.advancedTerminalDesc': '\u5B8C\u6574\u7684 CLI \u5B58\u53D6\u548C\u547D\u4EE4\u9762\u677F',
+    'lite.settings.documentation': '\u6587\u4EF6',
+    'lite.settings.documentationDesc': '\u6307\u5357\u3001API \u53C3\u8003\u548C\u6559\u5B78',
+    'lite.quickActions.title': '\u5FEB\u901F\u64CD\u4F5C',
+    'lite.quickActions.start': '\u555F\u52D5\u7DB2\u95DC',
+    'lite.quickActions.stop': '\u505C\u6B62\u7DB2\u95DC',
+    'lite.quickActions.restart': '\u91CD\u555F\u7DB2\u95DC',
+    'lite.quickActions.working': '\u8655\u7406\u4E2D...',
+    'lite.maintenance.title': '\u7DAD\u8B77',
+    'lite.maintenance.version': '\u7248\u672C',
+    'lite.maintenance.downloadBackup': '\u4E0B\u8F09\u5099\u4EFD',
+    'lite.maintenance.restoreBackup': '\u5F9E\u5099\u4EFD\u9084\u539F',
+    'lite.maintenance.upgradeAvailable': '\u53EF\u7528\u5347\u7D1A',
+    'lite.maintenance.restoring': '\u9084\u539F\u4E2D...',
+    'lite.maintenance.upgrading': '\u5347\u7D1A\u4E2D...',
+    'lite.maintenance.restoreTitle': '\u5F9E\u5099\u4EFD\u9084\u539F',
+    'lite.maintenance.restoreMessage': '\u9019\u5C07\u4EE5\u5099\u4EFD\u6A94\u300C{filename}\u300D\u53D6\u4EE3\u76EE\u524D\u7684\u8A2D\u5B9A\u3002\u7CFB\u7D71\u6703\u5148\u81EA\u52D5\u5099\u4EFD\u3002\u7DB2\u95DC\u5C07\u6703\u91CD\u65B0\u555F\u52D5\u3002',
+    'lite.maintenance.upgradeTitle': '\u5347\u7D1A OpenClaw',
+    'lite.maintenance.upgradeMessage': '\u9019\u5C07\u900F\u904E npm \u5B89\u88DD\u6700\u65B0\u7248\u672C\u7684 OpenClaw\u3002\u7CFB\u7D71\u6703\u5148\u81EA\u52D5\u5099\u4EFD\u3002\u7DB2\u95DC\u5C07\u6703\u91CD\u65B0\u555F\u52D5\u3002',
+    'lite.maintenance.invalidFile': '\u8ACB\u9078\u64C7 .tar.gz\u3001.tgz \u6216 .zip \u6A94\u6848',
+    'lite.maintenance.restoreSuccess': '\u9084\u539F\u5B8C\u6210',
+    'lite.maintenance.restoreFailed': '\u9084\u539F\u5931\u6557\uFF1A{error}',
+    'lite.maintenance.upgradeSuccess': '\u5347\u7D1A\u5B8C\u6210',
+    'lite.maintenance.upgradeFailed': '\u5347\u7D1A\u5931\u6557\uFF1A{error}',
+    'lite.confirm.cancel': '\u53D6\u6D88',
+    'lite.confirm.continue': '\u7E7C\u7E8C',
+    'lite.token.title': '\u7DB2\u95DC\u4EE3\u5E63',
+    'lite.token.description': '\u4F7F\u7528\u6B64\u4EE3\u5E63\u5C07\u5BA2\u6236\u7AEF\u9023\u63A5\u5230\u60A8\u7684\u52A9\u7406\u3002',
+    'lite.token.show': '\u986F\u793A',
+    'lite.token.hide': '\u96B1\u85CF',
+    'lite.token.copy': '\u8907\u88FD',
+    'lite.token.copied': '\u4EE3\u5E63\u5DF2\u8907\u88FD\u5230\u526A\u8CBC\u677F',
+    'lite.systemInfo.title': '\u7CFB\u7D71\u8CC7\u8A0A',
+    'lite.systemInfo.status': '\u72C0\u614B',
+    'lite.systemInfo.stateDir': '\u72C0\u614B\u76EE\u9304',
+    'lite.systemInfo.internalPort': '\u5167\u90E8\u57E0',
+    'lite.systemInfo.pid': 'PID',
+    'lite.systemInfo.running': '\u904B\u884C\u4E2D',
+    'lite.systemInfo.stopped': '\u5DF2\u505C\u6B62',
+    'lite.terminal.notConnected': '\u672A\u9023\u63A5',
+    'lite.terminal.connecting': '\u9023\u63A5\u4E2D...',
+    'lite.terminal.connected': '\u5DF2\u9023\u63A5',
+    'lite.terminal.disconnected': '\u5DF2\u65B7\u958B',
+    'lite.commandPalette.title': '\u547D\u4EE4\u9762\u677F',
+    'lite.commandPalette.searchPlaceholder': '\u641C\u5C0B\u547D\u4EE4...',
+    'lite.commandPalette.noMatch': '\u6C92\u6709\u7B26\u5408\u641C\u5C0B\u7684\u547D\u4EE4\u3002'
+  },
+  'zh-CN': {
+    'pageTitle': 'OpenClaw \u7CBE\u7B80\u7BA1\u7406',
+    'lite.header.onboardLink': '\u2190 \u5F15\u5BFC\u5411\u5BFC',
+    'lite.header.simpleMode': '\u7B80\u6613',
+    'lite.header.advancedMode': '\u8FDB\u9636',
+    'lite.status.running': '\u7F51\u5173\u8FD0\u884C\u4E2D',
+    'lite.status.stopped': '\u7F51\u5173\u5DF2\u505C\u6B62',
+    'lite.status.uptime': '\u8FD0\u884C\u65F6\u95F4',
+    'lite.stats.channels': '\u9891\u9053',
+    'lite.stats.skills': '\u6280\u80FD',
+    'lite.stats.sessions': '\u4F1A\u8BDD',
+    'lite.providers.title': '\u6A21\u578B\u63D0\u4F9B\u8005',
+    'lite.providers.subtitle': '\u5DF2\u8FDE\u63A5\u7684 AI \u63D0\u4F9B\u8005',
+    'lite.providers.empty': '\u65E0\u63D0\u4F9B\u8005\u6570\u636E',
+    'lite.providers.noProviders': '\u5C1A\u672A\u914D\u7F6E\u63D0\u4F9B\u8005',
+    'lite.providers.statusLabel': '\u72B6\u6001',
+    'lite.providers.modelLabel': '\u6A21\u578B',
+    'lite.providers.active': '\u4F7F\u7528\u4E2D',
+    'lite.providers.connected': '\u5DF2\u8FDE\u63A5',
+    'lite.providers.notConnected': '\u672A\u8FDE\u63A5',
+    'lite.channels.title': '\u9891\u9053',
+    'lite.channels.subtitle': '\u5DF2\u8FDE\u63A5\u7684\u6D88\u606F\u9891\u9053',
+    'lite.channels.empty': '\u5C1A\u672A\u8FDE\u63A5\u9891\u9053',
+    'lite.channels.setupLink': '\u5728\u5F15\u5BFC\u5411\u5BFC\u4E2D\u8BBE\u7F6E',
+    'lite.channels.configured': '\u5DF2\u914D\u7F6E',
+    'lite.channels.connectedLabel': '\u5DF2\u8FDE\u63A5',
+    'lite.channels.yes': '\u662F',
+    'lite.channels.no': '\u5426',
+    'lite.usage.title': '\u6BCF\u65E5\u4EE3\u5E01\u7528\u91CF',
+    'lite.usage.subtitle': '\u8FC7\u53BB 7 \u5929',
+    'lite.usage.total': '\u603B\u8BA1',
+    'lite.usage.byType': '\u6309\u7C7B\u578B',
+    'lite.usage.totalTokens': '\u603B\u4EE3\u5E01\u6570',
+    'lite.usage.noData': '\u65E0\u7528\u91CF\u6570\u636E',
+    'lite.usage.notAvailable': '\u7528\u91CF\u6570\u636E\u4E0D\u53EF\u7528',
+    'lite.usage.date': '\u65E5\u671F',
+    'lite.usage.tokens': '\u4EE3\u5E01',
+    'lite.usage.estCost': '\u9884\u4F30\u8D39\u7528',
+    'lite.usage.output': '\u8F93\u51FA',
+    'lite.usage.input': '\u8F93\u5165',
+    'lite.usage.cacheWrite': '\u7F13\u5B58\u5199\u5165',
+    'lite.usage.cacheRead': '\u7F13\u5B58\u8BFB\u53D6',
+    'lite.activity.title': '\u6D3B\u52A8',
+    'lite.activity.autoScroll': '\u81EA\u52A8\u6EDA\u52A8',
+    'lite.activity.clear': '\u6E05\u9664',
+    'lite.activity.rawLogs': '\u539F\u59CB\u65E5\u5FD7',
+    'lite.activity.gatewayOutput': '\u7F51\u5173\u8F93\u51FA',
+    'lite.activity.patterns.gatewayStarted': '\u7F51\u5173\u5DF2\u542F\u52A8',
+    'lite.activity.patterns.gatewayStopped': '\u7F51\u5173\u5DF2\u505C\u6B62',
+    'lite.activity.patterns.messageReceived': '\u6536\u5230\u6D88\u606F',
+    'lite.activity.patterns.messageSent': '\u6D88\u606F\u5DF2\u53D1\u9001',
+    'lite.activity.patterns.channelConnected': '\u9891\u9053\u5DF2\u8FDE\u63A5',
+    'lite.activity.patterns.channelDisconnected': '\u9891\u9053\u5DF2\u65AD\u5F00',
+    'lite.activity.patterns.errorDetected': '\u68C0\u6D4B\u5230\u9519\u8BEF',
+    'lite.activity.patterns.devicePaired': '\u8BBE\u5907\u5DF2\u914D\u5BF9',
+    'lite.activity.patterns.skillLoaded': '\u6280\u80FD\u5DF2\u52A0\u8F7D',
+    'lite.activity.patterns.sessionCreated': '\u4F1A\u8BDD\u5DF2\u521B\u5EFA',
+    'lite.activity.patterns.scheduledTaskRan': '\u5B9A\u65F6\u4EFB\u52A1\u5DF2\u6267\u884C',
+    'lite.activity.patterns.memoryUpdated': '\u8BB0\u5FC6\u5DF2\u66F4\u65B0',
+    'lite.memory.title': '\u8BB0\u5FC6\u4E0E\u77E5\u8BC6',
+    'lite.memory.subtitle': '\u60A8\u7684\u52A9\u7406\u8BB0\u5F97\u7684\u5185\u5BB9',
+    'lite.memory.searchPlaceholder': '\u641C\u7D22\u8BB0\u5FC6...',
+    'lite.memory.searching': '\u641C\u7D22\u4E2D...',
+    'lite.memory.noResults': '\u672A\u627E\u5230\u7ED3\u679C',
+    'lite.memory.notAvailable': '\u8BB0\u5FC6\u529F\u80FD\u4E0D\u53EF\u7528',
+    'lite.memory.status': '\u72B6\u6001',
+    'lite.memory.entries': '\u6761\u76EE',
+    'lite.memory.backend': '\u540E\u7AEF',
+    'lite.memory.active': '\u6D3B\u8DC3',
+    'lite.memory.searchFailed': '\u641C\u7D22\u5931\u8D25',
+    'lite.security.title': '\u5B89\u5168\u5BA1\u8BA1',
+    'lite.security.subtitle': '\u68C0\u67E5\u914D\u7F6E\u7684\u5B89\u5168\u95EE\u9898',
+    'lite.security.runAudit': '\u6267\u884C\u5BA1\u8BA1',
+    'lite.security.deepAudit': '\u6DF1\u5EA6\u5BA1\u8BA1',
+    'lite.security.running': '\u6267\u884C\u5BA1\u8BA1\u4E2D...',
+    'lite.security.runningDeep': '\u6267\u884C\u6DF1\u5EA6\u5BA1\u8BA1\u4E2D...',
+    'lite.security.notAvailable': '\u5BA1\u8BA1\u4E0D\u53EF\u7528',
+    'lite.security.passed': '\u901A\u8FC7',
+    'lite.security.warnings': '\u8B66\u544A',
+    'lite.security.failed': '\u5931\u8D25',
+    'lite.security.noFindings': '\u65E0\u53D1\u73B0',
+    'lite.settings.title': '\u8BBE\u7F6E\u4E0E\u5E2E\u52A9',
+    'lite.settings.setupWizard': '\u8BBE\u7F6E\u5411\u5BFC',
+    'lite.settings.setupWizardDesc': '\u91CD\u65B0\u914D\u7F6E\u63D0\u4F9B\u8005\u3001\u9891\u9053\u548C\u6280\u80FD',
+    'lite.settings.advancedTerminal': '\u8FDB\u9636\u7EC8\u7AEF',
+    'lite.settings.advancedTerminalDesc': '\u5B8C\u6574\u7684 CLI \u8BBF\u95EE\u548C\u547D\u4EE4\u9762\u677F',
+    'lite.settings.documentation': '\u6587\u6863',
+    'lite.settings.documentationDesc': '\u6307\u5357\u3001API \u53C2\u8003\u548C\u6559\u7A0B',
+    'lite.quickActions.title': '\u5FEB\u901F\u64CD\u4F5C',
+    'lite.quickActions.start': '\u542F\u52A8\u7F51\u5173',
+    'lite.quickActions.stop': '\u505C\u6B62\u7F51\u5173',
+    'lite.quickActions.restart': '\u91CD\u542F\u7F51\u5173',
+    'lite.quickActions.working': '\u5904\u7406\u4E2D...',
+    'lite.maintenance.title': '\u7EF4\u62A4',
+    'lite.maintenance.version': '\u7248\u672C',
+    'lite.maintenance.downloadBackup': '\u4E0B\u8F7D\u5907\u4EFD',
+    'lite.maintenance.restoreBackup': '\u4ECE\u5907\u4EFD\u6062\u590D',
+    'lite.maintenance.upgradeAvailable': '\u53EF\u7528\u5347\u7EA7',
+    'lite.maintenance.restoring': '\u6062\u590D\u4E2D...',
+    'lite.maintenance.upgrading': '\u5347\u7EA7\u4E2D...',
+    'lite.maintenance.restoreTitle': '\u4ECE\u5907\u4EFD\u6062\u590D',
+    'lite.maintenance.restoreMessage': '\u8FD9\u5C06\u4EE5\u5907\u4EFD\u6587\u4EF6\u201C{filename}\u201D\u66FF\u6362\u5F53\u524D\u914D\u7F6E\u3002\u7CFB\u7EDF\u4F1A\u5148\u81EA\u52A8\u5907\u4EFD\u3002\u7F51\u5173\u5C06\u4F1A\u91CD\u65B0\u542F\u52A8\u3002',
+    'lite.maintenance.upgradeTitle': '\u5347\u7EA7 OpenClaw',
+    'lite.maintenance.upgradeMessage': '\u8FD9\u5C06\u901A\u8FC7 npm \u5B89\u88C5\u6700\u65B0\u7248\u672C\u7684 OpenClaw\u3002\u7CFB\u7EDF\u4F1A\u5148\u81EA\u52A8\u5907\u4EFD\u3002\u7F51\u5173\u5C06\u4F1A\u91CD\u65B0\u542F\u52A8\u3002',
+    'lite.maintenance.invalidFile': '\u8BF7\u9009\u62E9 .tar.gz\u3001.tgz \u6216 .zip \u6587\u4EF6',
+    'lite.maintenance.restoreSuccess': '\u6062\u590D\u5B8C\u6210',
+    'lite.maintenance.restoreFailed': '\u6062\u590D\u5931\u8D25\uFF1A{error}',
+    'lite.maintenance.upgradeSuccess': '\u5347\u7EA7\u5B8C\u6210',
+    'lite.maintenance.upgradeFailed': '\u5347\u7EA7\u5931\u8D25\uFF1A{error}',
+    'lite.confirm.cancel': '\u53D6\u6D88',
+    'lite.confirm.continue': '\u7EE7\u7EED',
+    'lite.token.title': '\u7F51\u5173\u4EE4\u724C',
+    'lite.token.description': '\u4F7F\u7528\u6B64\u4EE4\u724C\u5C06\u5BA2\u6237\u7AEF\u8FDE\u63A5\u5230\u60A8\u7684\u52A9\u7406\u3002',
+    'lite.token.show': '\u663E\u793A',
+    'lite.token.hide': '\u9690\u85CF',
+    'lite.token.copy': '\u590D\u5236',
+    'lite.token.copied': '\u4EE4\u724C\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F',
+    'lite.systemInfo.title': '\u7CFB\u7EDF\u4FE1\u606F',
+    'lite.systemInfo.status': '\u72B6\u6001',
+    'lite.systemInfo.stateDir': '\u72B6\u6001\u76EE\u5F55',
+    'lite.systemInfo.internalPort': '\u5185\u90E8\u7AEF\u53E3',
+    'lite.systemInfo.pid': 'PID',
+    'lite.systemInfo.running': '\u8FD0\u884C\u4E2D',
+    'lite.systemInfo.stopped': '\u5DF2\u505C\u6B62',
+    'lite.terminal.notConnected': '\u672A\u8FDE\u63A5',
+    'lite.terminal.connecting': '\u8FDE\u63A5\u4E2D...',
+    'lite.terminal.connected': '\u5DF2\u8FDE\u63A5',
+    'lite.terminal.disconnected': '\u5DF2\u65AD\u5F00',
+    'lite.commandPalette.title': '\u547D\u4EE4\u9762\u677F',
+    'lite.commandPalette.searchPlaceholder': '\u641C\u7D22\u547D\u4EE4...',
+    'lite.commandPalette.noMatch': '\u6CA1\u6709\u7B26\u5408\u641C\u7D22\u7684\u547D\u4EE4\u3002'
+  },
+  ja: {},
+  ko: {}
+};
+
 /**
  * Generate the management panel HTML
  * @param {Object} options - Page options
@@ -45,7 +456,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 <html>
 <head>
   <title>OpenClaw Lite Management</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5/css/xterm.min.css"/>
   <style>
     :root {
@@ -72,8 +483,8 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       --muted-strong: #52525b;
       --border: #27272a;
       --border-strong: #3f3f46;
-      --font-body: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-body: 'Space Grotesk', 'Noto Sans SC', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-display: 'Space Grotesk', 'Noto Sans SC', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
       --radius-sm: 6px;
       --radius-md: 8px;
@@ -1362,6 +1773,10 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       text-overflow: ellipsis;
     }
 
+    /* Language Selector */
+    ${getLangSelectorCSS()}
+    .header-right .lang-selector { position: relative; }
+
     .hidden { display: none !important; }
   </style>
 </head>
@@ -1373,10 +1788,11 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         <span class="subtitle">Lite</span>
       </h1>
       <div class="header-right">
-        <a href="/onboard?password=${encodeURIComponent(password)}" class="nav-link">&larr; Onboarding Wizard</a>
+        <a href="/onboard?password=${encodeURIComponent(password)}" class="nav-link" data-i18n="lite.header.onboardLink">&larr; Onboarding Wizard</a>
+        ${getLangSelectorHTML('lite')}
         <div class="mode-toggle">
-          <button id="mode-simple" class="active" onclick="setMode('simple')">Simple</button>
-          <button id="mode-advanced" onclick="setMode('advanced')">Advanced</button>
+          <button id="mode-simple" class="active" onclick="setMode('simple')" data-i18n="lite.header.simpleMode">Simple</button>
+          <button id="mode-advanced" onclick="setMode('advanced')" data-i18n="lite.header.advancedMode">Advanced</button>
         </div>
       </div>
     </div>
@@ -1403,15 +1819,15 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       <div class="quick-stats">
         <div class="stat-card">
           <div class="stat-card-value" id="stat-channels">--</div>
-          <div class="stat-card-label"><span class="stat-card-icon">&#x1F4E1;</span> Channels</div>
+          <div class="stat-card-label"><span class="stat-card-icon">&#x1F4E1;</span> <span data-i18n="lite.stats.channels">Channels</span></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-value" id="stat-skills">--</div>
-          <div class="stat-card-label"><span class="stat-card-icon">&#x26A1;</span> Skills</div>
+          <div class="stat-card-label"><span class="stat-card-icon">&#x26A1;</span> <span data-i18n="lite.stats.skills">Skills</span></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-value" id="stat-sessions">--</div>
-          <div class="stat-card-label"><span class="stat-card-icon">&#x1F4AC;</span> Sessions</div>
+          <div class="stat-card-label"><span class="stat-card-icon">&#x1F4AC;</span> <span data-i18n="lite.stats.sessions">Sessions</span></div>
         </div>
       </div>
 
@@ -1421,8 +1837,8 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           <div class="card">
             <div class="card-header">
               <div>
-                <h2>Model Providers</h2>
-                <div class="card-subtitle">Connected AI providers</div>
+                <h2 data-i18n="lite.providers.title">Model Providers</h2>
+                <div class="card-subtitle" data-i18n="lite.providers.subtitle">Connected AI providers</div>
               </div>
             </div>
             <div id="providers-grid" class="integration-grid">
@@ -1436,8 +1852,8 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           <div class="card">
             <div class="card-header">
               <div>
-                <h2>Channels</h2>
-                <div class="card-subtitle">Connected messaging channels</div>
+                <h2 data-i18n="lite.channels.title">Channels</h2>
+                <div class="card-subtitle" data-i18n="lite.channels.subtitle">Connected messaging channels</div>
               </div>
             </div>
             <div id="integrations-grid" class="integration-grid">
@@ -1452,24 +1868,24 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           <div class="card" id="usage-card">
             <div class="card-header">
               <div>
-                <h2>Daily Token Usage</h2>
-                <div class="card-subtitle">Last 7 days</div>
+                <h2 data-i18n="lite.usage.title">Daily Token Usage</h2>
+                <div class="card-subtitle" data-i18n="lite.usage.subtitle">Last 7 days</div>
               </div>
               <div class="usage-toggle">
-                <button class="active" id="usage-tab-total" onclick="setUsageView('total')">Total</button>
-                <button id="usage-tab-bytype" onclick="setUsageView('bytype')">By Type</button>
+                <button class="active" id="usage-tab-total" onclick="setUsageView('total')" data-i18n="lite.usage.total">Total</button>
+                <button id="usage-tab-bytype" onclick="setUsageView('bytype')" data-i18n="lite.usage.byType">By Type</button>
               </div>
             </div>
             <div id="usage-total-view">
               <div class="usage-chart" id="usage-chart">
-                <div class="section-notice" style="width:100%">Loading usage data...</div>
+                <div class="section-notice" style="width:100%" data-i18n="lite.usage.loading">Loading usage data...</div>
               </div>
             </div>
             <div id="usage-bytype-view" class="usage-by-type">
               <div class="usage-stacked-bar" id="usage-stacked"></div>
               <div class="usage-legend" id="usage-legend"></div>
               <div class="usage-total-row">
-                <span class="usage-total-label">Total tokens</span>
+                <span class="usage-total-label" data-i18n="lite.usage.totalTokens">Total tokens</span>
                 <span class="usage-total-value" id="usage-grand-total">--</span>
               </div>
             </div>
@@ -1479,25 +1895,25 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           <div class="card">
             <div class="card-header">
               <div>
-                <h2>Activity</h2>
+                <h2 data-i18n="lite.activity.title">Activity</h2>
               </div>
               <div style="display: flex; gap: 8px; align-items: center;">
                 <label style="color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                  <input type="checkbox" id="auto-scroll" checked style="accent-color: var(--teal);"/> Auto-scroll
+                  <input type="checkbox" id="auto-scroll" checked style="accent-color: var(--teal);"/> <span data-i18n="lite.activity.autoScroll">Auto-scroll</span>
                 </label>
-                <button class="btn-sm btn-secondary" onclick="clearActivity()">Clear</button>
+                <button class="btn-sm btn-secondary" onclick="clearActivity()" data-i18n="lite.activity.clear">Clear</button>
               </div>
             </div>
             <div class="activity-feed" id="activity-feed"></div>
             <div class="log-toggle" onclick="toggleRawLogs()">
               <span class="log-toggle-arrow" id="log-toggle-arrow">&#x25B6;</span>
-              Raw Logs
+              <span data-i18n="lite.activity.rawLogs">Raw Logs</span>
             </div>
             <div id="raw-logs-section" class="hidden">
               <div class="log-raw-container">
                 <div class="log-toolbar">
-                  <span style="color: var(--muted); font-size: 12px;">Gateway output</span>
-                  <button class="btn-sm btn-secondary" onclick="clearLogs()">Clear</button>
+                  <span style="color: var(--muted); font-size: 12px;" data-i18n="lite.activity.gatewayOutput">Gateway output</span>
+                  <button class="btn-sm btn-secondary" onclick="clearLogs()" data-i18n="lite.activity.clear">Clear</button>
                 </div>
                 <div class="log-output" id="log-output"></div>
               </div>
@@ -1508,12 +1924,12 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           <div class="card" id="memory-card">
             <div class="card-header">
               <div>
-                <h2>Memory &amp; Knowledge</h2>
-                <div class="card-subtitle">What your agent remembers</div>
+                <h2 data-i18n="lite.memory.title">Memory &amp; Knowledge</h2>
+                <div class="card-subtitle" data-i18n="lite.memory.subtitle">What your agent remembers</div>
               </div>
             </div>
             <div id="memory-content">
-              <div class="section-notice">Loading memory status...</div>
+              <div class="section-notice" data-i18n="lite.memory.loading">Loading memory status...</div>
             </div>
           </div>
 
@@ -1521,12 +1937,12 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           <div class="card" id="security-audit-card">
             <div class="card-header">
               <div>
-                <h2>Security Audit</h2>
-                <div class="card-subtitle">Check config for security issues</div>
+                <h2 data-i18n="lite.security.title">Security Audit</h2>
+                <div class="card-subtitle" data-i18n="lite.security.subtitle">Check config for security issues</div>
               </div>
               <div class="quick-actions" style="gap: 6px;">
-                <button class="btn-action btn-secondary" id="btn-audit" onclick="runSecurityAudit(false)" style="font-size: 12px; padding: 5px 12px;">Run Audit</button>
-                <button class="btn-action btn-secondary" id="btn-audit-deep" onclick="runSecurityAudit(true)" style="font-size: 12px; padding: 5px 12px;">Deep Audit</button>
+                <button class="btn-action btn-secondary" id="btn-audit" onclick="runSecurityAudit(false)" style="font-size: 12px; padding: 5px 12px;" data-i18n="lite.security.runAudit">Run Audit</button>
+                <button class="btn-action btn-secondary" id="btn-audit-deep" onclick="runSecurityAudit(true)" style="font-size: 12px; padding: 5px 12px;" data-i18n="lite.security.deepAudit">Deep Audit</button>
               </div>
             </div>
             <div id="security-audit-results" class="hidden"></div>
@@ -1534,27 +1950,27 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 
           <!-- Settings & Help Card -->
           <div class="card">
-            <h2>Settings &amp; Help</h2>
+            <h2 data-i18n="lite.settings.title">Settings &amp; Help</h2>
             <div class="settings-links">
               <a href="/onboard?password=${encodeURIComponent(password)}" class="settings-link-item">
                 <span class="settings-link-icon">&#x2699;&#xFE0F;</span>
                 <div class="settings-link-text">
-                  <h4>Setup Wizard</h4>
-                  <p>Reconfigure providers, channels, and skills</p>
+                  <h4 data-i18n="lite.settings.setupWizard">Setup Wizard</h4>
+                  <p data-i18n="lite.settings.setupWizardDesc">Reconfigure providers, channels, and skills</p>
                 </div>
               </a>
               <a href="#" class="settings-link-item" onclick="event.preventDefault(); setMode('advanced');">
                 <span class="settings-link-icon">&#x1F4BB;</span>
                 <div class="settings-link-text">
-                  <h4>Advanced Terminal</h4>
-                  <p>Full CLI access and command palette</p>
+                  <h4 data-i18n="lite.settings.advancedTerminal">Advanced Terminal</h4>
+                  <p data-i18n="lite.settings.advancedTerminalDesc">Full CLI access and command palette</p>
                 </div>
               </a>
               <a href="https://docs.openclaw.ai" target="_blank" rel="noopener" class="settings-link-item">
                 <span class="settings-link-icon">&#x1F4D6;</span>
                 <div class="settings-link-text">
-                  <h4>Documentation</h4>
-                  <p>Guides, API reference, and tutorials</p>
+                  <h4 data-i18n="lite.settings.documentation">Documentation</h4>
+                  <p data-i18n="lite.settings.documentationDesc">Guides, API reference, and tutorials</p>
                 </div>
               </a>
             </div>
@@ -1565,12 +1981,12 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         <div>
           <!-- Quick Actions -->
           <div class="card">
-            <h2>Quick Actions</h2>
+            <h2 data-i18n="lite.quickActions.title">Quick Actions</h2>
             <div class="quick-actions">
               <button id="btn-toggle-agent" class="btn-action ${gatewayInfo.running ? 'btn-danger' : 'btn-success'}" onclick="toggleGateway()">
                 ${gatewayInfo.running ? 'Stop Gateway' : 'Start Gateway'}
               </button>
-              <button id="btn-restart" class="btn-action btn-primary" onclick="gatewayRestart()" ${gatewayInfo.running ? '' : 'disabled'}>
+              <button id="btn-restart" class="btn-action btn-primary" onclick="gatewayRestart()" ${gatewayInfo.running ? '' : 'disabled'} data-i18n="lite.quickActions.restart">
                 Restart Gateway
               </button>
             </div>
@@ -1578,55 +1994,55 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 
           <!-- Maintenance -->
           <div class="card">
-            <h2>Maintenance</h2>
+            <h2 data-i18n="lite.maintenance.title">Maintenance</h2>
             <div id="version-info" class="maintenance-version">
-              <span>Version: <span class="version-current" id="version-current">...</span></span>
+              <span><span data-i18n="lite.maintenance.version">Version</span>: <span class="version-current" id="version-current">...</span></span>
               <span class="version-update" id="version-update" style="display:none"></span>
             </div>
             <div class="maintenance-actions">
-              <button class="maintenance-btn btn-secondary" onclick="downloadBackup()">Download Backup</button>
+              <button class="maintenance-btn btn-secondary" onclick="downloadBackup()" data-i18n="lite.maintenance.downloadBackup">Download Backup</button>
               <input type="file" id="restore-file" class="maintenance-upload" accept=".tar.gz,.tgz,.gz,.zip,application/gzip,application/x-gzip,application/zip" onchange="handleRestoreFile(this)"/>
-              <button class="maintenance-btn btn-secondary" id="btn-restore" onclick="document.getElementById('restore-file').click()">Restore from Backup</button>
-              <button class="maintenance-btn btn-primary" id="btn-upgrade" onclick="confirmUpgrade()" style="display:none">Upgrade Available</button>
+              <button class="maintenance-btn btn-secondary" id="btn-restore" onclick="document.getElementById('restore-file').click()" data-i18n="lite.maintenance.restoreBackup">Restore from Backup</button>
+              <button class="maintenance-btn btn-primary" id="btn-upgrade" onclick="confirmUpgrade()" style="display:none" data-i18n="lite.maintenance.upgradeAvailable">Upgrade Available</button>
             </div>
             <div class="maintenance-status" id="maintenance-status"></div>
           </div>
 
           <!-- Gateway Token -->
           <div class="card">
-            <h2>Gateway Token</h2>
-            <div class="token-description">Use this token to connect clients to your agent.</div>
+            <h2 data-i18n="lite.token.title">Gateway Token</h2>
+            <div class="token-description" data-i18n="lite.token.description">Use this token to connect clients to your agent.</div>
             <div class="token-box">
               <span id="token-display" class="token-masked">${maskToken(gatewayToken)}</span>
               <input type="hidden" id="token-full" value="${gatewayToken}"/>
             </div>
             <div class="token-actions">
-              <button class="token-btn" id="btn-token-toggle" onclick="toggleTokenVisibility()">Show</button>
-              <button class="token-btn" onclick="copyToken()">Copy</button>
+              <button class="token-btn" id="btn-token-toggle" onclick="toggleTokenVisibility()" data-i18n="lite.token.show">Show</button>
+              <button class="token-btn" onclick="copyToken()" data-i18n="lite.token.copy">Copy</button>
             </div>
           </div>
 
           <!-- System Info -->
           <div class="card">
-            <h2>System Info</h2>
+            <h2 data-i18n="lite.systemInfo.title">System Info</h2>
             <div class="system-info-list">
               <div class="system-info-item">
-                <span class="label">Status</span>
+                <span class="label" data-i18n="lite.systemInfo.status">Status</span>
                 <div class="system-info-status">
                   <span class="dot ${gatewayInfo.running ? 'running' : 'stopped'}" id="sysinfo-dot"></span>
                   <span class="value" id="sysinfo-status">${gatewayInfo.running ? 'Running' : 'Stopped'}</span>
                 </div>
               </div>
               <div class="system-info-item">
-                <span class="label">State directory</span>
+                <span class="label" data-i18n="lite.systemInfo.stateDir">State directory</span>
                 <span class="value">${stateDir}</span>
               </div>
               <div class="system-info-item">
-                <span class="label">Internal port</span>
+                <span class="label" data-i18n="lite.systemInfo.internalPort">Internal port</span>
                 <span class="value">${gatewayInfo.port}</span>
               </div>
               <div class="system-info-item">
-                <span class="label">PID</span>
+                <span class="label" data-i18n="lite.systemInfo.pid">PID</span>
                 <span class="value" id="sysinfo-pid">${gatewayInfo.pid || '--'}</span>
               </div>
             </div>
@@ -1648,7 +2064,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           </div>
           <div id="ui-terminal"></div>
           <div class="terminal-status">
-            <span id="term-connection-status">Not connected</span>
+            <span id="term-connection-status" data-i18n="lite.terminal.notConnected">Not connected</span>
             <span id="term-size"></span>
           </div>
         </div>
@@ -1656,8 +2072,8 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 
       <div class="card" style="padding: 0; overflow: hidden;">
         <div style="padding: 15px 20px; border-bottom: 1px solid var(--border);">
-          <h2 style="margin-bottom: 12px;">Command Palette</h2>
-          <input type="text" id="cmd-search" class="form-input" placeholder="Search commands..."
+          <h2 style="margin-bottom: 12px;" data-i18n="lite.commandPalette.title">Command Palette</h2>
+          <input type="text" id="cmd-search" class="form-input" placeholder="Search commands..." data-i18n-placeholder="lite.commandPalette.searchPlaceholder"
                  oninput="filterCommands()" style="margin-bottom: 10px;" />
           <div class="cmd-categories" id="cmd-categories"></div>
         </div>
@@ -1674,6 +2090,13 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
   <script>
     (function() {
       var password = ${JSON.stringify(password)};
+
+      // ========== i18n ==========
+      ${getI18nBootstrapJS(JSON.stringify(LITE_TRANSLATIONS), {
+        langSelectorIds: ['lite'],
+        onChangeCallback: 'applyDynamicTranslations();'
+      })}
+
       var ws = null;
       var term = null;
       var fitAddon = null;
@@ -1697,18 +2120,18 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 
       // Activity patterns for parsing log entries
       var ACTIVITY_PATTERNS = [
-        { regex: /gateway.*started|listening on/i, icon: '\\u{1F7E2}', label: 'Gateway started' },
-        { regex: /gateway.*stopped|shutdown/i, icon: '\\u{1F534}', label: 'Gateway stopped' },
-        { regex: /message.*received|incoming.*message|msg.*from/i, icon: '\\u{1F4E8}', label: 'Message received' },
-        { regex: /message.*sent|reply.*sent|response.*sent/i, icon: '\\u{1F4E4}', label: 'Message sent' },
-        { regex: /connected.*to|channel.*connected|joined/i, icon: '\\u{1F517}', label: 'Channel connected' },
-        { regex: /disconnected|channel.*disconnected|left/i, icon: '\\u{26D4}', label: 'Channel disconnected' },
-        { regex: /error|failed|exception|crash/i, icon: '\\u{26A0}\\u{FE0F}', label: 'Error detected' },
-        { regex: /pairing|pair.*approved|device.*linked/i, icon: '\\u{1F4F1}', label: 'Device paired' },
-        { regex: /skill.*loaded|plugin.*loaded/i, icon: '\\u{26A1}', label: 'Skill loaded' },
-        { regex: /session.*created|new.*session/i, icon: '\\u{1F4AC}', label: 'Session created' },
-        { regex: /cron|scheduled|job.*ran/i, icon: '\\u{23F0}', label: 'Scheduled task ran' },
-        { regex: /memory.*indexed|memory.*updated/i, icon: '\\u{1F9E0}', label: 'Memory updated' }
+        { regex: /gateway.*started|listening on/i, icon: '\\u{1F7E2}', labelKey: 'lite.activity.patterns.gatewayStarted' },
+        { regex: /gateway.*stopped|shutdown/i, icon: '\\u{1F534}', labelKey: 'lite.activity.patterns.gatewayStopped' },
+        { regex: /message.*received|incoming.*message|msg.*from/i, icon: '\\u{1F4E8}', labelKey: 'lite.activity.patterns.messageReceived' },
+        { regex: /message.*sent|reply.*sent|response.*sent/i, icon: '\\u{1F4E4}', labelKey: 'lite.activity.patterns.messageSent' },
+        { regex: /connected.*to|channel.*connected|joined/i, icon: '\\u{1F517}', labelKey: 'lite.activity.patterns.channelConnected' },
+        { regex: /disconnected|channel.*disconnected|left/i, icon: '\\u{26D4}', labelKey: 'lite.activity.patterns.channelDisconnected' },
+        { regex: /error|failed|exception|crash/i, icon: '\\u{26A0}\\u{FE0F}', labelKey: 'lite.activity.patterns.errorDetected' },
+        { regex: /pairing|pair.*approved|device.*linked/i, icon: '\\u{1F4F1}', labelKey: 'lite.activity.patterns.devicePaired' },
+        { regex: /skill.*loaded|plugin.*loaded/i, icon: '\\u{26A1}', labelKey: 'lite.activity.patterns.skillLoaded' },
+        { regex: /session.*created|new.*session/i, icon: '\\u{1F4AC}', labelKey: 'lite.activity.patterns.sessionCreated' },
+        { regex: /cron|scheduled|job.*ran/i, icon: '\\u{23F0}', labelKey: 'lite.activity.patterns.scheduledTaskRan' },
+        { regex: /memory.*indexed|memory.*updated/i, icon: '\\u{1F9E0}', labelKey: 'lite.activity.patterns.memoryUpdated' }
       ];
 
       // ----- Helpers -----
@@ -1822,11 +2245,11 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         if (data.gatewayRunning) {
           hero.classList.remove('stopped');
           dot.className = 'status-dot running';
-          text.textContent = 'Gateway Running';
+          text.textContent = t('lite.status.running');
         } else {
           hero.classList.add('stopped');
           dot.className = 'status-dot stopped';
-          text.textContent = 'Gateway Stopped';
+          text.textContent = t('lite.status.stopped');
         }
 
         uptimeEl.textContent = formatUptime(data.uptime);
@@ -1886,7 +2309,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           var notice = document.createElement('div');
           notice.className = 'section-notice';
           notice.style.width = '100%';
-          notice.textContent = 'No usage data available';
+          notice.textContent = t('lite.usage.noData');
           container.appendChild(notice);
           return;
         }
@@ -1920,7 +2343,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           dateRow.className = 'usage-tooltip-row';
           var dateLabel = document.createElement('span');
           dateLabel.className = 'usage-tooltip-label';
-          dateLabel.textContent = 'Date';
+          dateLabel.textContent = t('lite.usage.date');
           dateRow.appendChild(dateLabel);
           var dateValue = document.createElement('span');
           dateValue.className = 'usage-tooltip-value';
@@ -1932,7 +2355,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           totalRow.className = 'usage-tooltip-row';
           var totalLabel = document.createElement('span');
           totalLabel.className = 'usage-tooltip-label';
-          totalLabel.textContent = 'Tokens';
+          totalLabel.textContent = t('lite.usage.tokens');
           totalRow.appendChild(totalLabel);
           var totalValue = document.createElement('span');
           totalValue.className = 'usage-tooltip-value';
@@ -1944,7 +2367,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           costRow.className = 'usage-tooltip-row';
           var costLabel = document.createElement('span');
           costLabel.className = 'usage-tooltip-label';
-          costLabel.textContent = 'Est. cost';
+          costLabel.textContent = t('lite.usage.estCost');
           costRow.appendChild(costLabel);
           var costValue = document.createElement('span');
           costValue.className = 'usage-tooltip-value';
@@ -1992,31 +2415,31 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         grandTotalEl.textContent = formatTokenCount(grandTotal) + costStr;
 
         var types = [
-          { key: 'output', label: 'Output', color: 'var(--accent)' },
-          { key: 'input', label: 'Input', color: 'var(--warn)' },
-          { key: 'cacheWrite', label: 'Cache Write', color: 'var(--teal)' },
-          { key: 'cacheRead', label: 'Cache Read', color: '#38bdf8' }
+          { key: 'output', labelKey: 'lite.usage.output', color: 'var(--accent)' },
+          { key: 'input', labelKey: 'lite.usage.input', color: 'var(--warn)' },
+          { key: 'cacheWrite', labelKey: 'lite.usage.cacheWrite', color: 'var(--teal)' },
+          { key: 'cacheRead', labelKey: 'lite.usage.cacheRead', color: '#38bdf8' }
         ];
 
-        types.forEach(function(t) {
-          var pct = grandTotal > 0 ? (totals[t.key] / grandTotal * 100) : 0;
+        types.forEach(function(tk) {
+          var pct = grandTotal > 0 ? (totals[tk.key] / grandTotal * 100) : 0;
           var seg = document.createElement('div');
           seg.className = 'usage-stacked-segment';
           seg.style.width = pct + '%';
-          seg.style.background = t.color;
-          seg.title = t.label + ': ' + formatTokenCount(totals[t.key]);
+          seg.style.background = tk.color;
+          seg.title = t(tk.labelKey) + ': ' + formatTokenCount(totals[tk.key]);
           stackedEl.appendChild(seg);
 
           var legendItem = document.createElement('div');
           legendItem.className = 'usage-legend-item';
           var dot = document.createElement('span');
           dot.className = 'usage-legend-dot';
-          dot.style.background = t.color;
+          dot.style.background = tk.color;
           legendItem.appendChild(dot);
-          legendItem.appendChild(document.createTextNode(t.label + ' '));
+          legendItem.appendChild(document.createTextNode(t(tk.labelKey) + ' '));
           var count = document.createElement('span');
           count.className = 'usage-legend-count';
-          count.textContent = formatTokenCount(totals[t.key]);
+          count.textContent = formatTokenCount(totals[tk.key]);
           legendItem.appendChild(count);
           legendEl.appendChild(legendItem);
         });
@@ -2035,7 +2458,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
               var notice = document.createElement('div');
               notice.className = 'section-notice';
               notice.style.width = '100%';
-              notice.textContent = 'Usage data not available';
+              notice.textContent = t('lite.usage.notAvailable');
               container.appendChild(notice);
             }
           })
@@ -2059,12 +2482,12 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 
           var textDiv = document.createElement('div');
           textDiv.className = 'empty-state-text';
-          textDiv.textContent = 'No channels connected yet';
+          textDiv.textContent = t('lite.channels.empty');
           empty.appendChild(textDiv);
 
           var link = document.createElement('a');
           link.href = '/onboard?password=' + encodeURIComponent(password);
-          link.textContent = 'Set up in the onboarding wizard';
+          link.textContent = t('lite.channels.setupLink');
           empty.appendChild(link);
 
           container.appendChild(empty);
@@ -2115,11 +2538,11 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           configRow.className = 'popover-row';
           var configLabel = document.createElement('span');
           configLabel.className = 'popover-label';
-          configLabel.textContent = 'Configured';
+          configLabel.textContent = t('lite.channels.configured');
           configRow.appendChild(configLabel);
           var configBadge = document.createElement('span');
           configBadge.className = 'popover-badge connected';
-          configBadge.textContent = 'Yes';
+          configBadge.textContent = t('lite.channels.yes');
           configRow.appendChild(configBadge);
           popover.appendChild(configRow);
 
@@ -2127,11 +2550,11 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           connRow.className = 'popover-row';
           var connLabel = document.createElement('span');
           connLabel.className = 'popover-label';
-          connLabel.textContent = 'Connected';
+          connLabel.textContent = t('lite.channels.connectedLabel');
           connRow.appendChild(connLabel);
           var connBadge = document.createElement('span');
           connBadge.className = 'popover-badge ' + (enabled ? 'connected' : 'inactive');
-          connBadge.textContent = enabled ? 'Yes' : 'No';
+          connBadge.textContent = enabled ? t('lite.channels.yes') : t('lite.channels.no');
           connRow.appendChild(connBadge);
           popover.appendChild(connRow);
 
@@ -2182,7 +2605,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           empty.style.gridColumn = '1 / -1';
           var textDiv = document.createElement('div');
           textDiv.className = 'empty-state-text';
-          textDiv.textContent = 'No provider data available';
+          textDiv.textContent = t('lite.providers.empty');
           empty.appendChild(textDiv);
           container.appendChild(empty);
           return;
@@ -2268,11 +2691,11 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           statusRow.className = 'popover-row';
           var statusLabel = document.createElement('span');
           statusLabel.className = 'popover-label';
-          statusLabel.textContent = 'Status';
+          statusLabel.textContent = t('lite.providers.statusLabel');
           statusRow.appendChild(statusLabel);
           var badge = document.createElement('span');
           badge.className = 'popover-badge ' + (isActive ? 'active' : connected ? 'connected' : 'inactive');
-          badge.textContent = isActive ? 'Active' : connected ? 'Connected' : 'Not connected';
+          badge.textContent = isActive ? t('lite.providers.active') : connected ? t('lite.providers.connected') : t('lite.providers.notConnected');
           statusRow.appendChild(badge);
           popover.appendChild(statusRow);
           if (isActive && modelName) {
@@ -2280,7 +2703,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             modelRow.className = 'popover-row';
             var modelLabel = document.createElement('span');
             modelLabel.className = 'popover-label';
-            modelLabel.textContent = 'Model';
+            modelLabel.textContent = t('lite.providers.modelLabel');
             modelRow.appendChild(modelLabel);
             var modelValue = document.createElement('span');
             modelValue.className = 'popover-value';
@@ -2299,7 +2722,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           emptyDiv.style.gridColumn = '1 / -1';
           var emptyText = document.createElement('div');
           emptyText.className = 'empty-state-text';
-          emptyText.textContent = 'No providers configured';
+          emptyText.textContent = t('lite.providers.noProviders');
           emptyDiv.appendChild(emptyText);
           container.appendChild(emptyDiv);
         }
@@ -2311,10 +2734,10 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         var restartBtn = document.getElementById('btn-restart');
 
         if (running) {
-          toggleBtn.textContent = 'Stop Gateway';
+          toggleBtn.textContent = t('lite.quickActions.stop');
           toggleBtn.className = 'btn-action btn-danger';
         } else {
-          toggleBtn.textContent = 'Start Gateway';
+          toggleBtn.textContent = t('lite.quickActions.start');
           toggleBtn.className = 'btn-action btn-success';
         }
         restartBtn.disabled = !running;
@@ -2327,7 +2750,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         var pidEl = document.getElementById('sysinfo-pid');
 
         dot.className = 'dot ' + (data.gatewayRunning ? 'running' : 'stopped');
-        statusEl.textContent = data.gatewayRunning ? 'Running' : 'Stopped';
+        statusEl.textContent = data.gatewayRunning ? t('lite.systemInfo.running') : t('lite.systemInfo.stopped');
         pidEl.textContent = data.gatewayInfo ? (data.gatewayInfo.pid || '--') : '--';
       }
 
@@ -2337,7 +2760,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         for (var i = 0; i < ACTIVITY_PATTERNS.length; i++) {
           var p = ACTIVITY_PATTERNS[i];
           if (p.regex.test(text)) {
-            return { ts: entry.timestamp, icon: p.icon, text: p.label, isError: /error|failed/i.test(text) };
+            return { ts: entry.timestamp, icon: p.icon, text: t(p.labelKey), isError: /error|failed/i.test(text) };
           }
         }
         return null;
@@ -2426,7 +2849,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             if (!data.available) {
               var notice = document.createElement('div');
               notice.className = 'section-notice';
-              notice.textContent = 'Memory features not available';
+              notice.textContent = t('lite.memory.notAvailable');
               container.appendChild(notice);
               return;
             }
@@ -2436,9 +2859,9 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             stats.className = 'memory-stats';
 
             var statItems = [
-              { label: 'Status', value: data.status || 'Active' },
-              { label: 'Entries', value: data.entries != null ? String(data.entries) : '--' },
-              { label: 'Backend', value: data.backend || '--' }
+              { label: t('lite.memory.status'), value: data.status || t('lite.memory.active') },
+              { label: t('lite.memory.entries'), value: data.entries != null ? String(data.entries) : '--' },
+              { label: t('lite.memory.backend'), value: data.backend || '--' }
             ];
             statItems.forEach(function(s) {
               var stat = document.createElement('div');
@@ -2462,7 +2885,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             var searchInput = document.createElement('input');
             searchInput.type = 'text';
             searchInput.className = 'memory-search-input';
-            searchInput.placeholder = 'Search memory...';
+            searchInput.placeholder = t('lite.memory.searchPlaceholder');
 
             // Results container
             var resultsDiv = document.createElement('div');
@@ -2487,7 +2910,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             container.textContent = '';
             var notice = document.createElement('div');
             notice.className = 'section-notice';
-            notice.textContent = 'Memory features not available';
+            notice.textContent = t('lite.memory.notAvailable');
             container.appendChild(notice);
           });
       }
@@ -2496,7 +2919,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         resultsDiv.textContent = '';
         var loadingMsg = document.createElement('div');
         loadingMsg.style.cssText = 'color: var(--muted); font-size: 12px;';
-        loadingMsg.textContent = 'Searching...';
+        loadingMsg.textContent = t('lite.memory.searching');
         resultsDiv.appendChild(loadingMsg);
 
         fetch('/lite/api/memory/search?q=' + encodeURIComponent(query) + '&' + authParam())
@@ -2506,7 +2929,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             if (!data.results || data.results.length === 0) {
               var noResults = document.createElement('div');
               noResults.style.cssText = 'color: var(--muted); font-size: 12px; padding: 10px 0;';
-              noResults.textContent = 'No results found';
+              noResults.textContent = t('lite.memory.noResults');
               resultsDiv.appendChild(noResults);
               return;
             }
@@ -2521,7 +2944,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             resultsDiv.textContent = '';
             var errMsg = document.createElement('div');
             errMsg.style.cssText = 'color: var(--muted); font-size: 12px;';
-            errMsg.textContent = 'Search failed';
+            errMsg.textContent = t('lite.memory.searchFailed');
             resultsDiv.appendChild(errMsg);
           });
       }
@@ -2535,10 +2958,10 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 
         if (tokenVisible) {
           display.textContent = full;
-          btn.textContent = 'Hide';
+          btn.textContent = t('lite.token.hide');
         } else {
           display.textContent = maskTokenJS(full);
-          btn.textContent = 'Show';
+          btn.textContent = t('lite.token.show');
         }
       };
 
@@ -2550,7 +2973,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       window.copyToken = function() {
         var token = document.getElementById('token-full').value;
         navigator.clipboard.writeText(token).then(function() {
-          showToast('Token copied to clipboard', 'success');
+          showToast(t('lite.token.copied'), 'success');
         });
       };
 
@@ -2622,7 +3045,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         var action = running ? 'stop' : 'start';
         var btn = document.getElementById('btn-toggle-agent');
         btn.disabled = true;
-        btn.textContent = 'Working...';
+        btn.textContent = t('lite.quickActions.working');
 
         fetch('/lite/api/gateway/' + action + '?' + authParam(), { method: 'POST' })
           .then(function(res) { return res.json(); })
@@ -2643,7 +3066,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       window.gatewayRestart = function() {
         var btn = document.getElementById('btn-restart');
         btn.disabled = true;
-        btn.textContent = 'Working...';
+        btn.textContent = t('lite.quickActions.working');
 
         fetch('/lite/api/gateway/restart?' + authParam(), { method: 'POST' })
           .then(function(res) { return res.json(); })
@@ -2657,7 +3080,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             showToast('Error: ' + err.message, 'error');
           })
           .finally(function() {
-            btn.textContent = 'Restart Gateway';
+            btn.textContent = t('lite.quickActions.restart');
             btn.disabled = false;
           });
       };
@@ -2674,12 +3097,12 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             currentEl.textContent = data.current || 'unknown';
 
             if (data.upgradeAvailable && data.upgradeMethod === 'npm') {
-              updateEl.textContent = data.latest + ' available';
+              updateEl.textContent = t('lite.maintenance.available', { version: data.latest });
               updateEl.style.display = '';
               upgradeBtn.style.display = '';
-              upgradeBtn.textContent = 'Upgrade to ' + data.latest;
+              upgradeBtn.textContent = t('lite.maintenance.upgradeTo', { version: data.latest });
             } else if (data.upgradeMethod === 'redeploy') {
-              updateEl.textContent = 'redeploy to update';
+              updateEl.textContent = t('lite.maintenance.redeployToUpdate');
               updateEl.style.display = '';
               upgradeBtn.style.display = 'none';
             } else {
@@ -2701,13 +3124,13 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         if (!file) return;
         var name = file.name.toLowerCase();
         if (!name.endsWith('.tar.gz') && !name.endsWith('.tgz') && !name.endsWith('.zip')) {
-          showToast('Please select a .tar.gz, .tgz, or .zip file', 'error');
+          showToast(t('lite.maintenance.invalidFile'), 'error');
           input.value = '';
           return;
         }
         showConfirmDialog(
-          'Restore from Backup',
-          'This will replace your current configuration with the backup file "' + file.name + '". An auto-backup will be created first. The gateway will be restarted.',
+          t('lite.maintenance.restoreTitle'),
+          t('lite.maintenance.restoreMessage', { filename: file.name }),
           function() { performRestore(file); }
         );
         input.value = '';
@@ -2717,7 +3140,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         var btn = document.getElementById('btn-restore');
         var statusEl = document.getElementById('maintenance-status');
         btn.disabled = true;
-        btn.textContent = 'Restoring...';
+        btn.textContent = t('lite.maintenance.restoring');
         statusEl.className = 'maintenance-status visible';
         statusEl.textContent = '';
 
@@ -2738,18 +3161,18 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
                 statusEl.appendChild(span);
               });
               if (data.success) {
-                showToast('Restore completed successfully', 'success');
+                showToast(t('lite.maintenance.restoreSuccess'), 'success');
                 setTimeout(pollStatus, 1000);
               } else {
-                showToast('Restore failed: ' + (data.error || 'unknown'), 'error');
+                showToast(t('lite.maintenance.restoreFailed', { error: data.error || 'unknown' }), 'error');
               }
             })
             .catch(function(err) {
-              showToast('Restore error: ' + err.message, 'error');
+              showToast(t('lite.maintenance.restoreError', { error: err.message }), 'error');
             })
             .finally(function() {
               btn.disabled = false;
-              btn.textContent = 'Restore from Backup';
+              btn.textContent = t('lite.maintenance.restoreBackup');
             });
         };
         reader.readAsArrayBuffer(file);
@@ -2757,8 +3180,8 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 
       window.confirmUpgrade = function() {
         showConfirmDialog(
-          'Upgrade OpenClaw',
-          'This will install the latest version of OpenClaw via npm. An auto-backup will be created first. The gateway will be restarted.',
+          t('lite.maintenance.upgradeTitle'),
+          t('lite.maintenance.upgradeMessage'),
           function() { performUpgrade(); }
         );
       };
@@ -2767,7 +3190,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         var btn = document.getElementById('btn-upgrade');
         var statusEl = document.getElementById('maintenance-status');
         btn.disabled = true;
-        btn.textContent = 'Upgrading...';
+        btn.textContent = t('lite.maintenance.upgrading');
         statusEl.className = 'maintenance-status visible';
         statusEl.textContent = '';
 
@@ -2782,19 +3205,19 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
               statusEl.appendChild(span);
             });
             if (data.success) {
-              showToast('Upgrade completed successfully', 'success');
+              showToast(t('lite.maintenance.upgradeSuccess'), 'success');
               checkVersion();
               setTimeout(pollStatus, 1000);
             } else {
-              showToast('Upgrade failed: ' + (data.error || 'unknown'), 'error');
+              showToast(t('lite.maintenance.upgradeFailed', { error: data.error || 'unknown' }), 'error');
             }
           })
           .catch(function(err) {
-            showToast('Upgrade error: ' + err.message, 'error');
+            showToast(t('lite.maintenance.upgradeError', { error: err.message }), 'error');
           })
           .finally(function() {
             btn.disabled = false;
-            btn.textContent = 'Upgrade Available';
+            btn.textContent = t('lite.maintenance.upgradeAvailable');
           });
       }
 
@@ -2818,13 +3241,13 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
 
         var cancelBtn = document.createElement('button');
         cancelBtn.className = 'btn-secondary';
-        cancelBtn.textContent = 'Cancel';
+        cancelBtn.textContent = t('lite.confirm.cancel');
         cancelBtn.addEventListener('click', function() { document.body.removeChild(overlay); });
         buttons.appendChild(cancelBtn);
 
         var confirmBtn = document.createElement('button');
         confirmBtn.className = 'btn-primary';
-        confirmBtn.textContent = 'Continue';
+        confirmBtn.textContent = t('lite.confirm.continue');
         confirmBtn.addEventListener('click', function() {
           document.body.removeChild(overlay);
           onConfirm();
@@ -2910,14 +3333,14 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
           ws.close();
         }
 
-        updateTermStatus('Connecting...', '#f59e0b');
+        updateTermStatus(t('lite.terminal.connecting'), '#f59e0b');
 
         var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         ws = new WebSocket(protocol + '//' + location.host + '/lite/ws?' + authParam());
 
         ws.onopen = function() {
           term.clear();
-          updateTermStatus('Connected', '#10b981');
+          updateTermStatus(t('lite.terminal.connected'), '#10b981');
           if (fitAddon) {
             ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
           }
@@ -2931,7 +3354,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             } else if (msg.type === 'exit') {
               term.writeln('');
               term.writeln('\\x1b[90mSession ended (code: ' + msg.code + ')\\x1b[0m');
-              updateTermStatus('Disconnected', '#ef4444');
+              updateTermStatus(t('lite.terminal.disconnected'), '#ef4444');
             }
           } catch (e) {
             term.write(event.data);
@@ -2939,12 +3362,12 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         };
 
         ws.onclose = function() {
-          updateTermStatus('Disconnected', '#ef4444');
+          updateTermStatus(t('lite.terminal.disconnected'), '#ef4444');
         };
 
         ws.onerror = function() {
           term.writeln('\\x1b[1;31mConnection error.\\x1b[0m');
-          updateTermStatus('Error', '#ef4444');
+          updateTermStatus(t('lite.terminal.error'), '#ef4444');
         };
       }
 
@@ -3104,7 +3527,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         if (!listEl.children.length) {
           var empty = document.createElement('div');
           empty.style.cssText = 'padding: 20px; text-align: center; color: var(--muted);';
-          empty.textContent = 'No commands match your search.';
+          empty.textContent = t('lite.commandPalette.noMatch');
           listEl.appendChild(empty);
         }
       };
@@ -3120,7 +3543,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         container.textContent = '';
         var loadNotice = document.createElement('div');
         loadNotice.className = 'section-notice';
-        loadNotice.textContent = deep ? 'Running deep audit...' : 'Running audit...';
+        loadNotice.textContent = deep ? t('lite.security.runningDeep') : t('lite.security.running');
         container.appendChild(loadNotice);
 
         fetch('/lite/api/security-audit?' + authParam(), {
@@ -3150,7 +3573,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         if (!data || !data.available) {
           var notice = document.createElement('div');
           notice.className = 'section-notice';
-          notice.textContent = data && data.error ? data.error : 'Audit not available';
+          notice.textContent = data && data.error ? data.error : t('lite.security.notAvailable');
           container.appendChild(notice);
           return;
         }
@@ -3177,9 +3600,9 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             item.appendChild(document.createTextNode(' ' + count + ' ' + label));
             summary.appendChild(item);
           }
-          addSummaryItem('pass', pass, 'passed');
-          addSummaryItem('warn', warn, 'warnings');
-          addSummaryItem('fail', fail, 'failed');
+          addSummaryItem('pass', pass, t('lite.security.passed'));
+          addSummaryItem('warn', warn, t('lite.security.warnings'));
+          addSummaryItem('fail', fail, t('lite.security.failed'));
           container.appendChild(summary);
 
           // Findings list
@@ -3212,13 +3635,30 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         } else {
           var emptyNotice = document.createElement('div');
           emptyNotice.className = 'section-notice';
-          emptyNotice.textContent = 'No findings';
+          emptyNotice.textContent = t('lite.security.noFindings');
           container.appendChild(emptyNotice);
         }
       }
 
+      // ----- Dynamic translation re-render -----
+      function applyDynamicTranslations() {
+        document.title = t('pageTitle');
+        if (cachedStatus) {
+          updateHero(cachedStatus);
+          updateProviders(cachedStatus.auth, cachedStatus.model);
+          updateIntegrations(cachedStatus.channels);
+          updateQuickActions(cachedStatus.gatewayRunning);
+          updateSystemInfo(cachedStatus);
+        }
+        loadMemory();
+        filterCommands();
+      }
+
       // ----- Initialize -----
       document.addEventListener('DOMContentLoaded', function() {
+        initLanguage();
+        updateLangSelectorUI();
+        applyTranslations();
         startPolling();
         renderCategoryPills();
         filterCommands();

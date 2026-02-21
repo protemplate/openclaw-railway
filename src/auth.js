@@ -1,5 +1,5 @@
 /**
- * Authentication middleware for OpenClaw setup wizard
+ * Authentication middleware for OpenClaw Onboarding Wizard
  *
  * Protects /onboard endpoint with password authentication
  */

@@ -9,6 +9,8 @@
  * Step 5: Review & Deploy
  */
 
+import { getLangSelectorCSS, getLangSelectorHTML, getI18nBootstrapJS } from './i18n.js';
+
 /**
  * Generate the setup page HTML
  * @param {Object} options - Page options
@@ -24,7 +26,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
   return `<!DOCTYPE html>
 <html>
 <head>
-  <title>OpenClaw Setup</title>
+  <title>OpenClaw Onboarding Wizard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap"/>
   <style>
@@ -107,71 +109,12 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
 
     /* Language Selector */
     .wizard-header { position: relative; }
-    .lang-selector {
+    ${getLangSelectorCSS()}
+    .wizard-header .lang-selector {
       position: absolute;
       top: 0;
       right: 0;
     }
-    .lang-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-size: 13px;
-      font-weight: 500;
-      font-family: var(--font-body);
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      user-select: none;
-    }
-    .lang-btn:hover {
-      border-color: var(--border-strong);
-      background: var(--bg-hover);
-    }
-    .lang-btn .lang-arrow {
-      font-size: 10px;
-      transition: transform 0.15s;
-    }
-    .lang-dropdown {
-      display: none;
-      position: absolute;
-      top: calc(100% + 4px);
-      right: 0;
-      min-width: 180px;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-md);
-      z-index: 100;
-      padding: 4px;
-      animation: fadeIn 0.15s ease-out;
-    }
-    .lang-dropdown.open { display: block; }
-    .lang-option {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-size: 13px;
-      color: var(--text);
-      transition: background 0.1s;
-    }
-    .lang-option:hover { background: var(--bg-hover); }
-    .lang-option .lang-flag { font-size: 16px; flex-shrink: 0; }
-    .lang-option .lang-name { flex: 1; }
-    .lang-check {
-      font-size: 12px;
-      color: var(--teal);
-      opacity: 0;
-      transition: opacity 0.1s;
-    }
-    .lang-check.active { opacity: 1; }
     .configured-lang-selector {
       margin-bottom: 16px;
       display: inline-block;
@@ -1084,18 +1027,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
   <!-- =============== Already Configured =============== -->
   <div id="configured-view" class="configured-card">
     <div class="configured-lang-selector">
-      <button class="lang-btn" id="configured-lang-btn" onclick="toggleLangDropdown('configured-lang-dropdown')">
-        <span class="lang-flag" id="configured-lang-flag"></span>
-        <span id="configured-lang-name"></span>
-        <span class="lang-arrow">&#9662;</span>
-      </button>
-      <div class="lang-dropdown" id="configured-lang-dropdown">
-        <div class="lang-option" onclick="setLanguage('en')"><span class="lang-flag">&#127468;&#127463;</span><span class="lang-name">English</span><span class="lang-check" data-lang="en">&#10003;</span></div>
-        <div class="lang-option" onclick="setLanguage('zh-TW')"><span class="lang-flag">&#127481;&#127484;</span><span class="lang-name">&#32321;&#39636;&#20013;&#25991;</span><span class="lang-check" data-lang="zh-TW">&#10003;</span></div>
-        <div class="lang-option" onclick="setLanguage('zh-CN')"><span class="lang-flag">&#127464;&#127475;</span><span class="lang-name">&#31616;&#20307;&#20013;&#25991;</span><span class="lang-check" data-lang="zh-CN">&#10003;</span></div>
-        <div class="lang-option" onclick="setLanguage('ja')"><span class="lang-flag">&#127471;&#127477;</span><span class="lang-name">&#26085;&#26412;&#35486;</span><span class="lang-check" data-lang="ja">&#10003;</span></div>
-        <div class="lang-option" onclick="setLanguage('ko')"><span class="lang-flag">&#127472;&#127479;</span><span class="lang-name">&#54620;&#44397;&#50612;</span><span class="lang-check" data-lang="ko">&#10003;</span></div>
-      </div>
+      ${getLangSelectorHTML('configured')}
     </div>
     <div class="configured-check">&#10003;</div>
     <h2 data-i18n="configured.title">OpenClaw is already configured</h2>
@@ -1116,22 +1048,9 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
     <div class="wizard-header">
       <h1>
         <svg class="logo" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lobster-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff4d4d"/><stop offset="100%" stop-color="#991b1b"/></linearGradient></defs><path d="M60 10 C30 10 15 35 15 55 C15 75 30 95 45 100 L45 110 L55 110 L55 100 C55 100 60 102 65 100 L65 110 L75 110 L75 100 C90 95 105 75 105 55 C105 35 90 10 60 10Z" fill="url(#lobster-gradient)"/><path d="M20 45 C5 40 0 50 5 60 C10 70 20 65 25 55 C28 48 25 45 20 45Z" fill="url(#lobster-gradient)"/><path d="M100 45 C115 40 120 50 115 60 C110 70 100 65 95 55 C92 48 95 45 100 45Z" fill="url(#lobster-gradient)"/><path d="M45 15 Q35 5 30 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/><path d="M75 15 Q85 5 90 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/><circle cx="45" cy="35" r="6" fill="#050810"/><circle cx="75" cy="35" r="6" fill="#050810"/><circle cx="46" cy="34" r="2.5" fill="#00e5cc"/><circle cx="76" cy="34" r="2.5" fill="#00e5cc"/></svg>
-        <span data-i18n="pageTitle">OpenClaw Setup</span>
+        <span data-i18n="pageTitle">OpenClaw Onboarding Wizard</span>
       </h1>
-      <div class="lang-selector">
-        <button class="lang-btn" id="wizard-lang-btn" onclick="toggleLangDropdown('wizard-lang-dropdown')">
-          <span class="lang-flag" id="wizard-lang-flag"></span>
-          <span id="wizard-lang-name"></span>
-          <span class="lang-arrow">&#9662;</span>
-        </button>
-        <div class="lang-dropdown" id="wizard-lang-dropdown">
-          <div class="lang-option" onclick="setLanguage('en')"><span class="lang-flag">&#127468;&#127463;</span><span class="lang-name">English</span><span class="lang-check" data-lang="en">&#10003;</span></div>
-          <div class="lang-option" onclick="setLanguage('zh-TW')"><span class="lang-flag">&#127481;&#127484;</span><span class="lang-name">&#32321;&#39636;&#20013;&#25991;</span><span class="lang-check" data-lang="zh-TW">&#10003;</span></div>
-          <div class="lang-option" onclick="setLanguage('zh-CN')"><span class="lang-flag">&#127464;&#127475;</span><span class="lang-name">&#31616;&#20307;&#20013;&#25991;</span><span class="lang-check" data-lang="zh-CN">&#10003;</span></div>
-          <div class="lang-option" onclick="setLanguage('ja')"><span class="lang-flag">&#127471;&#127477;</span><span class="lang-name">&#26085;&#26412;&#35486;</span><span class="lang-check" data-lang="ja">&#10003;</span></div>
-          <div class="lang-option" onclick="setLanguage('ko')"><span class="lang-flag">&#127472;&#127479;</span><span class="lang-name">&#54620;&#44397;&#50612;</span><span class="lang-check" data-lang="ko">&#10003;</span></div>
-        </div>
-      </div>
+      ${getLangSelectorHTML('wizard')}
     </div>
 
     <!-- Step indicator -->
@@ -1330,18 +1249,10 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       var BWC_POPULAR_COUNT = 6;
 
       // ========== i18n ==========
-      var LANG_META = {
-        en:      { flag: '\uD83C\uDDEC\uD83C\uDDE7', name: 'English' },
-        'zh-TW': { flag: '\uD83C\uDDF9\uD83C\uDDFC', name: '\u7E41\u9AD4\u4E2D\u6587' },
-        'zh-CN': { flag: '\uD83C\uDDE8\uD83C\uDDF3', name: '\u7B80\u4F53\u4E2D\u6587' },
-        ja:      { flag: '\uD83C\uDDEF\uD83C\uDDF5', name: '\u65E5\u672C\u8A9E' },
-        ko:      { flag: '\uD83C\uDDF0\uD83C\uDDF7', name: '\uD55C\uAD6D\uC5B4' }
-      };
-      var currentLang = 'en';
 
       var TRANSLATIONS = {
         en: {
-          'pageTitle': 'OpenClaw Setup',
+          'pageTitle': 'OpenClaw Onboarding Wizard',
           'configured.title': 'OpenClaw is already configured',
           'configured.openPanel': 'Open Lite Panel',
           'configured.openDashboard': 'Open OpenClaw Gateway Dashboard',
@@ -1737,97 +1648,15 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         }
       };
 
-      function t(key, params) {
-        var dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-        var str = dict[key] || TRANSLATIONS.en[key] || key;
-        if (params) {
-          Object.keys(params).forEach(function(k) {
-            str = str.replace('{' + k + '}', params[k]);
-          });
-        }
-        return str;
-      }
-
-      function applyTranslations() {
-        document.title = t('pageTitle');
-        var els = document.querySelectorAll('[data-i18n]');
-        for (var i = 0; i < els.length; i++) {
-          els[i].textContent = t(els[i].getAttribute('data-i18n'));
-        }
-        var phEls = document.querySelectorAll('[data-i18n-placeholder]');
-        for (var j = 0; j < phEls.length; j++) {
-          phEls[j].placeholder = t(phEls[j].getAttribute('data-i18n-placeholder'));
-        }
-      }
-
-      function detectBrowserLang() {
-        var langs = navigator.languages || [navigator.language || 'en'];
-        for (var i = 0; i < langs.length; i++) {
-          var tag = langs[i].toLowerCase();
-          if (tag === 'zh-tw' || tag === 'zh-hant' || tag === 'zh-hk') return 'zh-TW';
-          if (tag === 'zh-cn' || tag === 'zh-hans' || tag === 'zh') return 'zh-CN';
-          if (tag.indexOf('ja') === 0) return 'ja';
-          if (tag.indexOf('ko') === 0) return 'ko';
-          if (tag.indexOf('en') === 0) return 'en';
-        }
-        return 'en';
-      }
-
-      function initLanguage() {
-        var stored = null;
-        try { stored = localStorage.getItem('openclaw_lang'); } catch (e) {}
-        currentLang = (stored && TRANSLATIONS[stored]) ? stored : detectBrowserLang();
-      }
-
-      function updateLangSelectorUI() {
-        var meta = LANG_META[currentLang] || LANG_META.en;
-        var ids = ['wizard', 'configured'];
-        ids.forEach(function(prefix) {
-          var flagEl = document.getElementById(prefix + '-lang-flag');
-          var nameEl = document.getElementById(prefix + '-lang-name');
-          if (flagEl) flagEl.textContent = meta.flag;
-          if (nameEl) nameEl.textContent = meta.name;
-        });
-        var checks = document.querySelectorAll('.lang-check');
-        for (var i = 0; i < checks.length; i++) {
-          checks[i].classList.toggle('active', checks[i].getAttribute('data-lang') === currentLang);
-        }
-      }
-
-      window.setLanguage = function(lang) {
-        if (!TRANSLATIONS[lang]) return;
-        currentLang = lang;
-        try { localStorage.setItem('openclaw_lang', lang); } catch (e) {}
-        updateLangSelectorUI();
-        applyTranslations();
-        // Re-render dynamic content
+      ${getI18nBootstrapJS(null, {
+        langSelectorIds: ['wizard', 'configured'],
+        onChangeCallback: `
         buildProviderGrid();
         buildChannelCards();
         buildSkillGrid();
         if (bwcSkillsData.length > 0) renderBwcSkills();
-        if (currentStep === 5) populateReview();
-        // Close dropdowns
-        var dds = document.querySelectorAll('.lang-dropdown');
-        for (var i = 0; i < dds.length; i++) dds[i].classList.remove('open');
-      };
-
-      window.toggleLangDropdown = function(id) {
-        var dd = document.getElementById(id);
-        if (!dd) return;
-        var isOpen = dd.classList.contains('open');
-        // Close all dropdowns first
-        var dds = document.querySelectorAll('.lang-dropdown');
-        for (var i = 0; i < dds.length; i++) dds[i].classList.remove('open');
-        if (!isOpen) dd.classList.add('open');
-      };
-
-      // Close dropdown on outside click
-      document.addEventListener('click', function(e) {
-        if (!e.target.closest('.lang-selector') && !e.target.closest('.configured-lang-selector')) {
-          var dds = document.querySelectorAll('.lang-dropdown');
-          for (var i = 0; i < dds.length; i++) dds[i].classList.remove('open');
-        }
-      });
+        if (currentStep === 5) populateReview();`
+      })}
 
       var AVAILABLE_SKILLS = [
         { slug: 'weather', emoji: '\\u{1F324}\\uFE0F', name: 'Weather', desc: 'Get weather and forecasts, no API key needed', category: 'Utilities', popular: true },

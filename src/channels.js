@@ -1,5 +1,5 @@
 /**
- * Channel definitions and config-building logic for OpenClaw setup wizard
+ * Channel definitions and config-building logic for OpenClaw Onboarding Wizard
  *
  * Extracted from server.js so tests can import without starting the HTTP listener.
  */

@@ -118,6 +118,7 @@ RUN chmod +x /entrypoint.sh
 
 # Create data directory with proper permissions
 RUN mkdir -p /data/.openclaw /data/workspace && \
+    chmod 700 /data/.openclaw /data/workspace && \
     chown -R openclaw:openclaw /data /app /openclaw
 
 # Note: No VOLUME directive — Railway manages volumes externally

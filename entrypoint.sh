@@ -35,6 +35,7 @@ fi
 
 # Ensure data directories exist with correct permissions
 mkdir -p "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" "$OPENCLAW_WORKSPACE_DIR/memory"
+chmod 700 "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" 2>/dev/null || true
 
 # Ensure npm global prefix directory exists for in-app upgrades
 mkdir -p "${NPM_CONFIG_PREFIX:-/data/.npm-global}"

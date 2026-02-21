@@ -18,7 +18,7 @@ export function createProxy(getToken) {
     target,
     ws: true,
     changeOrigin: true,
-    xfwd: false
+    xfwd: true
   });
 
   // Handle proxy errors
@@ -67,6 +67,8 @@ export function createProxy(getToken) {
     // doesn't reject the WebSocket as a cross-origin request.
     req.headers['origin'] = target;
     req.headers['host'] = `127.0.0.1:${gatewayPort}`;
+    // Forward original scheme so gateway accepts token auth with allowInsecureAuth=false
+    req.headers['x-forwarded-proto'] = req.headers['x-forwarded-proto'] || 'https';
     console.log(`[proxy] WebSocket upgrade: ${req.url}`);
     proxy.ws(req, socket, head);
   };

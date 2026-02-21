@@ -974,9 +974,111 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       .provider-grid { grid-template-columns: 1fr; }
       .skill-grid { grid-template-columns: 1fr; }
     }
+
+    /* Restore overlay */
+    .restore-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .restore-overlay.hidden { display: none; }
+    .restore-status-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    .restore-status-card h3 {
+      font-family: var(--font-display);
+      color: var(--text-strong);
+      margin: 0 0 16px 0;
+      font-size: 18px;
+    }
+    .restore-steps {
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.8;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 12px;
+    }
+    .restore-steps .step-ok { color: var(--ok); }
+    .restore-steps .step-ok::before { content: '\\2713 '; }
+    .restore-steps .step-err { color: var(--danger); }
+    .restore-steps .step-err::before { content: '\\2717 '; }
+    .restore-spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border-strong);
+      border-top-color: var(--teal-bright);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .restore-done-btn {
+      margin-top: 16px;
+    }
+
+    /* Toast */
+    .restore-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-body);
+      z-index: 1100;
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .restore-toast.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    .restore-toast.success {
+      background: var(--ok);
+      color: #fff;
+    }
+    .restore-toast.error {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    /* Hidden file input */
+    input.restore-file-input { display: none; }
   </style>
 </head>
 <body>
+
+  <input type="file" id="restore-file" class="restore-file-input"
+    accept=".tar.gz,.tgz,.gz,.zip,application/gzip,application/x-gzip,application/zip"
+    onchange="handleRestoreFile(this)"/>
+  <div id="restore-overlay" class="restore-overlay hidden">
+    <div class="restore-status-card">
+      <div class="restore-spinner" id="restore-spinner"></div>
+      <h3 id="restore-overlay-title" data-i18n="restore.confirmTitle">Restore from Backup</h3>
+      <div class="restore-steps" id="restore-steps"></div>
+      <button class="btn btn-primary restore-done-btn hidden" id="restore-done-btn" onclick="closeRestoreOverlay()">OK</button>
+    </div>
+  </div>
+  <div id="restore-toast" class="restore-toast"></div>
 
   ${isConfigured ? `
   <!-- =============== Already Configured =============== -->
@@ -1005,6 +1107,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       <a href="/openclaw" class="btn btn-secondary" data-i18n="configured.openDashboard">Open OpenClaw Gateway Dashboard</a>
     </div>
     <button class="btn-text" onclick="showReconfigureWarning()" data-i18n="configured.reconfigure">Reconfigure from scratch</button>
+    <button class="btn-text" onclick="document.getElementById('restore-file').click()" data-i18n="configured.restoreBackup">Restore from Backup</button>
   </div>
   ` : ''}
 
@@ -1086,7 +1189,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
         </div>
       </div>
       <div class="wizard-nav">
-        <div></div>
+        <button class="btn-text" onclick="document.getElementById('restore-file').click()" data-i18n="step1.restoreBackup">Restore from Backup</button>
         <button class="btn-primary" onclick="goToStep(2)" data-i18n="step1.getStarted">Get Started &rarr;</button>
       </div>
     </div>
@@ -1243,8 +1346,17 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'configured.openPanel': 'Open Lite Panel',
           'configured.openDashboard': 'Open OpenClaw Gateway Dashboard',
           'configured.reconfigure': 'Reconfigure from scratch',
+          'configured.restoreBackup': 'Restore from Backup',
           'configured.confirmReset': 'This will delete the current configuration and stop the gateway. Are you sure?',
           'configured.resetFailed': 'Reset failed: {error}',
+          'step1.restoreBackup': 'Restore from Backup',
+          'restore.confirmTitle': 'Restore from Backup',
+          'restore.confirmMessage': 'This will replace your current configuration with the backup file "{filename}". An auto-backup will be created first. The gateway will be restarted.',
+          'restore.invalidFile': 'Please select a .tar.gz, .tgz, or .zip file',
+          'restore.restoring': 'Restoring...',
+          'restore.success': 'Restore completed successfully. Reloading...',
+          'restore.failed': 'Restore failed: {error}',
+          'restore.error': 'Restore error: {error}',
           'steps.welcome': 'Welcome',
           'steps.provider': 'AI Provider',
           'steps.channels': 'Channels',
@@ -1313,8 +1425,17 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'configured.openPanel': '\u958B\u555F\u7BA1\u7406\u9762\u677F',
           'configured.openDashboard': '\u958B\u555F OpenClaw \u7DB2\u95DC\u5100\u8868\u677F',
           'configured.reconfigure': '\u91CD\u65B0\u8A2D\u5B9A',
+          'configured.restoreBackup': '\u5F9E\u5099\u4EFD\u9084\u539F',
           'configured.confirmReset': '\u9019\u5C07\u522A\u9664\u76EE\u524D\u7684\u8A2D\u5B9A\u4E26\u505C\u6B62\u7DB2\u95DC\u3002\u78BA\u5B9A\u8981\u7E7C\u7E8C\u55CE\uFF1F',
           'configured.resetFailed': '\u91CD\u8A2D\u5931\u6557\uFF1A{error}',
+          'step1.restoreBackup': '\u5F9E\u5099\u4EFD\u9084\u539F',
+          'restore.confirmTitle': '\u5F9E\u5099\u4EFD\u9084\u539F',
+          'restore.confirmMessage': '\u9019\u5C07\u4EE5\u5099\u4EFD\u6A94\u300C{filename}\u300D\u53D6\u4EE3\u76EE\u524D\u7684\u8A2D\u5B9A\u3002\u7CFB\u7D71\u6703\u5148\u81EA\u52D5\u5099\u4EFD\u3002\u7DB2\u95DC\u5C07\u6703\u91CD\u65B0\u555F\u52D5\u3002',
+          'restore.invalidFile': '\u8ACB\u9078\u64C7 .tar.gz\u3001.tgz \u6216 .zip \u6A94\u6848',
+          'restore.restoring': '\u6B63\u5728\u9084\u539F...',
+          'restore.success': '\u9084\u539F\u5B8C\u6210\uFF0C\u6B63\u5728\u91CD\u65B0\u8F09\u5165...',
+          'restore.failed': '\u9084\u539F\u5931\u6557\uFF1A{error}',
+          'restore.error': '\u9084\u539F\u932F\u8AA4\uFF1A{error}',
           'steps.welcome': '\u6B61\u8FCE',
           'steps.provider': 'AI \u63D0\u4F9B\u8005',
           'steps.channels': '\u983B\u9053',
@@ -1383,8 +1504,17 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'configured.openPanel': '\u6253\u5F00\u7BA1\u7406\u9762\u677F',
           'configured.openDashboard': '\u6253\u5F00 OpenClaw \u7F51\u5173\u4EEA\u8868\u677F',
           'configured.reconfigure': '\u91CD\u65B0\u8BBE\u7F6E',
+          'configured.restoreBackup': '\u4ECE\u5907\u4EFD\u6062\u590D',
           'configured.confirmReset': '\u8FD9\u5C06\u5220\u9664\u5F53\u524D\u914D\u7F6E\u5E76\u505C\u6B62\u7F51\u5173\u3002\u786E\u5B9A\u8981\u7EE7\u7EED\u5417\uFF1F',
           'configured.resetFailed': '\u91CD\u7F6E\u5931\u8D25\uFF1A{error}',
+          'step1.restoreBackup': '\u4ECE\u5907\u4EFD\u6062\u590D',
+          'restore.confirmTitle': '\u4ECE\u5907\u4EFD\u6062\u590D',
+          'restore.confirmMessage': '\u8FD9\u5C06\u4EE5\u5907\u4EFD\u6587\u4EF6\u201C{filename}\u201D\u66FF\u6362\u5F53\u524D\u914D\u7F6E\u3002\u7CFB\u7EDF\u4F1A\u5148\u81EA\u52A8\u5907\u4EFD\u3002\u7F51\u5173\u5C06\u4F1A\u91CD\u65B0\u542F\u52A8\u3002',
+          'restore.invalidFile': '\u8BF7\u9009\u62E9 .tar.gz\u3001.tgz \u6216 .zip \u6587\u4EF6',
+          'restore.restoring': '\u6B63\u5728\u6062\u590D...',
+          'restore.success': '\u6062\u590D\u5B8C\u6210\uFF0C\u6B63\u5728\u91CD\u65B0\u52A0\u8F7D...',
+          'restore.failed': '\u6062\u590D\u5931\u8D25\uFF1A{error}',
+          'restore.error': '\u6062\u590D\u9519\u8BEF\uFF1A{error}',
           'steps.welcome': '\u6B22\u8FCE',
           'steps.provider': 'AI \u63D0\u4F9B\u8005',
           'steps.channels': '\u9891\u9053',
@@ -1453,8 +1583,17 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'configured.openPanel': '\u7BA1\u7406\u30D1\u30CD\u30EB\u3092\u958B\u304F',
           'configured.openDashboard': 'OpenClaw \u30B2\u30FC\u30C8\u30A6\u30A7\u30A4\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u3092\u958B\u304F',
           'configured.reconfigure': '\u6700\u521D\u304B\u3089\u518D\u8A2D\u5B9A',
+          'configured.restoreBackup': '\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u304B\u3089\u5FA9\u5143',
           'configured.confirmReset': '\u73FE\u5728\u306E\u8A2D\u5B9A\u3092\u524A\u9664\u3057\u3001\u30B2\u30FC\u30C8\u30A6\u30A7\u30A4\u3092\u505C\u6B62\u3057\u307E\u3059\u3002\u3088\u308D\u3057\u3044\u3067\u3059\u304B\uFF1F',
           'configured.resetFailed': '\u30EA\u30BB\u30C3\u30C8\u5931\u6557\uFF1A{error}',
+          'step1.restoreBackup': '\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u304B\u3089\u5FA9\u5143',
+          'restore.confirmTitle': '\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u304B\u3089\u5FA9\u5143',
+          'restore.confirmMessage': '\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u30D5\u30A1\u30A4\u30EB\u300C{filename}\u300D\u3067\u73FE\u5728\u306E\u8A2D\u5B9A\u3092\u7F6E\u304D\u63DB\u3048\u307E\u3059\u3002\u81EA\u52D5\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u304C\u5148\u306B\u4F5C\u6210\u3055\u308C\u307E\u3059\u3002\u30B2\u30FC\u30C8\u30A6\u30A7\u30A4\u304C\u518D\u8D77\u52D5\u3055\u308C\u307E\u3059\u3002',
+          'restore.invalidFile': '.tar.gz\u3001.tgz\u3001\u307E\u305F\u306F .zip \u30D5\u30A1\u30A4\u30EB\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044',
+          'restore.restoring': '\u5FA9\u5143\u4E2D...',
+          'restore.success': '\u5FA9\u5143\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002\u30EA\u30ED\u30FC\u30C9\u3057\u307E\u3059...',
+          'restore.failed': '\u5FA9\u5143\u5931\u6557\uFF1A{error}',
+          'restore.error': '\u5FA9\u5143\u30A8\u30E9\u30FC\uFF1A{error}',
           'steps.welcome': '\u3088\u3046\u3053\u305D',
           'steps.provider': 'AI \u30D7\u30ED\u30D0\u30A4\u30C0',
           'steps.channels': '\u30C1\u30E3\u30CD\u30EB',
@@ -1523,8 +1662,17 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'configured.openPanel': '\uAD00\uB9AC \uD328\uB110 \uC5F4\uAE30',
           'configured.openDashboard': 'OpenClaw \uAC8C\uC774\uD2B8\uC6E8\uC774 \uB300\uC2DC\uBCF4\uB4DC \uC5F4\uAE30',
           'configured.reconfigure': '\uCC98\uC74C\uBD80\uD130 \uC7AC\uC124\uC815',
+          'configured.restoreBackup': '\uBC31\uC5C5\uC5D0\uC11C \uBCF5\uC6D0',
           'configured.confirmReset': '\uD604\uC7AC \uC124\uC815\uC744 \uC0AD\uC81C\uD558\uACE0 \uAC8C\uC774\uD2B8\uC6E8\uC774\uB97C \uC911\uC9C0\uD569\uB2C8\uB2E4. \uACC4\uC18D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
           'configured.resetFailed': '\uC7AC\uC124\uC815 \uC2E4\uD328: {error}',
+          'step1.restoreBackup': '\uBC31\uC5C5\uC5D0\uC11C \uBCF5\uC6D0',
+          'restore.confirmTitle': '\uBC31\uC5C5\uC5D0\uC11C \uBCF5\uC6D0',
+          'restore.confirmMessage': '\uBC31\uC5C5 \uD30C\uC77C \u201C{filename}\u201D\uB85C \uD604\uC7AC \uC124\uC815\uC744 \uB300\uCCB4\uD569\uB2C8\uB2E4. \uC790\uB3D9 \uBC31\uC5C5\uC774 \uBA3C\uC800 \uC0DD\uC131\uB429\uB2C8\uB2E4. \uAC8C\uC774\uD2B8\uC6E8\uC774\uAC00 \uC7AC\uC2DC\uC791\uB429\uB2C8\uB2E4.',
+          'restore.invalidFile': '.tar.gz, .tgz \uB610\uB294 .zip \uD30C\uC77C\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694',
+          'restore.restoring': '\uBCF5\uC6D0 \uC911...',
+          'restore.success': '\uBCF5\uC6D0\uC774 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uB85C\uB4DC\uD569\uB2C8\uB2E4...',
+          'restore.failed': '\uBCF5\uC6D0 \uC2E4\uD328: {error}',
+          'restore.error': '\uBCF5\uC6D0 \uC624\uB958: {error}',
           'steps.welcome': '\uD658\uC601',
           'steps.provider': 'AI \uC81C\uACF5\uC790',
           'steps.channels': '\uCC44\uB110',
@@ -2515,6 +2663,100 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       window.retryDeploy = function() {
         deploy();
       };
+
+      // ========== Restore from Backup ==========
+      function showRestoreToast(message, type) {
+        var toast = document.getElementById('restore-toast');
+        toast.textContent = message;
+        toast.className = 'restore-toast ' + type;
+        requestAnimationFrame(function() {
+          toast.classList.add('visible');
+        });
+        setTimeout(function() {
+          toast.classList.remove('visible');
+        }, 3500);
+      }
+
+      function clearElement(el) {
+        while (el.firstChild) el.removeChild(el.firstChild);
+      }
+
+      function showRestoreOverlay() {
+        var overlay = document.getElementById('restore-overlay');
+        var steps = document.getElementById('restore-steps');
+        var spinner = document.getElementById('restore-spinner');
+        var doneBtn = document.getElementById('restore-done-btn');
+        clearElement(steps);
+        spinner.style.display = 'inline-block';
+        doneBtn.classList.add('hidden');
+        overlay.classList.remove('hidden');
+      }
+
+      window.closeRestoreOverlay = function() {
+        document.getElementById('restore-overlay').classList.add('hidden');
+      };
+
+      window.handleRestoreFile = function(input) {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var name = file.name.toLowerCase();
+        if (!name.endsWith('.tar.gz') && !name.endsWith('.tgz') && !name.endsWith('.zip')) {
+          showRestoreToast(t('restore.invalidFile'), 'error');
+          input.value = '';
+          return;
+        }
+        var msg = t('restore.confirmMessage', { filename: file.name });
+        if (!confirm(msg)) {
+          input.value = '';
+          return;
+        }
+        performRestore(file);
+        input.value = '';
+      };
+
+      function performRestore(file) {
+        showRestoreOverlay();
+        var stepsEl = document.getElementById('restore-steps');
+        var spinner = document.getElementById('restore-spinner');
+        var doneBtn = document.getElementById('restore-done-btn');
+
+        var reader = new FileReader();
+        reader.onload = function() {
+          fetch('/lite/api/restore?password=' + encodeURIComponent(password), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/octet-stream', 'X-Filename': file.name },
+            body: reader.result
+          })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+              spinner.style.display = 'none';
+              clearElement(stepsEl);
+              (data.steps || []).forEach(function(step) {
+                var div = document.createElement('div');
+                div.className = data.success ? 'step-ok' : 'step-err';
+                div.textContent = step;
+                stepsEl.appendChild(div);
+              });
+              if (data.success) {
+                showRestoreToast(t('restore.success'), 'success');
+                setTimeout(function() { location.reload(); }, 2000);
+              } else {
+                showRestoreToast(t('restore.failed', { error: data.error || 'unknown' }), 'error');
+                doneBtn.classList.remove('hidden');
+              }
+            })
+            .catch(function(err) {
+              spinner.style.display = 'none';
+              showRestoreToast(t('restore.error', { error: err.message }), 'error');
+              var div = document.createElement('div');
+              div.className = 'step-err';
+              div.textContent = err.message;
+              stepsEl.appendChild(div);
+              doneBtn.classList.remove('hidden');
+            });
+        };
+        reader.readAsArrayBuffer(file);
+      }
 
       // ========== Already Configured: Reconfigure ==========
       window.showReconfigureWarning = function() {

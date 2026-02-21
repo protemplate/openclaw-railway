@@ -13,8 +13,9 @@
 
 import express from 'express';
 import { createServer } from 'http';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, createWriteStream } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'os';
 import JSZip from 'jszip';
 import archiver from 'archiver';
 import { siAnthropic, siGooglegemini, siOpenrouter, siVercel, siCloudflare, siOllama } from 'simple-icons';
@@ -24,6 +25,7 @@ import { validate, migrateConfig, getAllSchemas } from './schema/index.js';
 import healthRouter, { setGatewayReady } from './health.js';
 import { createAuthMiddleware } from './auth.js';
 import { startGateway, stopGateway, isGatewayRunning, getGatewayInfo, getGatewayToken, runCmd, runExec, deleteConfig, getRecentLogs, getGatewayUptime } from './gateway.js';
+import { gatewayRPC } from './gateway-rpc.js';
 import { createProxy } from './proxy.js';
 import { createTerminalServer, closeAllSessions } from './terminal.js';
 import { getSetupPageHTML } from './onboard-page.js';
@@ -255,6 +257,25 @@ for (const group of AUTH_GROUPS) {
   for (const opt of group.options) {
     AUTH_OPTION_MAP[opt.value] = opt;
   }
+}
+
+/**
+ * Create an auto-backup of the state directory to a temp file
+ * @returns {Promise<string>} Path to the backup tar.gz
+ */
+async function createAutoBackup() {
+  const backupPath = join(tmpdir(), `openclaw-auto-backup-${Date.now()}.tar.gz`);
+  return new Promise((resolve, reject) => {
+    const output = createWriteStream(backupPath);
+    const archive = archiver('tar', { gzip: true });
+    output.on('close', () => resolve(backupPath));
+    archive.on('error', reject);
+    archive.pipe(output);
+    if (existsSync(OPENCLAW_STATE_DIR)) {
+      archive.directory(OPENCLAW_STATE_DIR, '.openclaw');
+    }
+    archive.finalize();
+  });
 }
 
 /**
@@ -630,7 +651,9 @@ const uiHandler = (req, res) => {
     password: pw,
     stateDir: OPENCLAW_STATE_DIR,
     gatewayToken: getGatewayToken(),
-    uptime: getGatewayUptime()
+    uptime: getGatewayUptime(),
+    channelGroups: CHANNEL_GROUPS,
+    authGroups: AUTH_GROUPS
   }));
 };
 
@@ -645,12 +668,14 @@ app.get('/lite/api/status', authMiddleware, (req, res) => {
 
   let model = null;
   let channels = null;
+  let auth = null;
   if (isConfigured) {
     try {
       const config = JSON.parse(readFileSync(configFile, 'utf-8'));
       // Support both new and legacy config shapes
       model = config.agents?.defaults?.model?.primary || config.agents?.defaults?.model || config.agent?.model || null;
       channels = config.channels || null;
+      auth = config.auth || null;
     } catch {
       // ignore parse errors
     }
@@ -663,6 +688,7 @@ app.get('/lite/api/status', authMiddleware, (req, res) => {
     uptime: getGatewayUptime(),
     model,
     channels,
+    auth,
     timestamp: new Date().toISOString()
   });
 });
@@ -765,6 +791,347 @@ app.post('/lite/api/config', authMiddleware, (req, res) => {
     res.json({ success: true, migrated });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Lite API: Quick stats (skills count + sessions count)
+app.get('/lite/api/stats', authMiddleware, async (req, res) => {
+  let skillsCount = null;
+  const configFile = join(OPENCLAW_STATE_DIR, 'openclaw.json');
+  if (existsSync(configFile)) {
+    try {
+      const config = JSON.parse(readFileSync(configFile, 'utf-8'));
+      const entries = config.skills?.entries;
+      skillsCount = entries ? Object.keys(entries).length : 0;
+    } catch { /* ignore parse errors */ }
+  }
+
+  let sessionsCount = null;
+  try {
+    const result = await gatewayRPC('sessions.list', { includeGlobal: true, limit: 0 });
+    sessionsCount = result?.count ?? null;
+  } catch { /* gateway not available */ }
+
+  res.json({ skills: skillsCount, sessions: sessionsCount });
+});
+
+// Lite API: Daily token usage (via gateway WebSocket RPC)
+app.get('/lite/api/usage', authMiddleware, async (req, res) => {
+  try {
+    const endDate = new Date().toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const result = await gatewayRPC('usage.cost', { startDate, endDate });
+    if (!result?.daily) {
+      return res.json({ available: false, days: [] });
+    }
+    const days = result.daily.map(d => ({
+      date: d.date,
+      output: d.output || 0,
+      input: d.input || 0,
+      cacheWrite: d.cacheWrite || 0,
+      cacheRead: d.cacheRead || 0,
+      total: d.totalTokens || 0,
+      cost: d.totalCost || 0
+    }));
+    return res.json({ available: true, days, totals: result.totals || null });
+  } catch {
+    res.json({ available: false, days: [] });
+  }
+});
+
+// Lite API: Memory status
+app.get('/lite/api/memory', authMiddleware, async (req, res) => {
+  try {
+    const result = await runCmd('memory', ['status', '--json']);
+    console.log('[memory-debug] status stdout:', result.stdout);
+    console.log('[memory-debug] status stderr:', result.stderr);
+    console.log('[memory-debug] status code:', result.code);
+    if (result.code !== 0) {
+      return res.json({ available: false });
+    }
+    try {
+      const parsed = JSON.parse(result.stdout);
+      console.log('[memory-debug] status parsed:', JSON.stringify(parsed));
+      return res.json({
+        available: true,
+        status: parsed.status || null,
+        entries: parsed.entries ?? parsed.count ?? null,
+        backend: parsed.backend || null
+      });
+    } catch {
+      return res.json({ available: true, status: result.stdout.trim() });
+    }
+  } catch {
+    res.json({ available: false });
+  }
+});
+
+// Lite API: Memory search
+app.get('/lite/api/memory/search', authMiddleware, async (req, res) => {
+  const q = req.query.q;
+  if (!q || q.length < 2) {
+    return res.status(400).json({ error: 'Query must be at least 2 characters' });
+  }
+  try {
+    const result = await runCmd('memory', ['search', q, '--json']);
+    console.log('[memory-debug] search stdout:', result.stdout);
+    console.log('[memory-debug] search stderr:', result.stderr);
+    console.log('[memory-debug] search code:', result.code);
+    if (result.code !== 0) {
+      return res.json({ available: false, results: [] });
+    }
+    try {
+      const parsed = JSON.parse(result.stdout);
+      console.log('[memory-debug] search parsed:', JSON.stringify(parsed));
+      return res.json({ results: Array.isArray(parsed) ? parsed : (parsed.results || []) });
+    } catch {
+      return res.json({ results: result.stdout.trim() ? [{ text: result.stdout.trim() }] : [] });
+    }
+  } catch {
+    res.json({ available: false, results: [] });
+  }
+});
+
+// Lite API: Scheduled tasks (cron)
+app.get('/lite/api/cron', authMiddleware, async (req, res) => {
+  try {
+    const result = await runCmd('cron', ['list', '--json']);
+    if (result.code !== 0) {
+      return res.json({ available: false, jobs: [] });
+    }
+    try {
+      const parsed = JSON.parse(result.stdout);
+      return res.json({ available: true, jobs: Array.isArray(parsed) ? parsed : (parsed.jobs || []) });
+    } catch {
+      return res.json({ available: true, jobs: [] });
+    }
+  } catch {
+    res.json({ available: false, jobs: [] });
+  }
+});
+
+// Lite API: Security audit (config checks and optional live probing)
+app.post('/lite/api/security-audit', authMiddleware, express.json(), async (req, res) => {
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise(resolve => setTimeout(() => resolve({ stdout: '', stderr: 'timeout', code: 1 }), ms))
+    ]);
+  }
+
+  const deep = req.body && req.body.deep === true;
+  const timeout = deep ? 30000 : 10000;
+  const args = deep ? ['audit', '--deep', '--json'] : ['audit', '--json'];
+
+  try {
+    // Try JSON mode first
+    const jsonResult = await withTimeout(runCmd('security', args), timeout);
+    if (jsonResult.code === 0 && jsonResult.stdout.trim()) {
+      try {
+        const parsed = JSON.parse(jsonResult.stdout);
+        return res.json({ available: true, format: 'json', findings: Array.isArray(parsed) ? parsed : (parsed.findings || []), deep });
+      } catch { /* fall through to text */ }
+    }
+
+    // Fall back to text mode
+    const textArgs = deep ? ['audit', '--deep'] : ['audit'];
+    const textResult = await withTimeout(runCmd('security', textArgs), timeout);
+    if (textResult.code !== 0 && !textResult.stdout.trim()) {
+      return res.json({ available: false, error: 'security audit command not available', deep });
+    }
+
+    return res.json({ available: true, format: 'text', raw: textResult.stdout || '', deep });
+  } catch {
+    res.json({ available: false, error: 'Failed to run security audit', deep });
+  }
+});
+
+// Lite API: Version check
+app.get('/lite/api/version', authMiddleware, async (req, res) => {
+  const steps = [];
+  let current = null;
+  let latest = null;
+  let upgradeMethod = 'redeploy';
+
+  try {
+    const vResult = await runCmd('--version');
+    current = (vResult.stdout || '').trim().replace(/^openclaw\s*/i, '') || null;
+    steps.push('Current version: ' + (current || 'unknown'));
+  } catch {
+    steps.push('Could not determine current version');
+  }
+
+  try {
+    const npmResult = await runExec('npm', ['view', 'openclaw', 'version']);
+    if (npmResult.code === 0 && npmResult.stdout.trim()) {
+      latest = npmResult.stdout.trim();
+      upgradeMethod = 'npm';
+      steps.push('Latest npm version: ' + latest);
+    } else {
+      steps.push('npm package not found, use redeploy to update');
+    }
+  } catch {
+    steps.push('npm check failed, use redeploy to update');
+  }
+
+  const upgradeAvailable = current && latest && current !== latest;
+  res.json({ current, latest, upgradeAvailable, upgradeMethod, steps });
+});
+
+// Lite API: Restore from backup
+app.post('/lite/api/restore', authMiddleware, express.raw({ type: 'application/octet-stream', limit: '500mb' }), async (req, res) => {
+  const steps = [];
+  let autoBackupPath = null;
+
+  try {
+    if (!req.body || req.body.length === 0) {
+      return res.status(400).json({ success: false, error: 'No file uploaded', steps: ['No file data received'] });
+    }
+    steps.push('Received backup file (' + (req.body.length / 1024 / 1024).toFixed(1) + ' MB)');
+
+    // Stop gateway if running
+    if (isGatewayRunning()) {
+      steps.push('Stopping gateway...');
+      await stopGateway();
+      steps.push('Gateway stopped');
+    }
+
+    // Create auto-backup
+    steps.push('Creating auto-backup...');
+    autoBackupPath = await createAutoBackup();
+    steps.push('Auto-backup saved: ' + autoBackupPath);
+
+    // Detect file type from filename header or magic bytes
+    const filename = (req.headers['x-filename'] || '').toLowerCase();
+    const isZip = filename.endsWith('.zip') ||
+      (req.body.length >= 4 && req.body[0] === 0x50 && req.body[1] === 0x4B);
+
+    // Write uploaded file to temp
+    const ext = isZip ? '.zip' : '.tar.gz';
+    const tempPath = join(tmpdir(), `openclaw-restore-${Date.now()}${ext}`);
+    writeFileSync(tempPath, req.body);
+    steps.push(`Wrote upload to temp file (${isZip ? 'zip' : 'tar.gz'})`);
+
+    // Extract — backup contains .openclaw/ prefix, extract to parent of state dir
+    const dataDir = join(OPENCLAW_STATE_DIR, '..');
+    try {
+      if (isZip) {
+        const zip = await JSZip.loadAsync(req.body);
+        for (const [relativePath, entry] of Object.entries(zip.files)) {
+          if (entry.dir) {
+            mkdirSync(join(dataDir, relativePath), { recursive: true });
+            continue;
+          }
+          const outPath = join(dataDir, relativePath);
+          mkdirSync(join(outPath, '..'), { recursive: true });
+          const content = await entry.async('nodebuffer');
+          writeFileSync(outPath, content);
+        }
+      } else {
+        const extractResult = await runExec('tar', ['-xzf', tempPath, '-C', dataDir]);
+        if (extractResult.code !== 0) {
+          throw new Error(extractResult.stderr || 'tar extract failed');
+        }
+      }
+      steps.push('Extracted backup to ' + dataDir);
+    } catch (extractErr) {
+      steps.push('Extract failed: ' + extractErr.message);
+      // Rollback from auto-backup
+      steps.push('Rolling back from auto-backup...');
+      try {
+        await runExec('tar', ['-xzf', autoBackupPath, '-C', dataDir]);
+        steps.push('Rollback successful');
+      } catch (rollbackErr) {
+        steps.push('Rollback failed: ' + rollbackErr.message);
+      }
+      // Restart gateway with old config
+      try {
+        await startGateway();
+        steps.push('Gateway restarted');
+      } catch { steps.push('Gateway restart failed'); }
+      return res.json({ success: false, error: 'Extract failed, rolled back', steps, autoBackupPath });
+    }
+
+    // Restart gateway
+    steps.push('Starting gateway...');
+    try {
+      await startGateway();
+      steps.push('Gateway started');
+    } catch (startErr) {
+      steps.push('Gateway start failed: ' + startErr.message);
+    }
+
+    res.json({ success: true, steps, autoBackupPath });
+  } catch (error) {
+    steps.push('Error: ' + error.message);
+    // Try to restart gateway
+    try { await startGateway(); steps.push('Gateway restarted'); } catch { /* ignore */ }
+    res.status(500).json({ success: false, error: error.message, steps, autoBackupPath });
+  }
+});
+
+// Lite API: Upgrade OpenClaw
+app.post('/lite/api/upgrade', authMiddleware, async (req, res) => {
+  const steps = [];
+  let autoBackupPath = null;
+
+  try {
+    // Check if npm package exists
+    steps.push('Checking npm registry...');
+    const npmCheck = await runExec('npm', ['view', 'openclaw', 'version']);
+    if (npmCheck.code !== 0 || !npmCheck.stdout.trim()) {
+      return res.json({
+        success: false,
+        error: 'openclaw npm package not found. Redeploy on Railway to update.',
+        upgradeMethod: 'redeploy',
+        steps: ['npm package not available', 'Redeploy your Railway service to get the latest version']
+      });
+    }
+    const targetVersion = npmCheck.stdout.trim();
+    steps.push('Target version: ' + targetVersion);
+
+    // Stop gateway
+    if (isGatewayRunning()) {
+      steps.push('Stopping gateway...');
+      await stopGateway();
+      steps.push('Gateway stopped');
+    }
+
+    // Create auto-backup
+    steps.push('Creating auto-backup...');
+    autoBackupPath = await createAutoBackup();
+    steps.push('Auto-backup saved: ' + autoBackupPath);
+
+    // Install latest
+    steps.push('Installing openclaw@latest...');
+    const installResult = await runExec('npm', ['install', '-g', 'openclaw@latest']);
+    if (installResult.code !== 0) {
+      steps.push('Install failed: ' + (installResult.stderr || 'unknown error'));
+      // Restart gateway with old version
+      try { await startGateway(); steps.push('Gateway restarted with old version'); } catch { steps.push('Gateway restart failed'); }
+      return res.json({ success: false, error: 'npm install failed', steps, autoBackupPath });
+    }
+    steps.push('Install completed');
+
+    // Verify new version
+    const verifyResult = await runCmd('--version');
+    const newVersion = (verifyResult.stdout || '').trim().replace(/^openclaw\s*/i, '');
+    steps.push('New version: ' + (newVersion || 'unknown'));
+
+    // Restart gateway
+    steps.push('Starting gateway...');
+    try {
+      await startGateway();
+      steps.push('Gateway started');
+    } catch (startErr) {
+      steps.push('Gateway start failed: ' + startErr.message);
+    }
+
+    res.json({ success: true, steps, autoBackupPath, newVersion });
+  } catch (error) {
+    steps.push('Error: ' + error.message);
+    try { await startGateway(); steps.push('Gateway restarted'); } catch { /* ignore */ }
+    res.status(500).json({ success: false, error: error.message, steps, autoBackupPath });
   }
 });
 

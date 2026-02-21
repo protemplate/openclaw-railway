@@ -68,11 +68,16 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
 # - tini: proper PID 1 handling for signal forwarding
 # - curl: health checks
 # - ca-certificates: HTTPS requests
+# - git, python3, make, g++: required for npm install -g (in-app upgrades)
 # - openjdk-17-jre-headless: required by signal-cli for Signal channel
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tini \
     curl \
     ca-certificates \
+    git \
+    python3 \
+    make \
+    g++ \
     openjdk-17-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
@@ -125,10 +130,14 @@ USER openclaw
 EXPOSE 8080
 
 # Environment defaults
+# NPM_CONFIG_PREFIX on the persistent volume so in-app upgrades survive restarts.
+# PATH puts the npm-global bin before /usr/local/bin so upgraded openclaw takes precedence.
 ENV NODE_ENV=production \
     OPENCLAW_STATE_DIR=/data/.openclaw \
     OPENCLAW_WORKSPACE_DIR=/data/workspace \
-    INTERNAL_GATEWAY_PORT=18789
+    INTERNAL_GATEWAY_PORT=18789 \
+    NPM_CONFIG_PREFIX=/data/.npm-global \
+    PATH=/data/.npm-global/bin:$PATH
 
 # Health check - checks wrapper server health endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

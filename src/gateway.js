@@ -94,6 +94,9 @@ export async function startGateway() {
   isShuttingDown = false;
   console.log(`Starting OpenClaw gateway on port ${port}...`);
 
+  // Ensure memory directory exists (even if entrypoint was bypassed)
+  mkdirSync(join(workspaceDir, 'memory'), { recursive: true });
+
   // Create minimal config if not exists
   const configFile = join(stateDir, 'openclaw.json');
   if (!existsSync(configFile)) {

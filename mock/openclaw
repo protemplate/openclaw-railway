@@ -28,10 +28,11 @@ case "$COMMAND" in
 
     [ "$VERBOSE" = "true" ] && echo "[mock-gateway] Starting on port $PORT..."
 
-    # Start a minimal HTTP server that responds 200 JSON on all paths
-    # This satisfies waitForGateway() which checks /health, /, /openclaw
+    # Start a Node.js server that handles both HTTP and WebSocket (JSON-RPC)
+    # HTTP satisfies waitForGateway(); WebSocket serves sessions.list and usage.cost
     exec node -e "
 const http = require('http');
+const { WebSocketServer } = require('ws');
 
 const server = http.createServer((req, res) => {
   const body = JSON.stringify({
@@ -47,17 +48,97 @@ const server = http.createServer((req, res) => {
   res.end(body);
 });
 
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (ws) => {
+  // Send connect challenge
+  ws.send(JSON.stringify({
+    type: 'event',
+    event: 'connect.challenge',
+    payload: { nonce: 'mock', ts: Date.now() }
+  }));
+
+  ws.on('message', (raw) => {
+    let msg;
+    try { msg = JSON.parse(String(raw)); } catch { return; }
+    if (msg.type !== 'req') return;
+
+    if (msg.method === 'connect') {
+      ws.send(JSON.stringify({ type: 'res', id: msg.id, ok: true, result: { protocol: 3 } }));
+      return;
+    }
+
+    if (msg.method === 'sessions.list') {
+      ws.send(JSON.stringify({
+        type: 'res', id: msg.id, ok: true,
+        result: {
+          count: 7,
+          sessions: [
+            { id: 'sess-001', agent: 'default', messages: 12, created: '2026-02-20T08:00:00Z' },
+            { id: 'sess-002', agent: 'default', messages: 8, created: '2026-02-20T09:15:00Z' },
+            { id: 'sess-003', agent: 'research', messages: 24, created: '2026-02-20T10:30:00Z' },
+            { id: 'sess-004', agent: 'default', messages: 3, created: '2026-02-20T11:00:00Z' },
+            { id: 'sess-005', agent: 'research', messages: 15, created: '2026-02-20T12:45:00Z' },
+            { id: 'sess-006', agent: 'default', messages: 6, created: '2026-02-20T13:20:00Z' },
+            { id: 'sess-007', agent: 'code-review', messages: 9, created: '2026-02-20T14:00:00Z' }
+          ]
+        }
+      }));
+      return;
+    }
+
+    if (msg.method === 'usage.cost') {
+      const days = [];
+      const now = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const date = d.toISOString().split('T')[0];
+        const output = Math.floor(Math.random() * 60000) + 20000;
+        const input = Math.floor(Math.random() * 30000) + 10000;
+        const cacheWrite = Math.floor(Math.random() * 15000) + 3000;
+        const cacheRead = Math.floor(Math.random() * 10000) + 2000;
+        const totalTokens = output + input + cacheWrite + cacheRead;
+        const totalCost = parseFloat((totalTokens / 1000000 * 3.50).toFixed(4));
+        days.push({ date, output, input, cacheWrite, cacheRead, totalTokens, totalCost });
+      }
+      const totals = days.reduce((acc, d) => ({
+        output: acc.output + d.output,
+        input: acc.input + d.input,
+        cacheWrite: acc.cacheWrite + d.cacheWrite,
+        cacheRead: acc.cacheRead + d.cacheRead,
+        totalTokens: acc.totalTokens + d.totalTokens,
+        totalCost: parseFloat((acc.totalCost + d.totalCost).toFixed(4))
+      }), { output: 0, input: 0, cacheWrite: 0, cacheRead: 0, totalTokens: 0, totalCost: 0 });
+
+      ws.send(JSON.stringify({
+        type: 'res', id: msg.id, ok: true,
+        result: { daily: days, totals }
+      }));
+      return;
+    }
+
+    // Unknown method
+    ws.send(JSON.stringify({
+      type: 'res', id: msg.id, ok: false,
+      error: { message: 'unknown method: ' + msg.method }
+    }));
+  });
+});
+
 server.listen(${PORT}, '127.0.0.1', () => {
-  console.log('[mock-gateway] Listening on 127.0.0.1:${PORT}');
+  console.log('[mock-gateway] Listening on 127.0.0.1:${PORT} (HTTP + WebSocket)');
 });
 
 process.on('SIGTERM', () => {
   console.log('[mock-gateway] Received SIGTERM, shutting down...');
+  wss.close();
   server.close(() => process.exit(0));
 });
 
 process.on('SIGINT', () => {
   console.log('[mock-gateway] Received SIGINT, shutting down...');
+  wss.close();
   server.close(() => process.exit(0));
 });
 "
@@ -83,6 +164,17 @@ process.on('SIGINT', () => {
         --openai-api-key) AUTH_FLAG="openai"; AUTH_SECRET="$2"; shift 2 ;;
         --gemini-api-key) AUTH_FLAG="gemini"; AUTH_SECRET="$2"; shift 2 ;;
         --openrouter-api-key) AUTH_FLAG="openrouter"; AUTH_SECRET="$2"; shift 2 ;;
+        --opencode-zen-api-key) AUTH_FLAG="opencode-zen"; AUTH_SECRET="$2"; shift 2 ;;
+        --minimax-api-key) AUTH_FLAG="minimax"; AUTH_SECRET="$2"; shift 2 ;;
+        --venice-api-key) AUTH_FLAG="venice"; AUTH_SECRET="$2"; shift 2 ;;
+        --together-api-key) AUTH_FLAG="together"; AUTH_SECRET="$2"; shift 2 ;;
+        --ai-gateway-api-key) AUTH_FLAG="ai-gateway"; AUTH_SECRET="$2"; shift 2 ;;
+        --moonshot-api-key) AUTH_FLAG="moonshot"; AUTH_SECRET="$2"; shift 2 ;;
+        --kimi-code-api-key) AUTH_FLAG="kimi"; AUTH_SECRET="$2"; shift 2 ;;
+        --zai-api-key) AUTH_FLAG="zai"; AUTH_SECRET="$2"; shift 2 ;;
+        --cloudflare-ai-gateway-api-key) AUTH_FLAG="cloudflare"; AUTH_SECRET="$2"; shift 2 ;;
+        --cloudflare-ai-gateway-account-id) shift 2 ;;
+        --cloudflare-ai-gateway-gateway-id) shift 2 ;;
         --auth-choice) AUTH_FLAG="$2"; shift 2 ;;
         --token) AUTH_SECRET="$2"; shift 2 ;;
         --token-provider) AUTH_PROVIDER="$2"; shift 2 ;;
@@ -105,6 +197,16 @@ process.on('SIGINT', () => {
         openai*) MODEL="openai/gpt-4o" ;;
         gemini*) MODEL="google/gemini-2.5-flash" ;;
         openrouter*) MODEL="openrouter/auto" ;;
+        minimax*) MODEL="minimax/MiniMax-M1" ;;
+        venice*) MODEL="venice/llama-3.3-70b" ;;
+        together*) MODEL="together/meta-llama/Llama-3-70b-chat-hf" ;;
+        ai-gateway*) MODEL="vercel/gpt-4o" ;;
+        moonshot*) MODEL="moonshot/moonshot-v1-128k" ;;
+        kimi*) MODEL="kimi/kimi-coder" ;;
+        zai*) MODEL="zhipu/glm-4" ;;
+        cloudflare*) MODEL="cloudflare/llama-3.1-70b" ;;
+        opencode*) MODEL="opencode-zen/claude-sonnet" ;;
+        ollama) MODEL="ollama/llama3.2" ;;
       esac
 
       # Build gateway config
@@ -297,6 +399,331 @@ console.log(JSON.stringify(config, null, 2));
     esac
     ;;
 
+  status)
+    JSON_MODE=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --json) JSON_MODE="true"; shift ;;
+        *) shift ;;
+      esac
+    done
+
+    if [ "$JSON_MODE" = "true" ]; then
+      cat <<'STATUSJSON'
+{
+  "version": "0.0.0-mock",
+  "commit": "abc1234",
+  "model": "anthropic/claude-sonnet-4",
+  "keyInfo": "sk-...7f2a",
+  "tokensIn": "12450",
+  "tokensOut": "8320",
+  "contextUsed": "42.5",
+  "contextTotal": "200",
+  "contextPercent": 21,
+  "compactions": 2,
+  "session": "dev-session-001",
+  "sessionUpdated": "3m ago",
+  "runtime": "standard",
+  "thinkLevel": "medium",
+  "queueState": "idle",
+  "queueDepth": 0
+}
+STATUSJSON
+    else
+      echo "🤖 OpenClaw 0.0.0-mock (abc1234)"
+      echo "📦 Model: anthropic/claude-sonnet-4 (sk-...7f2a)"
+      echo "🔢 Tokens: 12,450 in / 8,320 out"
+      echo "📊 Context: 42.5k/200k (21%)  Compactions: 2"
+      echo "💬 Session: dev-session-001 (3m ago)"
+      echo "⚙️  Runtime: standard  Think: medium"
+      echo "📋 Queue: idle (depth 0)"
+    fi
+    ;;
+
+  agents)
+    SUBCMD="${1:-}"
+    shift 2>/dev/null || true
+
+    case "$SUBCMD" in
+      list)
+        JSON_MODE=""
+        while [[ $# -gt 0 ]]; do
+          case "$1" in
+            --json) JSON_MODE="true"; shift ;;
+            *) shift ;;
+          esac
+        done
+
+        if [ "$JSON_MODE" = "true" ]; then
+          cat <<'AGENTSJSON'
+[
+  {"name":"default","model":"anthropic/claude-sonnet-4","status":"active"},
+  {"name":"research","model":"anthropic/claude-opus-4","status":"active"},
+  {"name":"code-review","model":"openai/gpt-4o","status":"idle"}
+]
+AGENTSJSON
+        else
+          echo "Agents:"
+          echo "  default       anthropic/claude-sonnet-4   active"
+          echo "  research      anthropic/claude-opus-4     active"
+          echo "  code-review   openai/gpt-4o                idle"
+        fi
+        ;;
+      *)
+        echo "Usage: openclaw agents list [--json]" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+
+  sessions)
+    JSON_MODE=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --json) JSON_MODE="true"; shift ;;
+        *) shift ;;
+      esac
+    done
+
+    if [ "$JSON_MODE" = "true" ]; then
+      cat <<'SESSIONSJSON'
+[
+  {"id":"sess-001","agent":"default","messages":12,"created":"2026-02-20T08:00:00Z"},
+  {"id":"sess-002","agent":"default","messages":8,"created":"2026-02-20T09:15:00Z"},
+  {"id":"sess-003","agent":"research","messages":24,"created":"2026-02-20T10:30:00Z"},
+  {"id":"sess-004","agent":"default","messages":3,"created":"2026-02-20T11:00:00Z"},
+  {"id":"sess-005","agent":"research","messages":15,"created":"2026-02-20T12:45:00Z"},
+  {"id":"sess-006","agent":"default","messages":6,"created":"2026-02-20T13:20:00Z"},
+  {"id":"sess-007","agent":"code-review","messages":9,"created":"2026-02-20T14:00:00Z"}
+]
+SESSIONSJSON
+    else
+      echo "Sessions: 7 active"
+      echo "  sess-001  default       12 messages"
+      echo "  sess-002  default        8 messages"
+      echo "  sess-003  research      24 messages"
+      echo "  sess-004  default        3 messages"
+      echo "  sess-005  research      15 messages"
+      echo "  sess-006  default        6 messages"
+      echo "  sess-007  code-review    9 messages"
+    fi
+    ;;
+
+  memory)
+    SUBCMD="${1:-}"
+    shift 2>/dev/null || true
+
+    case "$SUBCMD" in
+      status)
+        JSON_MODE=""
+        while [[ $# -gt 0 ]]; do
+          case "$1" in
+            --json) JSON_MODE="true"; shift ;;
+            *) shift ;;
+          esac
+        done
+
+        if [ "$JSON_MODE" = "true" ]; then
+          cat <<'MEMSTATUSJSON'
+{
+  "status": "active",
+  "entries": 42,
+  "backend": "local",
+  "memoryDir": "/data/workspace/memory",
+  "lastUpdated": "2026-02-20T14:30:00Z"
+}
+MEMSTATUSJSON
+        else
+          echo "Memory Status"
+          echo "============="
+          echo "Status:  active"
+          echo "Entries: 42"
+          echo "Backend: local"
+          echo "Dir:     /data/workspace/memory"
+          echo "Updated: 2026-02-20T14:30:00Z"
+        fi
+        ;;
+      search)
+        QUERY="${1:-}"
+        shift 2>/dev/null || true
+        JSON_MODE=""
+        while [[ $# -gt 0 ]]; do
+          case "$1" in
+            --json) JSON_MODE="true"; shift ;;
+            *) shift ;;
+          esac
+        done
+
+        if [ "$JSON_MODE" = "true" ]; then
+          cat <<MEMSEARCHJSON
+[
+  {"id":"mem-001","content":"User prefers dark mode for all UI components","relevance":0.92,"created":"2026-02-19T10:00:00Z"},
+  {"id":"mem-002","content":"Project uses Railway for deployment with single-volume pattern","relevance":0.87,"created":"2026-02-18T15:30:00Z"}
+]
+MEMSEARCHJSON
+        else
+          echo "Search results for: $QUERY"
+          echo "  [0.92] User prefers dark mode for all UI components"
+          echo "  [0.87] Project uses Railway for deployment with single-volume pattern"
+        fi
+        ;;
+      *)
+        echo "Unknown memory subcommand: $SUBCMD" >&2
+        echo "Usage: openclaw memory {status|search} [--json]" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+
+  cron)
+    SUBCMD="${1:-list}"
+    shift 2>/dev/null || true
+
+    case "$SUBCMD" in
+      list)
+        JSON_MODE=""
+        while [[ $# -gt 0 ]]; do
+          case "$1" in
+            --json) JSON_MODE="true"; shift ;;
+            *) shift ;;
+          esac
+        done
+
+        if [ "$JSON_MODE" = "true" ]; then
+          cat <<'CRONJSON'
+[
+  {"id":"cron-001","name":"daily-digest","schedule":"0 9 * * *","command":"openclaw digest send","status":"active","lastRun":"2026-02-20T09:00:00Z","nextRun":"2026-02-21T09:00:00Z"},
+  {"id":"cron-002","name":"weekly-report","schedule":"0 10 * * 1","command":"openclaw report generate","status":"active","lastRun":"2026-02-17T10:00:00Z","nextRun":"2026-02-24T10:00:00Z"}
+]
+CRONJSON
+        else
+          echo "Scheduled Jobs: 2 active"
+          echo "  cron-001  daily-digest    0 9 * * *    active"
+          echo "  cron-002  weekly-report   0 10 * * 1   active"
+        fi
+        ;;
+      status)
+        JSON_MODE=""
+        while [[ $# -gt 0 ]]; do
+          case "$1" in
+            --json) JSON_MODE="true"; shift ;;
+            *) shift ;;
+          esac
+        done
+
+        if [ "$JSON_MODE" = "true" ]; then
+          echo '{"status":"running","jobs":2}'
+        else
+          echo "Cron Status: running"
+          echo "Active Jobs: 2"
+        fi
+        ;;
+      *)
+        echo "Unknown cron subcommand: $SUBCMD" >&2
+        echo "Usage: openclaw cron {list|status} [--json]" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+
+  security)
+    SUBCMD="${1:-}"
+    shift 2>/dev/null || true
+
+    case "$SUBCMD" in
+      audit)
+        JSON_MODE=""
+        DEEP=""
+        while [[ $# -gt 0 ]]; do
+          case "$1" in
+            --json) JSON_MODE="true"; shift ;;
+            --deep) DEEP="true"; shift ;;
+            *) shift ;;
+          esac
+        done
+
+        if [ "$JSON_MODE" = "true" ]; then
+          if [ "$DEEP" = "true" ]; then
+            cat <<'AUDITJSON'
+[
+  {"severity":"pass","message":"Gateway token is configured and non-empty"},
+  {"severity":"pass","message":"SETUP_PASSWORD is set"},
+  {"severity":"pass","message":"State directory permissions are restrictive (700)"},
+  {"severity":"warn","message":"Gateway is listening on all interfaces (0.0.0.0)"},
+  {"severity":"pass","message":"TLS termination handled by reverse proxy"},
+  {"severity":"warn","message":"No rate limiting configured on gateway"},
+  {"severity":"pass","message":"Authentication required for all API endpoints"},
+  {"severity":"pass","message":"Gateway responds with security headers"},
+  {"severity":"warn","message":"CORS allows all origins (Access-Control-Allow-Origin: *)"}
+]
+AUDITJSON
+          else
+            cat <<'AUDITJSON'
+[
+  {"severity":"pass","message":"Gateway token is configured and non-empty"},
+  {"severity":"pass","message":"SETUP_PASSWORD is set"},
+  {"severity":"pass","message":"State directory permissions are restrictive (700)"},
+  {"severity":"warn","message":"Gateway is listening on all interfaces (0.0.0.0)"},
+  {"severity":"pass","message":"TLS termination handled by reverse proxy"},
+  {"severity":"pass","message":"Authentication required for all API endpoints"}
+]
+AUDITJSON
+          fi
+        else
+          echo "Security Audit Results"
+          echo "====================="
+          echo "[PASS] Gateway token is configured and non-empty"
+          echo "[PASS] SETUP_PASSWORD is set"
+          echo "[PASS] State directory permissions are restrictive (700)"
+          echo "[WARN] Gateway is listening on all interfaces (0.0.0.0)"
+          echo "[PASS] TLS termination handled by reverse proxy"
+          echo "[PASS] Authentication required for all API endpoints"
+          if [ "$DEEP" = "true" ]; then
+            echo "[PASS] Gateway responds with security headers"
+            echo "[WARN] No rate limiting configured on gateway"
+            echo "[WARN] CORS allows all origins (Access-Control-Allow-Origin: *)"
+          fi
+        fi
+        ;;
+      *)
+        echo "Unknown security subcommand: $SUBCMD" >&2
+        echo "Usage: openclaw security audit [--deep] [--json]" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+
+  usage)
+    JSON_MODE=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --json) JSON_MODE="true"; shift ;;
+        *) shift ;;
+      esac
+    done
+
+    if [ "$JSON_MODE" = "true" ]; then
+      node -e "
+const days = [];
+const now = new Date();
+for (let i = 6; i >= 0; i--) {
+  const d = new Date(now);
+  d.setDate(d.getDate() - i);
+  const date = d.toISOString().split('T')[0];
+  const output = Math.floor(Math.random() * 60000) + 20000;
+  const input = Math.floor(Math.random() * 30000) + 10000;
+  const cacheWrite = Math.floor(Math.random() * 15000) + 3000;
+  const cacheRead = Math.floor(Math.random() * 10000) + 2000;
+  days.push({ date, output, input, cacheWrite, cacheRead, total: output + input + cacheWrite + cacheRead });
+}
+console.log(JSON.stringify(days));
+"
+    else
+      echo "Daily Token Usage (last 7 days):"
+      echo "  Use --json for structured output"
+    fi
+    ;;
+
   version)
     echo "openclaw 0.0.0-mock (local development)"
     ;;
@@ -311,6 +738,13 @@ console.log(JSON.stringify(config, null, 2));
     echo "  onboard    Run the setup wizard"
     echo "  config     Manage configuration"
     echo "  pairing    Manage channel pairing requests"
+    echo "  agents     Manage agents"
+    echo "  sessions   List active sessions"
+    echo "  cron       Manage scheduled jobs"
+    echo "  memory     Memory and knowledge management"
+    echo "  status     Show runtime status"
+    echo "  security   Security audit commands"
+    echo "  usage      Show daily token usage"
     echo "  version    Show version information"
     echo "  help       Show this help message"
     echo ""

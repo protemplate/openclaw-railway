@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Railway deployment template for MoltBot, a personal AI assistant framework that connects to messaging platforms (Telegram, Discord, Slack, WhatsApp, and more) with AI provider support (Anthropic, OpenAI, Groq). The template includes a custom wrapper server that adds web-based setup, health checks, and secure gateway management.
+This is a Railway deployment template for OpenClaw, a personal AI assistant framework that connects to messaging platforms (Telegram, Discord, Slack, WhatsApp, and more) with AI provider support (Anthropic, OpenAI, Groq). The template includes a custom wrapper server that adds web-based setup, health checks, and secure gateway management.
 
 ## Key Template Files
 
@@ -19,7 +19,7 @@ This is a Railway deployment template for MoltBot, a personal AI assistant frame
 ### Development & Testing
 ```bash
 make build              # Build Docker image
-make run                # Start MoltBot locally with auto-generated password
+make run                # Start OpenClaw locally with auto-generated password
 make test               # Test the Docker build and endpoints
 make logs               # View container logs
 make shell              # Access running container shell
@@ -40,7 +40,7 @@ make generate-password  # Generate a secure setup password
 ## Architecture & Structure
 
 ```
-moltbot-railway/
+openclaw-railway/
 ├── .env.example           # Environment variable template
 ├── Dockerfile             # Multi-stage Docker build
 ├── docker-compose.yml     # Local development orchestration
@@ -51,22 +51,26 @@ moltbot-railway/
 └── src/
     ├── server.js          # Express wrapper server (main entry point)
     ├── health.js          # Health check endpoints (/health/*)
-    ├── gateway.js         # MoltBot gateway process manager
+    ├── gateway.js         # OpenClaw gateway process manager
     ├── proxy.js           # Reverse proxy to gateway
-    └── auth.js            # Setup password authentication middleware
+    ├── auth.js            # Setup password authentication middleware
+    ├── terminal.js        # Web terminal for openclaw onboard wizard
+    ├── onboard-page.js    # Onboard page HTML with xterm.js
+    └── cookie-parser.js   # Cookie parsing utility
 ```
 
 ### Key Design Decisions
 
 1. **Wrapper Server Architecture**: Express 5 server that:
    - Exposes health endpoints without authentication
-   - Protects `/setup` with `SETUP_PASSWORD`
-   - Spawns and monitors MoltBot gateway process
+   - Protects `/onboard` with `SETUP_PASSWORD`
+   - Provides web terminal for interactive `openclaw onboard` wizard
+   - Spawns and monitors OpenClaw gateway process
    - Reverse proxies all other traffic to gateway (port 18789)
-   - Handles WebSocket upgrades for real-time features
+   - Handles WebSocket upgrades for terminal and gateway features
 
 2. **Security**:
-   - Non-root user (`moltbot:moltbot` with UID/GID 1001)
+   - Non-root user (`openclaw:openclaw` with UID/GID 1001)
    - Tini as PID 1 for proper signal handling
    - Auto-generated gateway tokens stored securely
    - Password-protected setup wizard
@@ -78,36 +82,45 @@ moltbot-railway/
 
 4. **Data Persistence**:
    - Single volume at `/data` for Railway's one-volume-per-service limit
-   - State: `/data/.moltbot/` (config, sessions, tokens)
+   - State: `/data/.openclaw/` (config, sessions, tokens)
    - Workspace: `/data/workspace/` (file storage)
 
 5. **Gateway Management**:
-   - Runs `moltbot onboard --non-interactive` on first setup
-   - Spawns `moltbot gateway --port 18789 --verbose`
+   - Provides web terminal for interactive `openclaw onboard` wizard
+   - Writes auth token into config file, then spawns `openclaw gateway --port 18789 --verbose`
    - Auto-restarts on crash (with 5-second delay)
    - Graceful shutdown on SIGTERM/SIGINT
+
+6. **Web Terminal**:
+   - Uses xterm.js for browser-based terminal emulation
+   - WebSocket connection at `/onboard/ws` for PTY communication
+   - Runs `openclaw onboard` interactively via node-pty
+   - Full CLI compatibility - any future CLI changes work automatically
 
 ### Environment Variables
 
 **Required:**
-- `SETUP_PASSWORD` - Protects `/setup` endpoint (no default for security)
+- `SETUP_PASSWORD` - Protects `/onboard` endpoint (no default for security)
 
 **With Defaults:**
-- `MOLTBOT_STATE_DIR=/data/.moltbot` - Configuration storage
-- `MOLTBOT_WORKSPACE_DIR=/data/workspace` - File storage
+- `OPENCLAW_STATE_DIR=/data/.openclaw` - Configuration storage
+- `OPENCLAW_WORKSPACE_DIR=/data/workspace` - File storage
 - `INTERNAL_GATEWAY_PORT=18789` - Gateway internal port
 - `PORT=8080` - External port (Railway overrides this)
 
 **Optional:**
-- `MOLTBOT_GATEWAY_TOKEN` - If not set, auto-generated and stored
+- `OPENCLAW_GATEWAY_TOKEN` - If not set, auto-generated and stored
 
 ### Request Flow
 
 1. Request arrives at wrapper server on `$PORT`
 2. `/health/*` routes - served directly (no auth)
-3. `/setup/*` routes - require password authentication
-4. All other routes - proxied to gateway at `127.0.0.1:$INTERNAL_GATEWAY_PORT`
-5. WebSocket upgrades - proxied for real-time features
+3. `/onboard` - password-protected setup page with web terminal
+4. `/onboard/ws` - WebSocket for terminal PTY communication
+5. `/onboard/start`, `/onboard/stop` - gateway control endpoints
+6. `/onboard/export` - backup download endpoint
+7. All other routes - proxied to gateway at `127.0.0.1:$INTERNAL_GATEWAY_PORT`
+8. WebSocket upgrades (non-setup) - proxied for gateway features
 
 ## Common Tasks
 
@@ -126,7 +139,7 @@ Edit `src/auth.js`:
 ### Adding Gateway Management Features
 
 Edit `src/gateway.js`:
-- `startGateway()` - Spawns MoltBot gateway
+- `startGateway()` - Spawns OpenClaw gateway
 - `stopGateway()` - Graceful shutdown
 - `getGatewayInfo()` - Process status
 
@@ -150,39 +163,39 @@ For manual testing:
 curl http://localhost:8080/health
 
 # Auth protection (should return 401)
-curl http://localhost:8080/setup
+curl http://localhost:8080/onboard
 
 # Auth with password (should return 200)
-curl "http://localhost:8080/setup?password=YOUR_PASSWORD"
+curl "http://localhost:8080/onboard?password=YOUR_PASSWORD"
 ```
 
 ## Railway-Specific Configuration
 
 ### Volume Setup (Required)
 Mount path: `/data`
-- Contains all MoltBot configuration and state
+- Contains all OpenClaw configuration and state
 - Without volume, data is lost on redeploy
 
 ### Health Check
 - Endpoint: `/health/ready`
-- Returns 503 until gateway is started via `/setup`
+- Returns 503 until gateway is started via `/onboard`
 
 ### Private Networking
 - Internal: `http://SERVICE.railway.internal:PORT`
 - Always include PORT (no default to 80)
-- Use reference variables: `${{MoltBot.PORT}}`
+- Use reference variables: `${{OpenClaw.PORT}}`
 
 ## Notes for Future Development
 
-1. **MoltBot Updates**: The Dockerfile installs `moltbot@latest`. Railway auto-rebuilds on code changes.
+1. **OpenClaw Updates**: The Dockerfile installs `openclaw@latest`. Railway auto-rebuilds on code changes.
 
-2. **Multi-platform Support**: MoltBot supports Telegram, Discord, Slack, WhatsApp, Signal, iMessage, Teams, Matrix, and more. Configuration is in `moltbot.json`.
+2. **Multi-platform Support**: OpenClaw supports Telegram, Discord, Slack, WhatsApp, Signal, iMessage, Teams, Matrix, and more. Configuration is in `openclaw.json`.
 
-3. **AI Providers**: Configure in `moltbot.json` under `agent.model`:
+3. **AI Providers**: Configure in `openclaw.json` under `agents.defaults.model.primary`:
    - `anthropic/claude-sonnet-4`
    - `openai/gpt-4o`
    - `groq/llama-3.3-70b-versatile`
 
-4. **Backup/Restore**: Use `/setup/export` to download tar.gz backup. Restore by extracting to `/data/.moltbot/`.
+4. **Backup/Restore**: Use `/onboard/export` to download tar.gz backup. Restore by extracting to `/data/.openclaw/`.
 
-5. **Scaling**: MoltBot is designed as a personal assistant (single-user). For multi-tenant, consider running multiple instances.
+5. **Scaling**: OpenClaw is designed as a personal assistant (single-user). For multi-tenant, consider running multiple instances.

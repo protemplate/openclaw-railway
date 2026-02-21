@@ -128,6 +128,18 @@ export async function startGateway() {
   config.gateway.controlUi = config.gateway.controlUi || {};
   config.gateway.controlUi.basePath = '/openclaw';
   config.gateway.controlUi.allowInsecureAuth = true;
+
+  // Allow the Railway public domain as a WebSocket origin so the Control UI works
+  const publicDomain = process.env.RAILWAY_PUBLIC_DOMAIN;
+  if (publicDomain) {
+    const origins = config.gateway.controlUi.allowedOrigins || [];
+    const httpsOrigin = `https://${publicDomain}`;
+    if (!origins.includes(httpsOrigin)) {
+      origins.push(httpsOrigin);
+    }
+    config.gateway.controlUi.allowedOrigins = origins;
+  }
+
   config.gateway.trustedProxies = ['127.0.0.1', '::1'];
   delete config.gateway.token;
 

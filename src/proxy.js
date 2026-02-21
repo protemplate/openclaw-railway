@@ -63,6 +63,10 @@ export function createProxy(getToken) {
         req.headers['authorization'] = `Bearer ${token}`;
       }
     }
+    // Rewrite Origin to match the gateway's local address so the gateway
+    // doesn't reject the WebSocket as a cross-origin request.
+    req.headers['origin'] = target;
+    req.headers['host'] = `127.0.0.1:${gatewayPort}`;
     console.log(`[proxy] WebSocket upgrade: ${req.url}`);
     proxy.ws(req, socket, head);
   };

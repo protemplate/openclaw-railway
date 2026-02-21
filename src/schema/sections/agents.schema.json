@@ -44,9 +44,11 @@
           "description": "Agent persona/system prompt"
         },
         "workspace": {
-          "type": "object",
-          "description": "Workspace settings",
-          "additionalProperties": true
+          "oneOf": [
+            { "type": "string", "description": "Workspace directory path" },
+            { "type": "object", "description": "Workspace settings", "additionalProperties": true }
+          ],
+          "description": "Workspace settings (string path or object)"
         },
         "sandbox": {
           "type": "object",

@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Clone OpenClaw source
-ARG OPENCLAW_GIT_REF=main
+ARG OPENCLAW_GIT_REF=v2026.2.19
 RUN git clone --depth 1 --branch "${OPENCLAW_GIT_REF}" https://github.com/openclaw/openclaw.git /openclaw
 
 WORKDIR /openclaw

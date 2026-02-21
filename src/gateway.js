@@ -127,7 +127,10 @@ export async function startGateway() {
   config.gateway.auth = { mode: 'token', token };
   config.gateway.controlUi = config.gateway.controlUi || {};
   config.gateway.controlUi.basePath = '/openclaw';
-  config.gateway.controlUi.allowInsecureAuth = process.env.ALLOW_INSECURE_AUTH === 'true';
+  // Allow token-only auth without device pairing — safe because the gateway is bound
+  // to loopback and our wrapper enforces SETUP_PASSWORD + HTTPS externally
+  config.gateway.controlUi.allowInsecureAuth = true;
+  config.gateway.controlUi.dangerouslyDisableDeviceAuth = true;
 
   // Allow the Railway public domain as a WebSocket origin so the Control UI works
   const publicDomain = process.env.RAILWAY_PUBLIC_DOMAIN;

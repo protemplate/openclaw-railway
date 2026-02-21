@@ -140,7 +140,7 @@ export async function startGateway() {
     config.gateway.controlUi.allowedOrigins = origins;
   }
 
-  config.gateway.trustedProxies = ['127.0.0.1', '::1'];
+  config.gateway.trustedProxies = ['0.0.0.0/0'];
   delete config.gateway.token;
 
   // Fix channel config validation: dmPolicy="open" requires allowFrom to include "*"

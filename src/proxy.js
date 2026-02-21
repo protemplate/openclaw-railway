@@ -17,8 +17,7 @@ export function createProxy(getToken) {
   const proxy = httpProxy.createProxyServer({
     target,
     ws: true,
-    changeOrigin: true,
-    xfwd: true
+    changeOrigin: true
   });
 
   // Handle proxy errors

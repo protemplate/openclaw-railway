@@ -1143,6 +1143,9 @@ app.get('/api/schemas', authMiddleware, (req, res) => {
 // Create reverse proxy
 const { middleware: proxyMiddleware, upgradeHandler } = createProxy(getGatewayToken);
 
+// Protect all /openclaw paths (SPA, assets, API) with setup password
+app.use('/openclaw', authMiddleware);
+
 // Redirect /openclaw to include gateway token so the SPA can authenticate
 const openclawHandler = (req, res, next) => {
   // If token already in query, let the proxy serve the SPA
@@ -1160,8 +1163,8 @@ const openclawHandler = (req, res, next) => {
   res.redirect(`/openclaw/?token=${encodeURIComponent(token)}`);
 };
 
-app.get('/openclaw', authMiddleware, openclawHandler);
-app.post('/openclaw', authMiddleware, openclawHandler);
+app.get('/openclaw', openclawHandler);
+app.post('/openclaw', openclawHandler);
 
 // Proxy all other requests to gateway (when running)
 // Note: Using no path argument to avoid Express 5 stripping req.url

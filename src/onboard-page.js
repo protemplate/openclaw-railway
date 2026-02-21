@@ -1039,7 +1039,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
       <a href="/lite?password=${encodeURIComponent(password)}" class="btn btn-primary" data-i18n="configured.openPanel">Open Lite Panel</a>
       <a href="/openclaw" class="btn btn-secondary" data-i18n="configured.openDashboard">Open OpenClaw Gateway Dashboard</a>
     </div>
-    <button class="btn-text" onclick="showReconfigureWarning()" data-i18n="configured.reconfigure">Reconfigure from scratch</button> | 
+    <button class="btn-text" onclick="showReconfigureWarning()" data-i18n="configured.reconfigure">Reconfigure from scratch</button> <span class="separator" style="color: #c0c0c0;">|</span> 
     <button class="btn-text" onclick="document.getElementById('restore-file').click()" data-i18n="configured.restoreBackup">Restore from Backup</button>
   </div>
   ` : ''}

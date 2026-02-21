@@ -214,26 +214,20 @@ export async function startGateway() {
     }
   });
 
-  // Wait for gateway to be ready
-  await waitForGateway(port);
-
-  // The gateway may rewrite the config file with its own token after startup.
-  // Sync: read the token the gateway is actually using and update our token file
-  // so getGatewayToken() returns the correct value for proxy auth and /openclaw redirect.
+  // Wait for gateway to be ready (up to 90s for cold starts)
   try {
-    const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
-    const liveToken = liveConfig.gateway?.auth?.token;
-    if (liveToken && liveToken !== token) {
-      console.log('Gateway changed auth token on startup — syncing token file');
-      const tokenFile = join(stateDir, 'gateway.token');
-      writeFileSync(tokenFile, liveToken, { mode: 0o600 });
-    }
+    await waitForGateway(port, 90000);
+    syncGatewayToken(configFile, token, stateDir);
+    setGatewayReady(true);
+    console.log('Gateway is ready');
   } catch (err) {
-    console.error('Failed to sync gateway token:', err.message);
+    console.warn(`Initial gateway wait failed: ${err.message}`);
+    // The process may still be starting — poll in the background
+    if (isGatewayRunning()) {
+      console.log('Gateway process is alive, continuing to poll in background...');
+      pollUntilReady(port, configFile, token, stateDir);
+    }
   }
-
-  setGatewayReady(true);
-  console.log('Gateway is ready');
 }
 
 /**
@@ -390,6 +384,53 @@ async function waitForGateway(port, timeout = 30000) {
   }
 
   throw new Error('Gateway failed to start within timeout');
+}
+
+/**
+ * Sync the gateway token from the config file after startup
+ */
+function syncGatewayToken(configFile, originalToken, stateDir) {
+  try {
+    const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
+    const liveToken = liveConfig.gateway?.auth?.token;
+    if (liveToken && liveToken !== originalToken) {
+      console.log('Gateway changed auth token on startup — syncing token file');
+      const tokenFile = join(stateDir, 'gateway.token');
+      writeFileSync(tokenFile, liveToken, { mode: 0o600 });
+    }
+  } catch (err) {
+    console.error('Failed to sync gateway token:', err.message);
+  }
+}
+
+/**
+ * Poll for gateway readiness in the background (when initial wait times out)
+ * Checks every 5s for up to 5 minutes
+ */
+function pollUntilReady(port, configFile, originalToken, stateDir) {
+  const maxPollTime = 300000; // 5 minutes
+  const pollInterval = 5000;
+  const start = Date.now();
+
+  const timer = setInterval(async () => {
+    if (!isGatewayRunning()) {
+      console.log('Gateway process exited during background poll');
+      clearInterval(timer);
+      return;
+    }
+    try {
+      await fetch(`http://127.0.0.1:${port}/health`);
+      console.log('Gateway became ready (background poll)');
+      clearInterval(timer);
+      syncGatewayToken(configFile, originalToken, stateDir);
+      setGatewayReady(true);
+    } catch {
+      if (Date.now() - start > maxPollTime) {
+        console.error('Gateway did not become ready within 5 minutes');
+        clearInterval(timer);
+      }
+    }
+  }, pollInterval);
 }
 
 /**

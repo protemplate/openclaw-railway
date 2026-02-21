@@ -63,7 +63,7 @@ export function createProxy(getToken) {
       }
     }
     req.headers['host'] = `127.0.0.1:${gatewayPort}`;
-    // Forward original scheme so gateway accepts token auth with allowInsecureAuth=false
+    // Forward original scheme so gateway knows the external connection is HTTPS
     req.headers['x-forwarded-proto'] = req.headers['x-forwarded-proto'] || 'https';
     // Strip forwarded-for headers so gateway sees only remoteAddr=127.0.0.1 (direct local)
     // Without this, the gateway walks the x-forwarded-for chain, finds a non-local client IP,

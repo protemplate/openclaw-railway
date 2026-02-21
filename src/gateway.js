@@ -130,7 +130,6 @@ export async function startGateway() {
   // Allow token-only auth without device pairing — safe because the gateway is bound
   // to loopback and our wrapper enforces SETUP_PASSWORD + HTTPS externally
   config.gateway.controlUi.allowInsecureAuth = true;
-  config.gateway.controlUi.dangerouslyDisableDeviceAuth = true;
 
   // Allow the Railway public domain as a WebSocket origin so the Control UI works
   const publicDomain = process.env.RAILWAY_PUBLIC_DOMAIN;
@@ -143,7 +142,7 @@ export async function startGateway() {
     config.gateway.controlUi.allowedOrigins = origins;
   }
 
-  config.gateway.trustedProxies = ['0.0.0.0/0'];
+  config.gateway.trustedProxies = ['127.0.0.1', '::1'];
   delete config.gateway.token;
 
   // Fix channel config validation: dmPolicy="open" requires allowFrom to include "*"

@@ -13,7 +13,7 @@
 
 import express from 'express';
 import { createServer } from 'http';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, createWriteStream, readdirSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, createWriteStream, readdirSync, lstatSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import JSZip from 'jszip';
@@ -918,12 +918,28 @@ app.get('/lite/api/memory', authMiddleware, async (req, res) => {
       // openclaw memory status --json returns an array of agent objects
       const agent = Array.isArray(parsed) ? parsed[0] : parsed;
       const st = agent?.status || agent || {};
-      // List actual memory files for debugging
-      let memoryFiles = [];
-      try {
-        const memDir = '/data/workspace/memory';
-        memoryFiles = readdirSync(memDir);
-      } catch {}
+      // List actual memory files for debugging across all possible locations
+      let memoryFiles = {};
+      const scanDirs = {
+        '/data/workspace': 'volume-workspace',
+        '/data/workspace/memory': 'volume-workspace-memory',
+        '/data/.openclaw/workspace': 'volume-state-workspace',
+        '/data/.openclaw/workspace/memory': 'volume-state-workspace-memory',
+        '/home/openclaw/.openclaw/workspace': 'home-workspace',
+        '/home/openclaw/.openclaw/workspace/memory': 'home-workspace-memory',
+      };
+      for (const [dir, label] of Object.entries(scanDirs)) {
+        try {
+          const stat = lstatSync(dir);
+          const isLink = stat.isSymbolicLink();
+          const files = readdirSync(dir).filter(f =>
+            f.endsWith('.md') || f.endsWith('.json') || f.endsWith('.txt')
+          );
+          if (files.length > 0 || isLink) {
+            memoryFiles[label] = { files, isSymlink: isLink };
+          }
+        } catch {}
+      }
 
       return res.json({
         available: true,
@@ -969,19 +985,33 @@ app.get('/lite/api/memory/search', authMiddleware, async (req, res) => {
     }
 
     // If CLI search returns empty, try reading memory files directly as fallback
+    // Check all possible locations where OpenClaw may store memory files
     if (results.length === 0) {
-      try {
-        const memDir = '/data/workspace/memory';
-        const files = readdirSync(memDir).filter(f =>
-          f.endsWith('.md') || f.endsWith('.json') || f.endsWith('.txt')
-        );
-        for (const file of files) {
-          const content = readFileSync(join(memDir, file), 'utf-8');
-          if (content.toLowerCase().includes(q.toLowerCase())) {
-            results.push({ text: content.trim(), source: file });
+      const searchDirs = [
+        '/data/workspace',
+        '/data/workspace/memory',
+        '/data/.openclaw/workspace',
+        '/data/.openclaw/workspace/memory',
+        '/home/openclaw/.openclaw/workspace',
+        '/home/openclaw/.openclaw/workspace/memory',
+      ];
+      const seen = new Set();
+      for (const memDir of searchDirs) {
+        try {
+          const files = readdirSync(memDir).filter(f =>
+            f.endsWith('.md') || f.endsWith('.json') || f.endsWith('.txt')
+          );
+          for (const file of files) {
+            const filePath = join(memDir, file);
+            if (seen.has(file)) continue; // avoid duplicates from symlinked dirs
+            seen.add(file);
+            const content = readFileSync(filePath, 'utf-8');
+            if (content.toLowerCase().includes(q.toLowerCase())) {
+              results.push({ text: content.trim(), source: `${memDir}/${file}` });
+            }
           }
-        }
-      } catch { /* memDir doesn't exist or no readable files */ }
+        } catch { /* dir doesn't exist or no readable files */ }
+      }
     }
 
     return res.json({ results });

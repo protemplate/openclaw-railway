@@ -207,6 +207,14 @@ export async function startGateway() {
     }
   }
 
+  // Clean up invalid browser keys from previous deployments
+  if (config.browser && config.browser.launchArgs) {
+    delete config.browser.launchArgs;
+    config.browser.headless = true;
+    config.browser.noSandbox = true;
+    console.log('Removed invalid browser.launchArgs from config');
+  }
+
   // Configure browser for Docker/Railway (headless Chromium with safe flags)
   if (!config.browser || Object.keys(config.browser).length === 0) {
     config.browser = {

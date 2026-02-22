@@ -40,17 +40,16 @@ chmod 700 "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" 2>/dev/null || true
 # Ensure npm global prefix directory exists for in-app upgrades
 mkdir -p "${NPM_CONFIG_PREFIX:-/data/.npm-global}"
 
-# Seed pre-bundled skills into the skills directory
-# Only copies if the skill directory doesn't exist yet (preserves user overrides)
+# Sync pre-bundled skills into the skills directory
+# Always overwrites bundled skill files to ensure Railway-aware instructions are current
+# (e.g. replaces upstream SKILL.md that references localhost with our $SEARXNG_URL version)
 SKILLS_DIR="$OPENCLAW_STATE_DIR/skills"
 if [ -d "/bundled-skills" ]; then
     mkdir -p "$SKILLS_DIR"
     for skill_dir in /bundled-skills/*/; do
         skill_name=$(basename "$skill_dir")
-        if [ ! -d "$SKILLS_DIR/$skill_name" ]; then
-            cp -r "$skill_dir" "$SKILLS_DIR/$skill_name"
-            echo "Seeded skill: $skill_name"
-        fi
+        cp -r "$skill_dir" "$SKILLS_DIR/$skill_name"
+        echo "Synced bundled skill: $skill_name"
     done
 fi
 

@@ -964,11 +964,14 @@ app.get('/lite/api/memory/search', authMiddleware, async (req, res) => {
 // Lite API: Memory re-index
 app.post('/lite/api/memory/index', authMiddleware, async (req, res) => {
   try {
-    const result = await runCmd('memory', ['index', '--json']);
+    const result = await runCmd('memory', ['index']);
     console.log('[memory-debug] index stdout:', result.stdout);
+    console.log('[memory-debug] index stderr:', result.stderr);
     console.log('[memory-debug] index code:', result.code);
-    res.json({ success: result.code === 0, output: result.stdout.trim() });
-  } catch {
+    const output = result.stdout.trim() || result.stderr.trim() || '';
+    res.json({ success: result.code === 0, output });
+  } catch (err) {
+    console.log('[memory-debug] index exception:', err.message);
     res.json({ success: false, output: 'Failed to run memory index' });
   }
 });

@@ -13,7 +13,7 @@
 
 import express from 'express';
 import { createServer } from 'http';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, createWriteStream } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, createWriteStream, readdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import JSZip from 'jszip';
@@ -918,6 +918,13 @@ app.get('/lite/api/memory', authMiddleware, async (req, res) => {
       // openclaw memory status --json returns an array of agent objects
       const agent = Array.isArray(parsed) ? parsed[0] : parsed;
       const st = agent?.status || agent || {};
+      // List actual memory files for debugging
+      let memoryFiles = [];
+      try {
+        const memDir = '/data/workspace/memory';
+        memoryFiles = readdirSync(memDir);
+      } catch {}
+
       return res.json({
         available: true,
         status: st.fts?.available ? 'active' : 'inactive',
@@ -925,7 +932,8 @@ app.get('/lite/api/memory', authMiddleware, async (req, res) => {
         totalFiles: agent?.scan?.totalFiles ?? null,
         backend: st.backend || null,
         provider: st.provider || null,
-        searchMode: st.custom?.searchMode || null
+        searchMode: st.custom?.searchMode || null,
+        memoryFiles
       });
     } catch {
       return res.json({ available: true, status: result.stdout.trim() });
@@ -949,13 +957,34 @@ app.get('/lite/api/memory/search', authMiddleware, async (req, res) => {
     if (result.code !== 0) {
       return res.json({ available: false, results: [] });
     }
+    let results = [];
     try {
       const parsed = JSON.parse(result.stdout);
       console.log('[memory-debug] search parsed:', JSON.stringify(parsed));
-      return res.json({ results: Array.isArray(parsed) ? parsed : (parsed.results || []) });
+      results = Array.isArray(parsed) ? parsed : (parsed.results || []);
     } catch {
-      return res.json({ results: result.stdout.trim() ? [{ text: result.stdout.trim() }] : [] });
+      if (result.stdout.trim()) {
+        results = [{ text: result.stdout.trim() }];
+      }
     }
+
+    // If CLI search returns empty, try reading memory files directly as fallback
+    if (results.length === 0) {
+      try {
+        const memDir = '/data/workspace/memory';
+        const files = readdirSync(memDir).filter(f =>
+          f.endsWith('.md') || f.endsWith('.json') || f.endsWith('.txt')
+        );
+        for (const file of files) {
+          const content = readFileSync(join(memDir, file), 'utf-8');
+          if (content.toLowerCase().includes(q.toLowerCase())) {
+            results.push({ text: content.trim(), source: file });
+          }
+        }
+      } catch { /* memDir doesn't exist or no readable files */ }
+    }
+
+    return res.json({ results });
   } catch {
     res.json({ available: false, results: [] });
   }

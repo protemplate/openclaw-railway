@@ -5,7 +5,7 @@
  */
 
 import { spawn } from 'child_process';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, readdirSync, renameSync, symlinkSync, lstatSync, rmSync } from 'fs';
 import { join } from 'path';
 import crypto from 'crypto';
 import { setGatewayReady } from './health.js';
@@ -94,9 +94,29 @@ export async function startGateway() {
   isShuttingDown = false;
   console.log(`Starting OpenClaw gateway on port ${port}...`);
 
-  // Ensure memory directory exists at both the configured workspace dir and
-  // the HOME-derived path that OpenClaw's memory system actually uses
-  // ($HOME/.openclaw/workspace/memory = /data/.openclaw/workspace/memory)
+  // Symlink HOME-derived workspace to the persistent volume so memories survive redeploys.
+  // OpenClaw uses $HOME/.openclaw/workspace internally, which with HOME=/home/openclaw
+  // resolves to /home/openclaw/.openclaw/workspace — NOT on the /data volume.
+  const homeOpenclawDir = '/home/openclaw/.openclaw';
+  const homeWorkspace = join(homeOpenclawDir, 'workspace');
+  mkdirSync(homeOpenclawDir, { recursive: true });
+  if (existsSync(homeWorkspace) && !lstatSync(homeWorkspace).isSymbolicLink()) {
+    // Real dir exists — move any files to persistent location, then replace with symlink
+    const files = readdirSync(homeWorkspace);
+    for (const f of files) {
+      const src = join(homeWorkspace, f);
+      const dest = join(workspaceDir, f);
+      if (!existsSync(dest)) {
+        renameSync(src, dest);
+      }
+    }
+    rmSync(homeWorkspace, { recursive: true, force: true });
+  }
+  if (!existsSync(homeWorkspace)) {
+    symlinkSync(workspaceDir, homeWorkspace);
+    console.log(`Symlinked ${homeWorkspace} -> ${workspaceDir}`);
+  }
+  // Ensure memory subdirectory exists on the persistent volume
   mkdirSync(join(workspaceDir, 'memory'), { recursive: true });
   mkdirSync(join(stateDir, 'workspace', 'memory'), { recursive: true });
 

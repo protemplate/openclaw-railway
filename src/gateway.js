@@ -211,12 +211,7 @@ export async function startGateway() {
   if (!config.browser || Object.keys(config.browser).length === 0) {
     config.browser = {
       headless: true,
-      launchArgs: [
-        '--no-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-      ]
+      noSandbox: true,
     };
     console.log('Injected Docker-safe browser configuration');
   }

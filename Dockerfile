@@ -135,6 +135,7 @@ EXPOSE 8080
 # NPM_CONFIG_PREFIX on the persistent volume so in-app upgrades survive restarts.
 # PATH puts the npm-global bin before /usr/local/bin so upgraded openclaw takes precedence.
 ENV NODE_ENV=production \
+    HOME=/home/openclaw \
     OPENCLAW_STATE_DIR=/data/.openclaw \
     OPENCLAW_WORKSPACE_DIR=/data/workspace \
     INTERNAL_GATEWAY_PORT=18789 \

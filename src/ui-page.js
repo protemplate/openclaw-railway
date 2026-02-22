@@ -78,9 +78,12 @@ const LITE_TRANSLATIONS = {
     'lite.memory.notAvailable': 'Memory features not available',
     'lite.memory.loading': 'Loading memory status...',
     'lite.memory.status': 'Status',
-    'lite.memory.entries': 'Entries',
+    'lite.memory.entries': 'Indexed',
     'lite.memory.backend': 'Backend',
     'lite.memory.active': 'Active',
+    'lite.memory.totalFiles': 'Files',
+    'lite.memory.reindex': 'Re-index',
+    'lite.memory.indexing': 'Indexing...',
     'lite.memory.searchFailed': 'Search failed',
     'lite.security.title': 'Security Audit',
     'lite.security.subtitle': 'Check config for security issues',
@@ -256,9 +259,12 @@ const LITE_TRANSLATIONS = {
     'lite.memory.noResults': '\u672A\u627E\u5230\u7D50\u679C',
     'lite.memory.notAvailable': '\u8A18\u61B6\u529F\u80FD\u4E0D\u53EF\u7528',
     'lite.memory.status': '\u72C0\u614B',
-    'lite.memory.entries': '\u689D\u76EE',
+    'lite.memory.entries': '\u5DF2\u7D22\u5F15',
     'lite.memory.backend': '\u5F8C\u7AEF',
     'lite.memory.active': '\u4F7F\u7528\u4E2D',
+    'lite.memory.totalFiles': '\u6A94\u6848',
+    'lite.memory.reindex': '\u91CD\u65B0\u7D22\u5F15',
+    'lite.memory.indexing': '\u7D22\u5F15\u4E2D...',
     'lite.memory.searchFailed': '\u641C\u5C0B\u5931\u6557',
     'lite.security.title': '\u5B89\u5168\u5BE9\u8A08',
     'lite.security.subtitle': '\u6AA2\u67E5\u8A2D\u5B9A\u7684\u5B89\u5168\u554F\u984C',
@@ -428,9 +434,12 @@ const LITE_TRANSLATIONS = {
     'lite.memory.noResults': '\u672A\u627E\u5230\u7ED3\u679C',
     'lite.memory.notAvailable': '\u8BB0\u5FC6\u529F\u80FD\u4E0D\u53EF\u7528',
     'lite.memory.status': '\u72B6\u6001',
-    'lite.memory.entries': '\u6761\u76EE',
+    'lite.memory.entries': '\u5DF2\u7D22\u5F15',
     'lite.memory.backend': '\u540E\u7AEF',
     'lite.memory.active': '\u6D3B\u8DC3',
+    'lite.memory.totalFiles': '\u6587\u4EF6',
+    'lite.memory.reindex': '\u91CD\u65B0\u7D22\u5F15',
+    'lite.memory.indexing': '\u7D22\u5F15\u4E2D...',
     'lite.memory.searchFailed': '\u641C\u7D22\u5931\u8D25',
     'lite.security.title': '\u5B89\u5168\u5BA1\u8BA1',
     'lite.security.subtitle': '\u68C0\u67E5\u914D\u7F6E\u7684\u5B89\u5168\u95EE\u9898',
@@ -602,9 +611,12 @@ const LITE_TRANSLATIONS = {
     'lite.memory.notAvailable': '\u30E1\u30E2\u30EA\u6A5F\u80FD\u306F\u5229\u7528\u3067\u304D\u307E\u305B\u3093',
     'lite.memory.loading': '\u30E1\u30E2\u30EA\u30B9\u30C6\u30FC\u30BF\u30B9\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D...',
     'lite.memory.status': '\u30B9\u30C6\u30FC\u30BF\u30B9',
-    'lite.memory.entries': '\u30A8\u30F3\u30C8\u30EA',
+    'lite.memory.entries': '\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u6E08',
     'lite.memory.backend': '\u30D0\u30C3\u30AF\u30A8\u30F3\u30C9',
     'lite.memory.active': '\u30A2\u30AF\u30C6\u30A3\u30D6',
+    'lite.memory.totalFiles': '\u30D5\u30A1\u30A4\u30EB',
+    'lite.memory.reindex': '\u518D\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9',
+    'lite.memory.indexing': '\u30A4\u30F3\u30C7\u30C3\u30AF\u30B9\u4E2D...',
     'lite.memory.searchFailed': '\u691C\u7D22\u5931\u6557',
     'lite.security.title': '\u30BB\u30AD\u30E5\u30EA\u30C6\u30A3\u76E3\u67FB',
     'lite.security.subtitle': '\u8A2D\u5B9A\u306E\u30BB\u30AD\u30E5\u30EA\u30C6\u30A3\u554F\u984C\u3092\u30C1\u30A7\u30C3\u30AF',
@@ -782,9 +794,12 @@ const LITE_TRANSLATIONS = {
     'lite.memory.notAvailable': '\uBA54\uBAA8\uB9AC \uAE30\uB2A5\uC744 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4',
     'lite.memory.loading': '\uBA54\uBAA8\uB9AC \uC0C1\uD0DC \uB85C\uB529 \uC911...',
     'lite.memory.status': '\uC0C1\uD0DC',
-    'lite.memory.entries': '\uD56D\uBAA9',
+    'lite.memory.entries': '\uC778\uB371\uC2A4\uB428',
     'lite.memory.backend': '\uBC31\uC5D4\uB4DC',
     'lite.memory.active': '\uD65C\uC131',
+    'lite.memory.totalFiles': '\uD30C\uC77C',
+    'lite.memory.reindex': '\uC7AC\uC778\uB371\uC2A4',
+    'lite.memory.indexing': '\uC778\uB371\uC2A4 \uC911...',
     'lite.memory.searchFailed': '\uAC80\uC0C9 \uC2E4\uD328',
     'lite.security.title': '\uBCF4\uC548 \uAC10\uC0AC',
     'lite.security.subtitle': '\uC124\uC815\uC758 \uBCF4\uC548 \uBB38\uC81C \uD655\uC778',
@@ -3340,6 +3355,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             var statItems = [
               { label: t('lite.memory.status'), value: data.status || t('lite.memory.active') },
               { label: t('lite.memory.entries'), value: data.entries != null ? String(data.entries) : '--' },
+              { label: t('lite.memory.totalFiles'), value: data.totalFiles != null ? String(data.totalFiles) : '--' },
               { label: t('lite.memory.backend'), value: data.backend || '--' }
             ];
             statItems.forEach(function(s) {
@@ -3359,6 +3375,32 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
               stats.appendChild(stat);
             });
             container.appendChild(stats);
+
+            // Re-index button
+            var reindexBtn = document.createElement('button');
+            reindexBtn.className = 'lite-btn lite-btn-secondary';
+            reindexBtn.style.marginBottom = '12px';
+            reindexBtn.textContent = t('lite.memory.reindex');
+            reindexBtn.onclick = function() {
+              reindexBtn.disabled = true;
+              reindexBtn.textContent = t('lite.memory.indexing');
+              fetch('/lite/api/memory/index', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+              })
+              .then(function(r) { return r.json(); })
+              .then(function() {
+                reindexBtn.textContent = t('lite.memory.reindex');
+                reindexBtn.disabled = false;
+                // Refresh memory stats
+                loadMemory();
+              })
+              .catch(function() {
+                reindexBtn.textContent = t('lite.memory.reindex');
+                reindexBtn.disabled = false;
+              });
+            };
+            container.appendChild(reindexBtn);
 
             // Search input
             var searchInput = document.createElement('input');

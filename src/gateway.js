@@ -249,6 +249,15 @@ export async function startGateway() {
     syncGatewayToken(configFile, token, stateDir);
     setGatewayReady(true);
     console.log('Gateway is ready');
+
+    // Auto-index memory in the background so files created since last restart are searchable
+    runCmd('memory', ['index']).then(result => {
+      if (result.code === 0) {
+        console.log('Memory indexed successfully');
+      } else {
+        console.log('Memory index skipped:', result.stderr.trim());
+      }
+    }).catch(() => {});
   } catch (err) {
     console.warn(`Initial gateway wait failed: ${err.message}`);
     // The process may still be starting — poll in the background
@@ -453,6 +462,15 @@ function pollUntilReady(port, configFile, originalToken, stateDir) {
       clearInterval(timer);
       syncGatewayToken(configFile, originalToken, stateDir);
       setGatewayReady(true);
+
+      // Auto-index memory in the background
+      runCmd('memory', ['index']).then(result => {
+        if (result.code === 0) {
+          console.log('Memory indexed successfully');
+        } else {
+          console.log('Memory index skipped:', result.stderr.trim());
+        }
+      }).catch(() => {});
     } catch {
       if (Date.now() - start > maxPollTime) {
         console.error('Gateway did not become ready within 5 minutes');

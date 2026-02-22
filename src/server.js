@@ -852,11 +852,17 @@ app.get('/lite/api/memory', authMiddleware, async (req, res) => {
     try {
       const parsed = JSON.parse(result.stdout);
       console.log('[memory-debug] status parsed:', JSON.stringify(parsed));
+      // openclaw memory status --json returns an array of agent objects
+      const agent = Array.isArray(parsed) ? parsed[0] : parsed;
+      const st = agent?.status || agent || {};
       return res.json({
         available: true,
-        status: parsed.status || null,
-        entries: parsed.entries ?? parsed.count ?? null,
-        backend: parsed.backend || null
+        status: st.fts?.available ? 'active' : 'inactive',
+        entries: st.files ?? st.chunks ?? null,
+        totalFiles: agent?.scan?.totalFiles ?? null,
+        backend: st.backend || null,
+        provider: st.provider || null,
+        searchMode: st.custom?.searchMode || null
       });
     } catch {
       return res.json({ available: true, status: result.stdout.trim() });
@@ -889,6 +895,18 @@ app.get('/lite/api/memory/search', authMiddleware, async (req, res) => {
     }
   } catch {
     res.json({ available: false, results: [] });
+  }
+});
+
+// Lite API: Memory re-index
+app.post('/lite/api/memory/index', authMiddleware, async (req, res) => {
+  try {
+    const result = await runCmd('memory', ['index', '--json']);
+    console.log('[memory-debug] index stdout:', result.stdout);
+    console.log('[memory-debug] index code:', result.code);
+    res.json({ success: result.code === 0, output: result.stdout.trim() });
+  } catch {
+    res.json({ success: false, output: 'Failed to run memory index' });
   }
 });
 

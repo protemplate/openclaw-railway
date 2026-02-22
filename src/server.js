@@ -843,26 +843,63 @@ app.get('/lite/api/stats', authMiddleware, async (req, res) => {
 
 // Lite API: Daily token usage (via gateway WebSocket RPC)
 app.get('/lite/api/usage', authMiddleware, async (req, res) => {
+  const endDate = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  let rawDays = null;
+  let totals = null;
+
+  // Try gateway RPC first
   try {
-    const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const result = await gatewayRPC('usage.cost', { startDate, endDate });
-    if (!result?.daily) {
-      return res.json({ available: false, days: [] });
+    console.log('[usage-debug] usage.cost result:', JSON.stringify(result));
+    if (Array.isArray(result)) {
+      rawDays = result;
+    } else if (Array.isArray(result?.daily)) {
+      rawDays = result.daily;
+      totals = result.totals || null;
+    } else if (Array.isArray(result?.days)) {
+      rawDays = result.days;
+      totals = result.totals || null;
     }
-    const days = result.daily.map(d => ({
-      date: d.date,
-      output: d.output || 0,
-      input: d.input || 0,
-      cacheWrite: d.cacheWrite || 0,
-      cacheRead: d.cacheRead || 0,
-      total: d.totalTokens || 0,
-      cost: d.totalCost || 0
-    }));
-    return res.json({ available: true, days, totals: result.totals || null });
-  } catch {
-    res.json({ available: false, days: [] });
+  } catch (err) {
+    console.log('[usage-debug] usage.cost error:', err.message);
   }
+
+  // CLI fallback: `openclaw usage --json`
+  if (!rawDays) {
+    try {
+      const cliResult = await runCmd('usage', ['--json']);
+      if (cliResult.code === 0) {
+        const parsed = JSON.parse(cliResult.stdout);
+        console.log('[usage-debug] CLI fallback parsed:', JSON.stringify(parsed));
+        if (Array.isArray(parsed)) {
+          rawDays = parsed;
+        } else if (Array.isArray(parsed?.daily)) {
+          rawDays = parsed.daily;
+          totals = parsed.totals || null;
+        } else if (Array.isArray(parsed?.days)) {
+          rawDays = parsed.days;
+          totals = parsed.totals || null;
+        }
+      }
+    } catch { /* CLI not available */ }
+  }
+
+  if (!rawDays || rawDays.length === 0) {
+    return res.json({ available: false, days: [] });
+  }
+
+  const days = rawDays.map(d => ({
+    date: d.date,
+    output: d.output || 0,
+    input: d.input || 0,
+    cacheWrite: d.cacheWrite || 0,
+    cacheRead: d.cacheRead || 0,
+    total: d.totalTokens || d.total || 0,
+    cost: d.totalCost || d.cost || 0
+  }));
+  return res.json({ available: true, days, totals });
 });
 
 // Lite API: Memory status

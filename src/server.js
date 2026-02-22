@@ -809,8 +809,34 @@ app.get('/lite/api/stats', authMiddleware, async (req, res) => {
   let sessionsCount = null;
   try {
     const result = await gatewayRPC('sessions.list', { includeGlobal: true, limit: 0 });
-    sessionsCount = result?.count ?? null;
-  } catch { /* gateway not available */ }
+    console.log('[sessions-debug] sessions.list result:', JSON.stringify(result));
+    if (Array.isArray(result)) {
+      sessionsCount = result.length;
+    } else if (result?.count != null) {
+      sessionsCount = result.count;
+    } else if (Array.isArray(result?.sessions)) {
+      sessionsCount = result.sessions.length;
+    }
+  } catch (err) {
+    console.log('[sessions-debug] sessions.list error:', err.message);
+  }
+
+  if (sessionsCount == null) {
+    try {
+      const cliResult = await runCmd('sessions', ['--json']);
+      if (cliResult.code === 0) {
+        const parsed = JSON.parse(cliResult.stdout);
+        console.log('[sessions-debug] CLI fallback parsed:', JSON.stringify(parsed));
+        if (Array.isArray(parsed)) {
+          sessionsCount = parsed.length;
+        } else if (parsed?.count != null) {
+          sessionsCount = parsed.count;
+        } else if (Array.isArray(parsed?.sessions)) {
+          sessionsCount = parsed.sessions.length;
+        }
+      }
+    } catch { /* CLI not available */ }
+  }
 
   res.json({ skills: skillsCount, sessions: sessionsCount });
 });

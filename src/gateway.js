@@ -94,8 +94,11 @@ export async function startGateway() {
   isShuttingDown = false;
   console.log(`Starting OpenClaw gateway on port ${port}...`);
 
-  // Ensure memory directory exists (even if entrypoint was bypassed)
+  // Ensure memory directory exists at both the configured workspace dir and
+  // the HOME-derived path that OpenClaw's memory system actually uses
+  // ($HOME/.openclaw/workspace/memory = /data/.openclaw/workspace/memory)
   mkdirSync(join(workspaceDir, 'memory'), { recursive: true });
+  mkdirSync(join(stateDir, 'workspace', 'memory'), { recursive: true });
 
   // Create minimal config if not exists
   const configFile = join(stateDir, 'openclaw.json');
@@ -191,7 +194,7 @@ export async function startGateway() {
   ], {
     env: {
       ...process.env,
-      HOME: stateDir,
+      HOME: '/data',
       OPENCLAW_STATE_DIR: stateDir,
       OPENCLAW_WORKSPACE_DIR: workspaceDir,
       OPENCLAW_BUNDLED_SKILLS_DIR: join(stateDir, 'skills')
@@ -261,7 +264,7 @@ async function runOnboard() {
     const onboard = spawn('openclaw', ['onboard', '--non-interactive', '--accept-risk'], {
       env: {
         ...process.env,
-        HOME: stateDir,
+        HOME: '/data',
         OPENCLAW_STATE_DIR: stateDir,
         OPENCLAW_WORKSPACE_DIR: workspaceDir
       },
@@ -304,7 +307,7 @@ export function runCmd(command, args = [], extraEnv = {}) {
     const child = spawn('openclaw', [command, ...args], {
       env: {
         ...process.env,
-        HOME: stateDir,
+        HOME: '/data',
         OPENCLAW_STATE_DIR: stateDir,
         OPENCLAW_WORKSPACE_DIR: workspaceDir,
         ...extraEnv
@@ -343,7 +346,7 @@ export function runExec(command, args = [], extraEnv = {}) {
     const child = spawn(command, args, {
       env: {
         ...process.env,
-        HOME: stateDir,
+        HOME: '/data',
         OPENCLAW_STATE_DIR: stateDir,
         OPENCLAW_WORKSPACE_DIR: workspaceDir,
         ...extraEnv

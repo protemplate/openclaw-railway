@@ -160,6 +160,16 @@ export async function startGateway() {
     }
   }
 
+  // Auto-enable bundled skills when their env vars are present
+  if (process.env.SEARXNG_URL) {
+    config.skills = config.skills || {};
+    config.skills.entries = config.skills.entries || {};
+    if (!config.skills.entries['searxng-local']) {
+      config.skills.entries['searxng-local'] = { enabled: true };
+      console.log('Auto-enabled searxng-local skill (SEARXNG_URL is set)');
+    }
+  }
+
   writeFileSync(configFile, JSON.stringify(config, null, 2));
 
   // Start the gateway

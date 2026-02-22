@@ -116,6 +116,9 @@ COPY --from=wrapper-builder /app/package.json ./package.json
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Copy pre-bundled skills (Railway-optimized)
+COPY skills/ /bundled-skills/
+
 # Create data directory with proper permissions
 RUN mkdir -p /data/.openclaw /data/workspace && \
     chmod 700 /data/.openclaw /data/workspace && \

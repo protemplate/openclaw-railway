@@ -164,6 +164,9 @@ export function getDefaultConfig(port) {
         }
       }
     },
+    memory: {
+      backend: 'builtin'
+    },
     gateway: {
       port: parseInt(port, 10) || 18789
     }

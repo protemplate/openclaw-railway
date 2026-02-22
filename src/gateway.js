@@ -170,6 +170,13 @@ export async function startGateway() {
     }
   }
 
+  // Ensure memory backend is configured (default to builtin FTS)
+  config.memory = config.memory || {};
+  if (!config.memory.backend) {
+    config.memory.backend = 'builtin';
+    console.log('Set memory backend to builtin');
+  }
+
   // Auto-enable bundled skills when their env vars are present
   if (process.env.SEARXNG_URL) {
     config.skills = config.skills || {};

@@ -143,7 +143,13 @@ export async function startGateway() {
     config.gateway.controlUi.allowedOrigins = origins;
   }
 
-  config.gateway.trustedProxies = ['127.0.0.1', '::1'];
+  // Note: Do NOT set trustedProxies — it tells the gateway that connections from
+  // 127.0.0.1 are proxy-forwarded, which breaks the isLocalDirectRequest() check.
+  // Without trustedProxies, all loopback connections are treated as direct local
+  // clients, enabling auto-approval of device pairing for CLI commands like
+  // `openclaw status --deep`. The proxy already strips x-forwarded-for headers,
+  // so the gateway sees remoteAddr=127.0.0.1 regardless.
+  delete config.gateway.trustedProxies;
   delete config.gateway.token;
 
   // Fix channel config validation: dmPolicy="open" requires allowFrom to include "*"

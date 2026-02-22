@@ -105,6 +105,12 @@ COPY --from=openclaw-builder /openclaw/docs /openclaw/docs
 RUN echo '#!/bin/bash\nexec node /openclaw/dist/entry.js "$@"' > /usr/local/bin/openclaw && \
     chmod +x /usr/local/bin/openclaw
 
+# Install Playwright's bundled Chromium for browser automation
+# Uses OpenClaw's own playwright to ensure browser-library version match
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx -y playwright install --with-deps chromium && \
+    chmod -R o+rx /ms-playwright
+
 WORKDIR /app
 
 # Copy wrapper server from builder
@@ -140,6 +146,7 @@ ENV NODE_ENV=production \
     OPENCLAW_WORKSPACE_DIR=/data/workspace \
     INTERNAL_GATEWAY_PORT=18789 \
     NPM_CONFIG_PREFIX=/data/.npm-global \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     PATH=/data/.npm-global/bin:$PATH
 
 # Health check - checks wrapper server health endpoint

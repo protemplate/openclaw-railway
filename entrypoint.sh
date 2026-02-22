@@ -33,6 +33,11 @@ if [ "$(id -u)" = "0" ]; then
     chown -R openclaw:openclaw /data /app /openclaw 2>/dev/null || true
 fi
 
+# Ensure Playwright browser is accessible by openclaw user
+if [ -d "/ms-playwright" ]; then
+    chmod -R o+rx /ms-playwright 2>/dev/null || true
+fi
+
 # Ensure data directories exist with correct permissions
 mkdir -p "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" "$OPENCLAW_WORKSPACE_DIR/memory" "$OPENCLAW_STATE_DIR/workspace/memory"
 chmod 700 "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" 2>/dev/null || true
@@ -70,6 +75,11 @@ echo "State directory: $OPENCLAW_STATE_DIR"
 echo "Workspace directory: $OPENCLAW_WORKSPACE_DIR"
 echo "Internal gateway port: $INTERNAL_GATEWAY_PORT"
 echo "External port: $PORT"
+if [ -d "/ms-playwright" ] && [ -n "$(ls /ms-playwright 2>/dev/null)" ]; then
+    echo "Browser: Chromium (Playwright) available"
+else
+    echo "Browser: Not available"
+fi
 echo ""
 
 # Start the wrapper server (drop to openclaw user if running as root)

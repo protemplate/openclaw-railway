@@ -207,6 +207,20 @@ export async function startGateway() {
     }
   }
 
+  // Configure browser for Docker/Railway (headless Chromium with safe flags)
+  if (!config.browser || Object.keys(config.browser).length === 0) {
+    config.browser = {
+      headless: true,
+      launchArgs: [
+        '--no-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+      ]
+    };
+    console.log('Injected Docker-safe browser configuration');
+  }
+
   writeFileSync(configFile, JSON.stringify(config, null, 2));
 
   // Start the gateway
@@ -224,7 +238,8 @@ export async function startGateway() {
       HOME: '/home/openclaw',
       OPENCLAW_STATE_DIR: stateDir,
       OPENCLAW_WORKSPACE_DIR: workspaceDir,
-      OPENCLAW_BUNDLED_SKILLS_DIR: join(stateDir, 'skills')
+      OPENCLAW_BUNDLED_SKILLS_DIR: join(stateDir, 'skills'),
+      PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || '/ms-playwright'
     },
     stdio: ['ignore', 'pipe', 'pipe']
   });
@@ -302,7 +317,8 @@ async function runOnboard() {
         ...process.env,
         HOME: '/home/openclaw',
         OPENCLAW_STATE_DIR: stateDir,
-        OPENCLAW_WORKSPACE_DIR: workspaceDir
+        OPENCLAW_WORKSPACE_DIR: workspaceDir,
+        PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || '/ms-playwright'
       },
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -346,6 +362,7 @@ export function runCmd(command, args = [], extraEnv = {}) {
         HOME: '/home/openclaw',
         OPENCLAW_STATE_DIR: stateDir,
         OPENCLAW_WORKSPACE_DIR: workspaceDir,
+        PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || '/ms-playwright',
         ...extraEnv
       },
       stdio: ['ignore', 'pipe', 'pipe']
@@ -385,6 +402,7 @@ export function runExec(command, args = [], extraEnv = {}) {
         HOME: '/home/openclaw',
         OPENCLAW_STATE_DIR: stateDir,
         OPENCLAW_WORKSPACE_DIR: workspaceDir,
+        PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || '/ms-playwright',
         ...extraEnv
       },
       stdio: ['ignore', 'pipe', 'pipe']

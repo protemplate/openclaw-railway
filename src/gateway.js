@@ -194,7 +194,7 @@ export async function startGateway() {
   ], {
     env: {
       ...process.env,
-      HOME: '/data',
+      HOME: '/home/openclaw',
       OPENCLAW_STATE_DIR: stateDir,
       OPENCLAW_WORKSPACE_DIR: workspaceDir,
       OPENCLAW_BUNDLED_SKILLS_DIR: join(stateDir, 'skills')
@@ -264,7 +264,7 @@ async function runOnboard() {
     const onboard = spawn('openclaw', ['onboard', '--non-interactive', '--accept-risk'], {
       env: {
         ...process.env,
-        HOME: '/data',
+        HOME: '/home/openclaw',
         OPENCLAW_STATE_DIR: stateDir,
         OPENCLAW_WORKSPACE_DIR: workspaceDir
       },
@@ -307,7 +307,7 @@ export function runCmd(command, args = [], extraEnv = {}) {
     const child = spawn('openclaw', [command, ...args], {
       env: {
         ...process.env,
-        HOME: '/data',
+        HOME: '/home/openclaw',
         OPENCLAW_STATE_DIR: stateDir,
         OPENCLAW_WORKSPACE_DIR: workspaceDir,
         ...extraEnv
@@ -346,7 +346,7 @@ export function runExec(command, args = [], extraEnv = {}) {
     const child = spawn(command, args, {
       env: {
         ...process.env,
-        HOME: '/data',
+        HOME: '/home/openclaw',
         OPENCLAW_STATE_DIR: stateDir,
         OPENCLAW_WORKSPACE_DIR: workspaceDir,
         ...extraEnv

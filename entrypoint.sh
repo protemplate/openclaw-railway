@@ -40,6 +40,15 @@ chmod 700 "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" 2>/dev/null || true
 # Ensure npm global prefix directory exists for in-app upgrades
 mkdir -p "${NPM_CONFIG_PREFIX:-/data/.npm-global}"
 
+# Create symlinks from openclaw home into the persistent volume
+# so $HOME/.openclaw resolves to /data/.openclaw and tool data persists
+ln -sfn "$OPENCLAW_STATE_DIR" /home/openclaw/.openclaw
+mkdir -p /data/.local /data/.npm
+ln -sfn /data/.local /home/openclaw/.local
+ln -sfn /data/.npm /home/openclaw/.npm
+chown -h openclaw:openclaw /home/openclaw/.openclaw /home/openclaw/.local /home/openclaw/.npm
+chown openclaw:openclaw /data/.local /data/.npm
+
 # Sync pre-bundled skills into the skills directory
 # Always overwrites bundled skill files to ensure Railway-aware instructions are current
 # (e.g. replaces upstream SKILL.md that references localhost with our $SEARXNG_URL version)

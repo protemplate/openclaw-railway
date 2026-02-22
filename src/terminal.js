@@ -105,7 +105,7 @@ export function createTerminalServer(httpServer, password) {
       cwd: workspaceDir,
       env: {
         ...process.env,
-        HOME: stateDir,
+        HOME: '/home/openclaw',
         OPENCLAW_STATE_DIR: stateDir,
         OPENCLAW_WORKSPACE_DIR: workspaceDir,
         TERM: 'xterm-256color',

@@ -941,11 +941,20 @@ app.get('/lite/api/memory', authMiddleware, async (req, res) => {
         } catch {}
       }
 
+      // Count workspace .md files as "indexed" for the UI since our fallback searches them
+      let workspaceFileCount = 0;
+      try {
+        workspaceFileCount = readdirSync('/data/workspace').filter(f =>
+          f.endsWith('.md') || f.endsWith('.json') || f.endsWith('.txt')
+        ).length;
+      } catch {}
+      const ftsEntries = st.files ?? st.chunks ?? 0;
+
       return res.json({
         available: true,
         status: st.fts?.available ? 'active' : 'inactive',
-        entries: st.files ?? st.chunks ?? null,
-        totalFiles: agent?.scan?.totalFiles ?? null,
+        entries: ftsEntries > 0 ? ftsEntries : workspaceFileCount,
+        totalFiles: Math.max(agent?.scan?.totalFiles ?? 0, workspaceFileCount),
         backend: st.backend || null,
         provider: st.provider || null,
         searchMode: st.custom?.searchMode || null,

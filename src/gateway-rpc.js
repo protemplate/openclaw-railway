@@ -52,7 +52,7 @@ export async function gatewayRPC(method, params = {}, timeoutMs = 10000) {
             minProtocol: 3, maxProtocol: 3,
             client: { id: 'lite-dashboard', version: '1.0', platform: 'node', mode: 'operator' },
             role: 'operator', scopes: ['operator.admin'],
-            auth: { token }, caps: []
+            auth: {}, caps: []
           }
         }));
         return;

@@ -124,7 +124,7 @@ export async function startGateway() {
   // Inject gateway settings (always overwritten by wrapper)
   config.gateway = config.gateway || {};
   config.gateway.port = parseInt(port, 10);
-  config.gateway.auth = { mode: 'token', token };
+  config.gateway.auth = { mode: 'none' };
   config.gateway.controlUi = config.gateway.controlUi || {};
   config.gateway.controlUi.basePath = '/openclaw';
   // Allow token-only auth without device pairing — safe because the gateway is bound
@@ -179,8 +179,7 @@ export async function startGateway() {
     'gateway', 'run',
     '--bind', 'loopback',
     '--port', port,
-    '--auth', 'token',
-    '--token', token,
+    '--auth', 'none',
     '--verbose'
   ], {
     env: {

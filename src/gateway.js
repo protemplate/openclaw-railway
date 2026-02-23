@@ -214,15 +214,9 @@ export async function startGateway() {
     console.log('Set memory backend to builtin');
   }
 
-  // Auto-enable bundled skills when their env vars are present
-  if (process.env.SEARXNG_URL) {
-    config.skills = config.skills || {};
-    config.skills.entries = config.skills.entries || {};
-    if (!config.skills.entries['searxng-local']) {
-      config.skills.entries['searxng-local'] = { enabled: true };
-      console.log('Auto-enabled searxng-local skill (SEARXNG_URL is set)');
-    }
-  }
+  // Note: bundled skills (e.g. searxng-local) are auto-enabled AFTER the
+  // gateway starts via `openclaw config set`, because the gateway rewrites
+  // openclaw.json on startup (v2026.2.22+) and drops pre-spawn config changes.
 
   // --- Browser config: force Docker-safe settings every startup ---
   if (!config.browser) config.browser = {};
@@ -360,6 +354,17 @@ export async function startGateway() {
     syncGatewayToken(configFile, token, stateDir);
     setGatewayReady(true);
     console.log('Gateway is ready');
+
+    // Auto-enable bundled skills via the running gateway's API.
+    // Must happen AFTER the gateway is ready because the gateway rewrites
+    // openclaw.json on startup (v2026.2.22+), dropping pre-spawn changes.
+    if (process.env.SEARXNG_URL) {
+      runCmd('config', ['set', '--json', 'skills.entries.searxng-local', JSON.stringify({ enabled: true })])
+        .then(r => r.code === 0
+          ? console.log('Auto-enabled searxng-local skill')
+          : console.log('Failed to auto-enable searxng-local:', (r.stderr || r.stdout).trim()))
+        .catch(() => {});
+    }
 
     // Auto-index memory in the background so files created since last restart are searchable
     runCmd('memory', ['index']).then(result => {
@@ -576,6 +581,15 @@ function pollUntilReady(port, configFile, originalToken, stateDir) {
       clearInterval(timer);
       syncGatewayToken(configFile, originalToken, stateDir);
       setGatewayReady(true);
+
+      // Auto-enable bundled skills via the running gateway's API
+      if (process.env.SEARXNG_URL) {
+        runCmd('config', ['set', '--json', 'skills.entries.searxng-local', JSON.stringify({ enabled: true })])
+          .then(r => r.code === 0
+            ? console.log('Auto-enabled searxng-local skill (background poll)')
+            : console.log('Failed to auto-enable searxng-local:', (r.stderr || r.stdout).trim()))
+          .catch(() => {});
+      }
 
       // Auto-index memory in the background
       runCmd('memory', ['index']).then(result => {

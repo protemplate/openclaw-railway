@@ -70,6 +70,7 @@ export function createProxy(getToken) {
     // and requires device pairing even though we handle auth in the wrapper
     delete req.headers['x-forwarded-for'];
     delete req.headers['x-real-ip'];
+    delete req.headers['x-forwarded-host'];
     console.log(`[proxy] WebSocket upgrade: ${req.url}`);
     proxy.ws(req, socket, head);
   };

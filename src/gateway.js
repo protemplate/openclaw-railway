@@ -158,7 +158,12 @@ export async function startGateway() {
 
   // Inject gateway settings (always overwritten by wrapper)
   config.gateway = config.gateway || {};
-  config.gateway.port = parseInt(port, 10);
+  // Set gateway.port to the wrapper server's external port so the CLI connects through
+  // our reverse proxy. The proxy ensures isLocalDirectRequest() returns true by setting
+  // the right Host header and stripping forwarded headers. The gateway still binds to
+  // INTERNAL_GATEWAY_PORT via the --port CLI flag (which overrides config).
+  const externalPort = parseInt(process.env.PORT || '8080', 10);
+  config.gateway.port = externalPort;
   config.gateway.auth = { mode: 'token', token };
   config.gateway.controlUi = config.gateway.controlUi || {};
   config.gateway.controlUi.basePath = '/openclaw';

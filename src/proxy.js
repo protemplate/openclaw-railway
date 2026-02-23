@@ -63,14 +63,14 @@ export function createProxy(getToken) {
       }
     }
     req.headers['host'] = `127.0.0.1:${gatewayPort}`;
-    // Forward original scheme so gateway knows the external connection is HTTPS
-    req.headers['x-forwarded-proto'] = req.headers['x-forwarded-proto'] || 'https';
-    // Strip forwarded-for headers so gateway sees only remoteAddr=127.0.0.1 (direct local)
-    // Without this, the gateway walks the x-forwarded-for chain, finds a non-local client IP,
-    // and requires device pairing even though we handle auth in the wrapper
+    // Strip ALL forwarded/proxy headers so gateway sees a direct local connection.
+    // isLocalDirectRequest() requires: loopback remoteAddr + localish Host + no forwarded headers.
+    // Any x-forwarded-* header makes the gateway treat this as a proxied (non-local) request,
+    // which blocks the scope upgrade from operator.read → operator.admin (requires pairing).
     delete req.headers['x-forwarded-for'];
-    delete req.headers['x-real-ip'];
+    delete req.headers['x-forwarded-proto'];
     delete req.headers['x-forwarded-host'];
+    delete req.headers['x-real-ip'];
     console.log(`[proxy] WebSocket upgrade: ${req.url}`);
     proxy.ws(req, socket, head);
   };

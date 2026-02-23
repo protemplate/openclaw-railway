@@ -50,8 +50,9 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev
 
-# Copy wrapper server source
+# Copy wrapper server source (bust cache on src changes)
 COPY src/ ./src/
+RUN echo "src-cache-bust-20260223a"
 
 # ==============================================================================
 # Stage 3: Production runtime

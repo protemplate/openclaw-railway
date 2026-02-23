@@ -68,6 +68,7 @@ export async function gatewayRPC(method, params = {}, timeoutMs = 10000) {
         if (msg.ok === false) {
           return finish(new Error('connect failed: ' + (msg.error?.message || 'unknown')));
         }
+        console.log('[rpc-debug] connect response:', JSON.stringify(msg.result || msg).substring(0, 500));
         // Send the actual RPC request
         reqId++;
         ws.send(JSON.stringify({ type: 'req', id: String(reqId), method, params }));

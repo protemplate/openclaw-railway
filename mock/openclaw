@@ -87,6 +87,21 @@ wss.on('connection', (ws) => {
       return;
     }
 
+    if (msg.method === 'config.set') {
+      // Accept config.set with { raw: ... } and write to config file
+      const raw = msg.params?.raw;
+      if (raw) {
+        try {
+          const config = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          const fs = require('fs');
+          const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
+          fs.writeFileSync(stateDir + '/openclaw.json', JSON.stringify(config, null, 2));
+        } catch (e) { /* ignore write errors in mock */ }
+      }
+      ws.send(JSON.stringify({ type: 'res', id: msg.id, ok: true, result: { applied: true } }));
+      return;
+    }
+
     if (msg.method === 'usage.cost') {
       const days = [];
       const now = new Date();

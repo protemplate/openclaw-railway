@@ -364,7 +364,7 @@ export async function startGateway() {
     console.log('Gateway is ready');
 
     // Re-apply bundled skill config if the gateway dropped it during startup.
-    // Read the live config and check if searxng-local is still present.
+    // Read the live config, write to file, then push via RPC so the runtime picks it up.
     if (process.env.SEARXNG_URL) {
       try {
         const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
@@ -373,7 +373,15 @@ export async function startGateway() {
           liveConfig.skills.entries = liveConfig.skills.entries || {};
           liveConfig.skills.entries['searxng-local'] = { enabled: true };
           writeFileSync(configFile, JSON.stringify(liveConfig, null, 2));
-          console.log('Re-applied searxng-local skill (was dropped by gateway startup)');
+          console.log('Re-applied searxng-local skill (file)');
+          // Push to gateway runtime via RPC
+          try {
+            const { gatewayRPC } = await import('./gateway-rpc.js');
+            await gatewayRPC('config.set', { raw: JSON.stringify(liveConfig) });
+            console.log('Pushed searxng-local config to gateway via RPC');
+          } catch (rpcErr) {
+            console.warn('config.set RPC for searxng-local failed:', rpcErr.message);
+          }
         }
       } catch (e) {
         console.warn('Failed to check/re-apply searxng-local:', e.message);
@@ -605,7 +613,14 @@ function pollUntilReady(port, configFile, originalToken, stateDir) {
             liveConfig.skills.entries = liveConfig.skills.entries || {};
             liveConfig.skills.entries['searxng-local'] = { enabled: true };
             writeFileSync(configFile, JSON.stringify(liveConfig, null, 2));
-            console.log('Re-applied searxng-local skill (background poll)');
+            console.log('Re-applied searxng-local skill (background poll, file)');
+            try {
+              const { gatewayRPC } = await import('./gateway-rpc.js');
+              await gatewayRPC('config.set', { raw: JSON.stringify(liveConfig) });
+              console.log('Pushed searxng-local config to gateway via RPC (background poll)');
+            } catch (rpcErr) {
+              console.warn('config.set RPC for searxng-local failed (background poll):', rpcErr.message);
+            }
           }
         } catch (e) {
           console.warn('Failed to check/re-apply searxng-local:', e.message);

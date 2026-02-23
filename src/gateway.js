@@ -216,10 +216,16 @@ export async function startGateway() {
       cleaned = true;
     }
 
-    // Force "openclaw" profile in Docker (the "chrome" profile requires
-    // a desktop Chrome + extension relay which doesn't exist here)
-    if (config.browser.profile === 'chrome') {
-      config.browser.profile = 'openclaw';
+    // Force "openclaw" default profile in Docker — any other value
+    // (including unset, which defaults to "chrome") won't work here
+    if (config.browser.defaultProfile !== 'openclaw') {
+      config.browser.defaultProfile = 'openclaw';
+      cleaned = true;
+    }
+
+    // Remove wrong field name from previous fix
+    if (config.browser.profile) {
+      delete config.browser.profile;
       cleaned = true;
     }
 
@@ -233,6 +239,7 @@ export async function startGateway() {
   // Configure browser for Docker/Railway (headless Chromium with safe flags)
   if (!config.browser || Object.keys(config.browser).length === 0) {
     config.browser = {
+      defaultProfile: 'openclaw',
       headless: true,
       noSandbox: true,
     };

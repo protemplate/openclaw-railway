@@ -208,11 +208,26 @@ export async function startGateway() {
   }
 
   // Clean up invalid browser keys from previous deployments
-  if (config.browser && config.browser.launchArgs) {
-    delete config.browser.launchArgs;
-    config.browser.headless = true;
-    config.browser.noSandbox = true;
-    console.log('Removed invalid browser.launchArgs from config');
+  if (config.browser) {
+    let cleaned = false;
+
+    if (config.browser.launchArgs) {
+      delete config.browser.launchArgs;
+      cleaned = true;
+    }
+
+    // Force "openclaw" profile in Docker (the "chrome" profile requires
+    // a desktop Chrome + extension relay which doesn't exist here)
+    if (config.browser.profile === 'chrome') {
+      config.browser.profile = 'openclaw';
+      cleaned = true;
+    }
+
+    if (cleaned) {
+      config.browser.headless = true;
+      config.browser.noSandbox = true;
+      console.log('Fixed browser config for Docker environment');
+    }
   }
 
   // Configure browser for Docker/Railway (headless Chromium with safe flags)

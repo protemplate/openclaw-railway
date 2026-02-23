@@ -51,7 +51,7 @@ export async function gatewayRPC(method, params = {}, timeoutMs = 10000) {
           params: {
             minProtocol: 3, maxProtocol: 3,
             client: { id: 'cli', version: '1.0', platform: 'node', mode: 'cli' },
-            role: 'operator', scopes: ['operator.admin'],
+            role: 'operator', scopes: ['operator.admin', 'operator.read'],
             auth: { token }, caps: []
           }
         }));

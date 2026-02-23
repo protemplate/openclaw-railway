@@ -101,15 +101,20 @@ COPY --from=openclaw-builder /openclaw/extensions /openclaw/extensions
 COPY --from=openclaw-builder /openclaw/packages /openclaw/packages
 COPY --from=openclaw-builder /openclaw/docs /openclaw/docs
 
-# Create openclaw CLI wrapper script
-# Injects OPENCLAW_GATEWAY_TOKEN from the token file so the CLI can authenticate
-# with the gateway in any shell context (docker exec, Railway shell, etc.)
+# Create openclaw CLI wrapper script (used when no npm upgrade has been installed)
 RUN printf '#!/bin/bash\n\
 if [ -z "$OPENCLAW_GATEWAY_TOKEN" ] && [ -f "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token" ]; then\n\
   export OPENCLAW_GATEWAY_TOKEN=$(cat "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token")\n\
 fi\n\
 exec node /openclaw/dist/entry.js "$@"\n' > /usr/local/bin/openclaw && \
     chmod +x /usr/local/bin/openclaw
+
+# Inject gateway token into all interactive shells (covers docker exec, Railway shell,
+# and any context where /data/.npm-global/bin/openclaw takes PATH precedence)
+RUN printf '\n# OpenClaw: auto-inject gateway token for CLI authentication\n\
+if [ -z "$OPENCLAW_GATEWAY_TOKEN" ] && [ -f "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token" ]; then\n\
+  export OPENCLAW_GATEWAY_TOKEN=$(cat "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token")\n\
+fi\n' >> /etc/bash.bashrc
 
 # Install Playwright Chromium matching the playwright-core version
 # that OpenClaw depends on (avoids browser-revision mismatch).

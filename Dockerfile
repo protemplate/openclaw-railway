@@ -105,10 +105,12 @@ COPY --from=openclaw-builder /openclaw/docs /openclaw/docs
 RUN echo '#!/bin/bash\nexec node /openclaw/dist/entry.js "$@"' > /usr/local/bin/openclaw && \
     chmod +x /usr/local/bin/openclaw
 
-# Install Playwright's bundled Chromium for browser automation
-# Uses OpenClaw's own playwright to ensure browser-library version match
+# Install Playwright Chromium matching the playwright-core version
+# that OpenClaw depends on (avoids browser-revision mismatch).
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN npx -y playwright install --with-deps chromium && \
+RUN PW_VER=$(node -e "try{console.log(require('/openclaw/node_modules/playwright-core/package.json').version)}catch(e){console.log('latest')}" 2>/dev/null) && \
+    echo "Installing playwright@${PW_VER} chromium..." && \
+    npx -y playwright@${PW_VER} install --with-deps chromium && \
     chmod -R o+rx /ms-playwright
 
 WORKDIR /app

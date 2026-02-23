@@ -207,44 +207,39 @@ export async function startGateway() {
     }
   }
 
-  // Clean up invalid browser keys from previous deployments
-  if (config.browser) {
-    let cleaned = false;
+  // --- Browser config: force Docker-safe settings every startup ---
+  if (!config.browser) config.browser = {};
 
-    if (config.browser.launchArgs) {
-      delete config.browser.launchArgs;
-      cleaned = true;
-    }
+  // Clean up stale/invalid fields from previous fixes
+  delete config.browser.launchArgs;
+  delete config.browser.profile;
 
-    // Force "openclaw" default profile in Docker — any other value
-    // (including unset, which defaults to "chrome") won't work here
-    if (config.browser.defaultProfile !== 'openclaw') {
-      config.browser.defaultProfile = 'openclaw';
-      cleaned = true;
-    }
+  // Force managed Chromium profile (the "chrome" profile needs a
+  // desktop browser + relay extension which doesn't exist in Docker)
+  config.browser.defaultProfile = 'openclaw';
+  config.browser.headless = true;
+  config.browser.noSandbox = true;
 
-    // Remove wrong field name from previous fix
-    if (config.browser.profile) {
-      delete config.browser.profile;
-      cleaned = true;
-    }
-
-    if (cleaned) {
-      config.browser.headless = true;
-      config.browser.noSandbox = true;
-      console.log('Fixed browser config for Docker environment');
+  // Auto-detect Playwright Chromium and set executablePath so the
+  // gateway doesn't rely on its own auto-detection (which may fail
+  // if the Playwright revision doesn't match what's installed)
+  const pwBrowsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH || '/ms-playwright';
+  if (existsSync(pwBrowsersPath)) {
+    try {
+      const chromiumDir = readdirSync(pwBrowsersPath).find(d => d.startsWith('chromium'));
+      if (chromiumDir) {
+        const chromePath = join(pwBrowsersPath, chromiumDir, 'chrome-linux', 'chrome');
+        if (existsSync(chromePath)) {
+          config.browser.executablePath = chromePath;
+          console.log(`Browser: using Chromium at ${chromePath}`);
+        }
+      }
+    } catch (e) {
+      console.warn('Browser: failed to auto-detect Chromium path:', e.message);
     }
   }
 
-  // Configure browser for Docker/Railway (headless Chromium with safe flags)
-  if (!config.browser || Object.keys(config.browser).length === 0) {
-    config.browser = {
-      defaultProfile: 'openclaw',
-      headless: true,
-      noSandbox: true,
-    };
-    console.log('Injected Docker-safe browser configuration');
-  }
+  console.log('Browser config:', JSON.stringify(config.browser));
 
   writeFileSync(configFile, JSON.stringify(config, null, 2));
 

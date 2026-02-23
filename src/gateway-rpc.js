@@ -17,7 +17,10 @@ import { getGatewayToken } from './gateway.js';
  * @returns {Promise<any>} The result from the gateway
  */
 export async function gatewayRPC(method, params = {}, timeoutMs = 10000) {
-  const port = process.env.INTERNAL_GATEWAY_PORT || '18789';
+  // Connect through the wrapper server's proxy (not directly to the gateway).
+  // The proxy strips forwarded headers and sets Host: 127.0.0.1:<gateway-port>,
+  // making the gateway's isLocalDirectRequest() return true and granting full scopes.
+  const port = process.env.PORT || '8080';
   const token = getGatewayToken();
   const wsUrl = `ws://127.0.0.1:${port}`;
 

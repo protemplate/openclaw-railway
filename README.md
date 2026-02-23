@@ -2,11 +2,8 @@
 
 Deploy [OpenClaw](https://github.com/openclaw/openclaw), a personal AI assistant for messaging platforms, to [Railway](https://railway.app) with one click.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/C4sadb)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/openclaw-all-in-one-bundle)
 
-![Node.js 24](https://img.shields.io/badge/Node.js-24-339933?logo=node.js&logoColor=white)
-![Express 5](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
-![OpenClaw v2026.2.22](https://img.shields.io/badge/OpenClaw-v2026.2.22-blue)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow)
 
 ## Features

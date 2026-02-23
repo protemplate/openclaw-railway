@@ -214,9 +214,17 @@ export async function startGateway() {
     console.log('Set memory backend to builtin');
   }
 
-  // Note: bundled skills (e.g. searxng-local) are auto-enabled AFTER the
-  // gateway starts via `openclaw config set`, because the gateway rewrites
-  // openclaw.json on startup (v2026.2.22+) and drops pre-spawn config changes.
+  // Auto-enable bundled skills when their env vars are present.
+  // Note: the gateway may rewrite this on startup (v2026.2.22+), so we also
+  // re-apply it after the gateway is ready (see post-startup section below).
+  if (process.env.SEARXNG_URL) {
+    config.skills = config.skills || {};
+    config.skills.entries = config.skills.entries || {};
+    if (!config.skills.entries['searxng-local']) {
+      config.skills.entries['searxng-local'] = { enabled: true };
+      console.log('Auto-enabled searxng-local skill (SEARXNG_URL is set)');
+    }
+  }
 
   // --- Browser config: force Docker-safe settings every startup ---
   if (!config.browser) config.browser = {};
@@ -355,15 +363,21 @@ export async function startGateway() {
     setGatewayReady(true);
     console.log('Gateway is ready');
 
-    // Auto-enable bundled skills via the running gateway's API.
-    // Must happen AFTER the gateway is ready because the gateway rewrites
-    // openclaw.json on startup (v2026.2.22+), dropping pre-spawn changes.
+    // Re-apply bundled skill config if the gateway dropped it during startup.
+    // Read the live config and check if searxng-local is still present.
     if (process.env.SEARXNG_URL) {
-      runCmd('config', ['set', '--json', 'skills.entries.searxng-local', JSON.stringify({ enabled: true })])
-        .then(r => r.code === 0
-          ? console.log('Auto-enabled searxng-local skill')
-          : console.log('Failed to auto-enable searxng-local:', (r.stderr || r.stdout).trim()))
-        .catch(() => {});
+      try {
+        const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
+        if (!liveConfig.skills?.entries?.['searxng-local']?.enabled) {
+          liveConfig.skills = liveConfig.skills || {};
+          liveConfig.skills.entries = liveConfig.skills.entries || {};
+          liveConfig.skills.entries['searxng-local'] = { enabled: true };
+          writeFileSync(configFile, JSON.stringify(liveConfig, null, 2));
+          console.log('Re-applied searxng-local skill (was dropped by gateway startup)');
+        }
+      } catch (e) {
+        console.warn('Failed to check/re-apply searxng-local:', e.message);
+      }
     }
 
     // Auto-index memory in the background so files created since last restart are searchable
@@ -582,13 +596,20 @@ function pollUntilReady(port, configFile, originalToken, stateDir) {
       syncGatewayToken(configFile, originalToken, stateDir);
       setGatewayReady(true);
 
-      // Auto-enable bundled skills via the running gateway's API
+      // Re-apply bundled skill config if dropped by gateway startup
       if (process.env.SEARXNG_URL) {
-        runCmd('config', ['set', '--json', 'skills.entries.searxng-local', JSON.stringify({ enabled: true })])
-          .then(r => r.code === 0
-            ? console.log('Auto-enabled searxng-local skill (background poll)')
-            : console.log('Failed to auto-enable searxng-local:', (r.stderr || r.stdout).trim()))
-          .catch(() => {});
+        try {
+          const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
+          if (!liveConfig.skills?.entries?.['searxng-local']?.enabled) {
+            liveConfig.skills = liveConfig.skills || {};
+            liveConfig.skills.entries = liveConfig.skills.entries || {};
+            liveConfig.skills.entries['searxng-local'] = { enabled: true };
+            writeFileSync(configFile, JSON.stringify(liveConfig, null, 2));
+            console.log('Re-applied searxng-local skill (background poll)');
+          }
+        } catch (e) {
+          console.warn('Failed to check/re-apply searxng-local:', e.message);
+        }
       }
 
       // Auto-index memory in the background

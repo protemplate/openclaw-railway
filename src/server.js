@@ -553,13 +553,14 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
       logs.push('(Gateway verification skipped — gateway will be started next)');
     }
 
-    // Start gateway first — the gateway process rewrites openclaw.json during
-    // startup (v2026.2.22+), dropping any channels/skills written beforehand.
-    logs.push('> Starting gateway...');
+    // Phase 1: Start gateway so it can do its config initialization.
+    // The gateway process rewrites openclaw.json during startup (v2026.2.22+),
+    // so we let it finish first, then stop it, merge in our config, and restart.
+    logs.push('> Starting gateway (initial config pass)...');
     await startGateway();
-    logs.push('Gateway started.');
+    logs.push('Gateway initialized.');
 
-    // Install skill files to disk (downloads are independent of config)
+    // Install skill files to disk while gateway is running (downloads are independent)
     if (skills && Array.isArray(skills)) {
       const skillsDir = join(OPENCLAW_STATE_DIR, 'skills');
       mkdirSync(skillsDir, { recursive: true });
@@ -589,30 +590,43 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
       }
     }
 
-    // Configure channels and skills through the running gateway's API.
-    // Writing directly to openclaw.json doesn't persist because the gateway
-    // rewrites the config on startup (v2026.2.22+). Using `openclaw config set`
-    // pushes changes through the gateway, which persists them properly.
-    for (const ch of channelPayload || []) {
-      const channelConfig = buildChannelConfig(ch.name, ch.fields);
-      const setResult = await runCmd('config', ['set', '--json', `channels.${ch.name}`, JSON.stringify(channelConfig)]);
-      if (setResult.code === 0) {
-        logs.push(`Configured channel: ${ch.name}`);
-      } else {
-        logs.push(`Warning: config set channels.${ch.name} failed: ${(setResult.stderr || setResult.stdout).trim()}`);
-      }
-    }
+    // Phase 2: If channels or skills were requested, stop the gateway, merge
+    // them into the config file (which now has the gateway's own settings),
+    // and restart so the gateway reads the complete config at startup.
+    const hasChannels = channelPayload && channelPayload.length > 0;
+    const hasSkills = skills && Array.isArray(skills) && skills.length > 0;
 
-    if (skills && Array.isArray(skills)) {
-      for (const item of skills) {
-        const slug = typeof item === 'string' ? item : item.slug;
-        const setResult = await runCmd('config', ['set', '--json', `skills.entries.${slug}`, JSON.stringify({ enabled: true })]);
-        if (setResult.code === 0) {
+    if (hasChannels || hasSkills) {
+      logs.push('> Stopping gateway to apply channel/skill config...');
+      await stopGateway();
+
+      // Read the config the gateway wrote (preserves gateway settings)
+      const configPath = join(OPENCLAW_STATE_DIR, 'openclaw.json');
+      const ocConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
+
+      for (const ch of channelPayload || []) {
+        ocConfig.channels = ocConfig.channels || {};
+        ocConfig.channels[ch.name] = buildChannelConfig(ch.name, ch.fields);
+        logs.push(`Configured channel: ${ch.name}`);
+      }
+
+      if (hasSkills) {
+        ocConfig.skills = ocConfig.skills || {};
+        ocConfig.skills.entries = ocConfig.skills.entries || {};
+
+        for (const item of skills) {
+          const slug = typeof item === 'string' ? item : item.slug;
+          ocConfig.skills.entries[slug] = { enabled: true };
           logs.push(`Enabled skill: ${slug}`);
-        } else {
-          logs.push(`Warning: config set skills.entries.${slug} failed: ${(setResult.stderr || setResult.stdout).trim()}`);
         }
       }
+
+      writeFileSync(configPath, JSON.stringify(ocConfig, null, 2));
+
+      // Restart gateway — it reads the config with channels/skills at startup
+      logs.push('> Starting gateway with full configuration...');
+      await startGateway();
+      logs.push('Gateway started with channels configured.');
     }
 
     res.json({ success: true, logs });

@@ -621,20 +621,23 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
       // JSON config as a string — so the runtime picks up channels/skills
       // without needing a restart.
       //
-      // The gateway may close the WebSocket connection during config reload,
-      // causing the first RPC call to fail with "ws closed unexpectedly".
-      // We retry once after a brief delay before falling back to a full restart.
+      // The gateway's WebSocket server may not be ready immediately after
+      // startGateway() returns (which only checks HTTP liveness). We retry
+      // up to 3 times with increasing delays before falling back to a full
+      // gateway restart. The config file is already written, so the restart
+      // will pick up channels/skills regardless.
       const configStr = JSON.stringify(liveConfig);
       let rpcOk = false;
-      for (let attempt = 1; attempt <= 2 && !rpcOk; attempt++) {
+      const rpcDelays = [1000, 3000, 5000]; // delays before each attempt
+      for (let attempt = 0; attempt < rpcDelays.length && !rpcOk; attempt++) {
         try {
-          if (attempt > 1) await new Promise(r => setTimeout(r, 2000));
+          await new Promise(r => setTimeout(r, rpcDelays[attempt]));
           await gatewayRPC('config.set', { raw: configStr });
           logs.push('Pushed config to gateway via RPC.');
           rpcOk = true;
         } catch (rpcErr) {
-          if (attempt === 2) {
-            logs.push(`Warning: config.set RPC failed after ${attempt} attempts (${rpcErr.message}), restarting gateway...`);
+          if (attempt === rpcDelays.length - 1) {
+            logs.push(`Warning: config.set RPC failed after ${attempt + 1} attempts (${rpcErr.message}), restarting gateway...`);
           }
         }
       }

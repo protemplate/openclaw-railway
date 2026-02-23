@@ -617,22 +617,25 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
       writeFileSync(configPath, JSON.stringify(liveConfig, null, 2));
 
       // Push the full config to the running gateway via config.set RPC.
-      // The gateway's config.set method accepts { raw: <string> } — the full
-      // JSON config as a string — so the runtime picks up channels/skills
-      // without needing a restart.
+      // The gateway requires a base hash (from config.get) for optimistic
+      // concurrency control. We fetch the current config hash, then set.
       //
       // The gateway's WebSocket server may not be ready immediately after
-      // startGateway() returns (which only checks HTTP liveness). We retry
-      // up to 3 times with increasing delays before falling back to a full
-      // gateway restart. The config file is already written, so the restart
-      // will pick up channels/skills regardless.
+      // startGateway() returns (which only checks HTTP liveness), so we
+      // retry with increasing delays. The config file is already written,
+      // so a gateway restart will pick up channels/skills regardless.
       const configStr = JSON.stringify(liveConfig);
       let rpcOk = false;
       const rpcDelays = [1000, 3000, 5000]; // delays before each attempt
       for (let attempt = 0; attempt < rpcDelays.length && !rpcOk; attempt++) {
         try {
           await new Promise(r => setTimeout(r, rpcDelays[attempt]));
-          await gatewayRPC('config.set', { raw: configStr });
+          // Fetch current config to get the base hash for optimistic concurrency
+          const current = await gatewayRPC('config.get', {});
+          const baseHash = current?.hash || current?.baseHash;
+          const setParams = { raw: configStr };
+          if (baseHash) setParams.baseHash = baseHash;
+          await gatewayRPC('config.set', setParams);
           logs.push('Pushed config to gateway via RPC.');
           rpcOk = true;
         } catch (rpcErr) {

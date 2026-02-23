@@ -52,7 +52,7 @@ RUN npm install --omit=dev
 
 # Copy wrapper server source (bust cache on src changes)
 COPY src/ ./src/
-RUN echo "src-cache-bust-20260223b"
+RUN echo "src-cache-bust-20260223c"
 
 # ==============================================================================
 # Stage 3: Production runtime

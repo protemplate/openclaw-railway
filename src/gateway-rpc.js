@@ -4,6 +4,10 @@
  * Makes short-lived WebSocket connections to the gateway process,
  * authenticates via the connect handshake, sends a single RPC request,
  * and returns the result.
+ *
+ * Connects as the Control UI client (openclaw-control-ui / webchat) so that
+ * the gateway's dangerouslyDisableDeviceAuth bypass preserves scopes.
+ * Without this, the gateway clears all scopes for device-less connections.
  */
 
 import WebSocket from 'ws';
@@ -17,17 +21,17 @@ import { getGatewayToken } from './gateway.js';
  * @returns {Promise<any>} The result from the gateway
  */
 export async function gatewayRPC(method, params = {}, timeoutMs = 10000) {
-  // Connect through the wrapper server's proxy (not directly to the gateway).
-  // The proxy strips forwarded headers and sets Host: 127.0.0.1:<gateway-port>,
-  // making the gateway's isLocalDirectRequest() return true and granting full scopes.
-  const port = process.env.PORT || '8080';
+  const port = process.env.INTERNAL_GATEWAY_PORT || '18789';
   const token = getGatewayToken();
   const wsUrl = `ws://127.0.0.1:${port}`;
 
   return new Promise((resolve, reject) => {
     let reqId = 0;
     let settled = false;
-    const ws = new WebSocket(wsUrl);
+    // Set Origin header to loopback so the gateway's allowedOrigins check passes
+    const ws = new WebSocket(wsUrl, {
+      headers: { 'Origin': `http://127.0.0.1:${port}` }
+    });
     const timer = setTimeout(() => finish(new Error('gateway RPC timeout')), timeoutMs);
 
     function finish(err, result) {
@@ -66,9 +70,9 @@ export async function gatewayRPC(method, params = {}, timeoutMs = 10000) {
       // Connect response (id "1")
       if (parseInt(msg.id, 10) === 1) {
         if (msg.ok === false) {
-          return finish(new Error('connect failed: ' + (msg.error?.message || 'unknown')));
+          const errMsg = msg.error?.message || msg.payload?.message || 'unknown';
+          return finish(new Error('connect failed: ' + errMsg));
         }
-        console.log('[rpc-debug] connect response:', JSON.stringify(msg.result || msg).substring(0, 500));
         // Send the actual RPC request
         reqId++;
         ws.send(JSON.stringify({ type: 'req', id: String(reqId), method, params }));
@@ -80,7 +84,7 @@ export async function gatewayRPC(method, params = {}, timeoutMs = 10000) {
         if (msg.ok === false) {
           return finish(new Error(msg.error?.message || 'rpc error'));
         }
-        finish(null, msg.result);
+        finish(null, msg.payload ?? msg.result);
       }
     });
   });

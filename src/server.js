@@ -553,14 +553,7 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
       logs.push('(Gateway verification skipped — gateway will be started next)');
     }
 
-    // Phase 1: Start gateway so it can do its config initialization.
-    // The gateway process rewrites openclaw.json during startup (v2026.2.22+),
-    // so we let it finish first, then stop it, merge in our config, and restart.
-    logs.push('> Starting gateway (initial config pass)...');
-    await startGateway();
-    logs.push('Gateway initialized.');
-
-    // Install skill files to disk while gateway is running (downloads are independent)
+    // Install skill files to disk (downloads are independent of gateway state)
     if (skills && Array.isArray(skills)) {
       const skillsDir = join(OPENCLAW_STATE_DIR, 'skills');
       mkdirSync(skillsDir, { recursive: true });
@@ -590,43 +583,81 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
       }
     }
 
-    // Phase 2: If channels or skills were requested, stop the gateway, merge
-    // them into the config file (which now has the gateway's own settings),
-    // and restart so the gateway reads the complete config at startup.
-    const hasChannels = channelPayload && channelPayload.length > 0;
-    const hasSkills = skills && Array.isArray(skills) && skills.length > 0;
+    // Write channels and skills into the config file BEFORE starting the gateway.
+    const configPath = join(OPENCLAW_STATE_DIR, 'openclaw.json');
+    const ocConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
 
-    if (hasChannels || hasSkills) {
-      logs.push('> Stopping gateway to apply channel/skill config...');
-      await stopGateway();
+    for (const ch of channelPayload || []) {
+      ocConfig.channels = ocConfig.channels || {};
+      ocConfig.channels[ch.name] = buildChannelConfig(ch.name, ch.fields);
+      logs.push(`Configured channel: ${ch.name}`);
+    }
 
-      // Read the config the gateway wrote (preserves gateway settings)
-      const configPath = join(OPENCLAW_STATE_DIR, 'openclaw.json');
-      const ocConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
+    if (skills && Array.isArray(skills)) {
+      ocConfig.skills = ocConfig.skills || {};
+      ocConfig.skills.entries = ocConfig.skills.entries || {};
 
-      for (const ch of channelPayload || []) {
-        ocConfig.channels = ocConfig.channels || {};
-        ocConfig.channels[ch.name] = buildChannelConfig(ch.name, ch.fields);
-        logs.push(`Configured channel: ${ch.name}`);
+      for (const item of skills) {
+        const slug = typeof item === 'string' ? item : item.slug;
+        ocConfig.skills.entries[slug] = { enabled: true };
+        logs.push(`Enabled skill: ${slug}`);
       }
+    }
 
-      if (hasSkills) {
-        ocConfig.skills = ocConfig.skills || {};
-        ocConfig.skills.entries = ocConfig.skills.entries || {};
+    writeFileSync(configPath, JSON.stringify(ocConfig, null, 2));
+    logs.push(`[diag] Config written. Top-level keys: ${Object.keys(ocConfig).join(', ')}`);
+    logs.push(`[diag] channels in file: ${JSON.stringify(ocConfig.channels ? Object.keys(ocConfig.channels) : 'none')}`);
+    logs.push(`[diag] skills in file: ${JSON.stringify(ocConfig.skills?.entries ? Object.keys(ocConfig.skills.entries) : 'none')}`);
 
-        for (const item of skills) {
-          const slug = typeof item === 'string' ? item : item.slug;
-          ocConfig.skills.entries[slug] = { enabled: true };
-          logs.push(`Enabled skill: ${slug}`);
+    // Start gateway
+    logs.push('> Starting gateway...');
+    await startGateway();
+    logs.push('Gateway started.');
+
+    // Diagnostic: check if config survived the gateway startup rewrite
+    try {
+      const postConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
+      const chKeys = postConfig.channels ? Object.keys(postConfig.channels) : [];
+      const skKeys = postConfig.skills?.entries ? Object.keys(postConfig.skills.entries) : [];
+      logs.push(`[diag] Post-startup config keys: ${Object.keys(postConfig).join(', ')}`);
+      logs.push(`[diag] Post-startup channels in file: ${JSON.stringify(chKeys)}`);
+      logs.push(`[diag] Post-startup skills in file: ${JSON.stringify(skKeys)}`);
+      if (chKeys.length === 0 && (channelPayload || []).length > 0) {
+        logs.push('[diag] WARNING: Gateway startup dropped channel config from file!');
+      }
+    } catch (e) {
+      logs.push(`[diag] Failed to read post-startup config: ${e.message}`);
+    }
+
+    // Probe the gateway's runtime channel state via RPC
+    try {
+      const channelState = await gatewayRPC('channels.list', {});
+      logs.push(`[diag] Gateway RPC channels.list: ${JSON.stringify(channelState)}`);
+    } catch (e) {
+      logs.push(`[diag] channels.list RPC failed: ${e.message}`);
+    }
+
+    // Try pushing channel config via RPC (the gateway may accept config.set)
+    for (const ch of channelPayload || []) {
+      const channelConfig = buildChannelConfig(ch.name, ch.fields);
+
+      // Try multiple RPC method names — we don't know which one the gateway supports
+      const rpcAttempts = [
+        { method: 'config.set', params: { key: `channels.${ch.name}`, value: channelConfig } },
+        { method: 'config.update', params: { path: `channels.${ch.name}`, value: channelConfig } },
+        { method: 'channels.configure', params: { channel: ch.name, config: channelConfig } },
+        { method: 'channels.add', params: { name: ch.name, ...channelConfig } },
+      ];
+
+      for (const attempt of rpcAttempts) {
+        try {
+          const result = await gatewayRPC(attempt.method, attempt.params, 5000);
+          logs.push(`[diag] RPC ${attempt.method} succeeded: ${JSON.stringify(result)}`);
+          break; // One worked, skip the rest
+        } catch (e) {
+          logs.push(`[diag] RPC ${attempt.method} failed: ${e.message}`);
         }
       }
-
-      writeFileSync(configPath, JSON.stringify(ocConfig, null, 2));
-
-      // Restart gateway — it reads the config with channels/skills at startup
-      logs.push('> Starting gateway with full configuration...');
-      await startGateway();
-      logs.push('Gateway started with channels configured.');
     }
 
     res.json({ success: true, logs });

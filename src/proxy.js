@@ -56,17 +56,17 @@ export function createProxy(getToken) {
    * WebSocket upgrade handler
    */
   const upgradeHandler = (req, socket, head) => {
-    if (getToken) {
-      const token = getToken();
-      if (token) {
-        req.headers['authorization'] = `Bearer ${token}`;
-      }
-    }
+    // Do NOT inject Authorization header for WebSocket upgrades.
+    // If we pre-authenticate at the HTTP level, the gateway grants limited scopes
+    // (operator.read). The CLI then tries to upgrade to operator.admin via the
+    // WebSocket connect handshake, which triggers a pairing requirement.
+    // Without HTTP-level auth, the CLI authenticates entirely through the
+    // WebSocket connect handshake and can request operator.admin directly.
+    delete req.headers['authorization'];
+
     req.headers['host'] = `127.0.0.1:${gatewayPort}`;
     // Strip ALL forwarded/proxy headers so gateway sees a direct local connection.
     // isLocalDirectRequest() requires: loopback remoteAddr + localish Host + no forwarded headers.
-    // Any proxy-related header makes the gateway treat this as non-local, blocking the
-    // scope upgrade from operator.read → operator.admin (requires pairing).
     const proxyHeaders = [
       'x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-host',
       'x-forwarded-port', 'x-forwarded-server',

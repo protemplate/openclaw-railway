@@ -132,6 +132,10 @@ export async function startGateway() {
   // Get or generate gateway token
   const token = getGatewayToken();
 
+  // Export token so child processes (terminal PTY sessions, CLI commands) can
+  // authenticate with the gateway without device pairing
+  process.env.OPENCLAW_GATEWAY_TOKEN = token;
+
   // Ensure token is in config file for gateway auth
   const config = JSON.parse(readFileSync(configFile, 'utf-8'));
 

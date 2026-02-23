@@ -108,6 +108,7 @@ export function createTerminalServer(httpServer, password) {
         HOME: '/home/openclaw',
         OPENCLAW_STATE_DIR: stateDir,
         OPENCLAW_WORKSPACE_DIR: workspaceDir,
+        OPENCLAW_GATEWAY_TOKEN: process.env.OPENCLAW_GATEWAY_TOKEN || '',
         TERM: 'xterm-256color',
         COLORTERM: 'truecolor',
         // Force interactive mode

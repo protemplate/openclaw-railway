@@ -226,17 +226,25 @@ export async function startGateway() {
   const pwBrowsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH || '/ms-playwright';
   if (existsSync(pwBrowsersPath)) {
     try {
-      const chromiumDir = readdirSync(pwBrowsersPath).find(d => d.startsWith('chromium'));
+      // Match "chromium-NNNN" but NOT "chromium_headless_shell-NNNN"
+      const chromiumDir = readdirSync(pwBrowsersPath).find(d => /^chromium-\d/.test(d));
       if (chromiumDir) {
         const chromePath = join(pwBrowsersPath, chromiumDir, 'chrome-linux', 'chrome');
         if (existsSync(chromePath)) {
           config.browser.executablePath = chromePath;
           console.log(`Browser: using Chromium at ${chromePath}`);
+        } else {
+          console.warn(`Browser: chrome binary not found at ${chromePath}`);
         }
+      } else {
+        console.warn('Browser: no chromium-* directory found in', pwBrowsersPath,
+          '— contents:', readdirSync(pwBrowsersPath).join(', '));
       }
     } catch (e) {
       console.warn('Browser: failed to auto-detect Chromium path:', e.message);
     }
+  } else {
+    console.warn('Browser: Playwright browsers path not found:', pwBrowsersPath);
   }
 
   console.log('Browser config:', JSON.stringify(config.browser));

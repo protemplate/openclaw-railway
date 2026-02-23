@@ -45,6 +45,12 @@ chmod 700 "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" 2>/dev/null || true
 # Ensure npm global prefix directory exists for in-app upgrades
 mkdir -p "${NPM_CONFIG_PREFIX:-/data/.npm-global}"
 
+# Fix ownership after creating directories (the initial chown runs before mkdir,
+# so freshly created directories are owned by root)
+if [ "$(id -u)" = "0" ]; then
+    chown -R openclaw:openclaw /data 2>/dev/null || true
+fi
+
 # Create symlinks from openclaw home into the persistent volume
 # so $HOME/.openclaw resolves to /data/.openclaw and tool data persists
 ln -sfn "$OPENCLAW_STATE_DIR" /home/openclaw/.openclaw

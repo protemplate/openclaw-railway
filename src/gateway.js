@@ -136,6 +136,14 @@ export async function startGateway() {
   // authenticate with the gateway without device pairing
   process.env.OPENCLAW_GATEWAY_TOKEN = token;
 
+  // Ensure token file exists on disk for the CLI wrapper script (/usr/local/bin/openclaw).
+  // getGatewayToken() skips writing when the env var is already set, so we write here
+  // to cover all shell contexts (docker exec, Railway shell, etc.)
+  const tokenFile = join(stateDir, 'gateway.token');
+  if (!existsSync(tokenFile) || readFileSync(tokenFile, 'utf-8').trim() !== token) {
+    writeFileSync(tokenFile, token, { mode: 0o600 });
+  }
+
   // Ensure token is in config file for gateway auth
   const config = JSON.parse(readFileSync(configFile, 'utf-8'));
 

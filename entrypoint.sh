@@ -45,24 +45,6 @@ chmod 700 "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" 2>/dev/null || true
 # Ensure npm global prefix directory exists for in-app upgrades
 mkdir -p "${NPM_CONFIG_PREFIX:-/data/.npm-global}"
 
-# Wrap the npm-global openclaw binary (if it exists from an in-app upgrade) so that
-# OPENCLAW_GATEWAY_TOKEN is injected before the CLI runs.  PATH puts
-# /data/.npm-global/bin BEFORE /usr/local/bin, so without this wrapper the token-
-# injecting script we baked into the image is bypassed entirely.
-NPM_OPENCLAW="${NPM_CONFIG_PREFIX:-/data/.npm-global}/bin/openclaw"
-if [ -f "$NPM_OPENCLAW" ] && ! grep -q 'OPENCLAW_GATEWAY_TOKEN' "$NPM_OPENCLAW" 2>/dev/null; then
-    mv "$NPM_OPENCLAW" "${NPM_OPENCLAW}-original"
-    cat > "$NPM_OPENCLAW" <<'WRAPPER'
-#!/bin/bash
-if [ -z "$OPENCLAW_GATEWAY_TOKEN" ] && [ -f "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token" ]; then
-  export OPENCLAW_GATEWAY_TOKEN=$(cat "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token")
-fi
-exec "$(dirname "$0")/openclaw-original" "$@"
-WRAPPER
-    chmod +x "$NPM_OPENCLAW"
-    echo "Wrapped npm-global openclaw binary with token injection"
-fi
-
 # Create symlinks from openclaw home into the persistent volume
 # so $HOME/.openclaw resolves to /data/.openclaw and tool data persists
 ln -sfn "$OPENCLAW_STATE_DIR" /home/openclaw/.openclaw

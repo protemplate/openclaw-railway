@@ -101,20 +101,21 @@ COPY --from=openclaw-builder /openclaw/extensions /openclaw/extensions
 COPY --from=openclaw-builder /openclaw/packages /openclaw/packages
 COPY --from=openclaw-builder /openclaw/docs /openclaw/docs
 
-# Create openclaw CLI wrapper script (used when no npm upgrade has been installed)
-RUN printf '#!/bin/bash\n\
+# Create openclaw CLI wrapper that ALWAYS runs first (PATH-priority via /opt/openclaw-bin).
+# Injects OPENCLAW_GATEWAY_TOKEN so the CLI can authenticate with the gateway in ANY
+# shell context (docker exec, Railway shell, web terminal, scripts).
+# Delegates to the npm-upgraded version if available, otherwise the base install.
+RUN mkdir -p /opt/openclaw-bin && \
+    printf '#!/bin/bash\n\
 if [ -z "$OPENCLAW_GATEWAY_TOKEN" ] && [ -f "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token" ]; then\n\
   export OPENCLAW_GATEWAY_TOKEN=$(cat "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token")\n\
 fi\n\
-exec node /openclaw/dist/entry.js "$@"\n' > /usr/local/bin/openclaw && \
-    chmod +x /usr/local/bin/openclaw
-
-# Inject gateway token into all interactive shells (covers docker exec, Railway shell,
-# and any context where /data/.npm-global/bin/openclaw takes PATH precedence)
-RUN printf '\n# OpenClaw: auto-inject gateway token for CLI authentication\n\
-if [ -z "$OPENCLAW_GATEWAY_TOKEN" ] && [ -f "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token" ]; then\n\
-  export OPENCLAW_GATEWAY_TOKEN=$(cat "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token")\n\
-fi\n' >> /etc/bash.bashrc
+NPM_ENTRY="${NPM_CONFIG_PREFIX:-/data/.npm-global}/lib/node_modules/openclaw/dist/entry.js"\n\
+if [ -f "$NPM_ENTRY" ]; then\n\
+  exec node "$NPM_ENTRY" "$@"\n\
+fi\n\
+exec node /openclaw/dist/entry.js "$@"\n' > /opt/openclaw-bin/openclaw && \
+    chmod +x /opt/openclaw-bin/openclaw
 
 # Install Playwright Chromium matching the playwright-core version
 # that OpenClaw depends on (avoids browser-revision mismatch).
@@ -152,7 +153,9 @@ EXPOSE 8080
 
 # Environment defaults
 # NPM_CONFIG_PREFIX on the persistent volume so in-app upgrades survive restarts.
-# PATH puts the npm-global bin before /usr/local/bin so upgraded openclaw takes precedence.
+# PATH order: /opt/openclaw-bin (token-injecting wrapper) > /data/.npm-global/bin
+# (npm upgrades) > system defaults.  The wrapper delegates to the npm-upgraded
+# entry.js when available, so the upgraded code still runs.
 ENV NODE_ENV=production \
     HOME=/home/openclaw \
     OPENCLAW_STATE_DIR=/data/.openclaw \
@@ -160,7 +163,7 @@ ENV NODE_ENV=production \
     INTERNAL_GATEWAY_PORT=18789 \
     NPM_CONFIG_PREFIX=/data/.npm-global \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-    PATH=/data/.npm-global/bin:$PATH
+    PATH=/opt/openclaw-bin:/data/.npm-global/bin:$PATH
 
 # Health check - checks wrapper server health endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

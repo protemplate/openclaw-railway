@@ -808,8 +808,7 @@ app.get('/lite/api/stats', authMiddleware, async (req, res) => {
 
   let sessionsCount = null;
   try {
-    const result = await gatewayRPC('sessions.list', { includeGlobal: true, limit: 0 });
-    console.log('[sessions-debug] sessions.list result:', JSON.stringify(result));
+    const result = await gatewayRPC('sessions.list', { includeGlobal: true, limit: 100 });
     if (Array.isArray(result)) {
       sessionsCount = result.length;
     } else if (result?.count != null) {
@@ -818,7 +817,7 @@ app.get('/lite/api/stats', authMiddleware, async (req, res) => {
       sessionsCount = result.sessions.length;
     }
   } catch (err) {
-    console.log('[sessions-debug] sessions.list error:', err.message);
+    // sessions.list RPC failed, will try CLI fallback
   }
 
   if (sessionsCount == null) {
@@ -826,7 +825,6 @@ app.get('/lite/api/stats', authMiddleware, async (req, res) => {
       const cliResult = await runCmd('sessions', ['--json']);
       if (cliResult.code === 0) {
         const parsed = JSON.parse(cliResult.stdout);
-        console.log('[sessions-debug] CLI fallback parsed:', JSON.stringify(parsed));
         if (Array.isArray(parsed)) {
           sessionsCount = parsed.length;
         } else if (parsed?.count != null) {
@@ -852,7 +850,6 @@ app.get('/lite/api/usage', authMiddleware, async (req, res) => {
   // Try gateway RPC first
   try {
     const result = await gatewayRPC('usage.cost', { startDate, endDate });
-    console.log('[usage-debug] usage.cost result:', JSON.stringify(result));
     if (Array.isArray(result)) {
       rawDays = result;
     } else if (Array.isArray(result?.daily)) {
@@ -863,7 +860,7 @@ app.get('/lite/api/usage', authMiddleware, async (req, res) => {
       totals = result.totals || null;
     }
   } catch (err) {
-    console.log('[usage-debug] usage.cost error:', err.message);
+    // usage.cost RPC failed, will try CLI fallback
   }
 
   // CLI fallback: `openclaw usage --json`
@@ -872,7 +869,6 @@ app.get('/lite/api/usage', authMiddleware, async (req, res) => {
       const cliResult = await runCmd('usage', ['--json']);
       if (cliResult.code === 0) {
         const parsed = JSON.parse(cliResult.stdout);
-        console.log('[usage-debug] CLI fallback parsed:', JSON.stringify(parsed));
         if (Array.isArray(parsed)) {
           rawDays = parsed;
         } else if (Array.isArray(parsed?.daily)) {
@@ -906,15 +902,11 @@ app.get('/lite/api/usage', authMiddleware, async (req, res) => {
 app.get('/lite/api/memory', authMiddleware, async (req, res) => {
   try {
     const result = await runCmd('memory', ['status', '--json']);
-    console.log('[memory-debug] status stdout:', result.stdout);
-    console.log('[memory-debug] status stderr:', result.stderr);
-    console.log('[memory-debug] status code:', result.code);
     if (result.code !== 0) {
       return res.json({ available: false });
     }
     try {
       const parsed = JSON.parse(result.stdout);
-      console.log('[memory-debug] status parsed:', JSON.stringify(parsed));
       // openclaw memory status --json returns an array of agent objects
       const agent = Array.isArray(parsed) ? parsed[0] : parsed;
       const st = agent?.status || agent || {};
@@ -976,16 +968,12 @@ app.get('/lite/api/memory/search', authMiddleware, async (req, res) => {
   }
   try {
     const result = await runCmd('memory', ['search', q, '--json']);
-    console.log('[memory-debug] search stdout:', result.stdout);
-    console.log('[memory-debug] search stderr:', result.stderr);
-    console.log('[memory-debug] search code:', result.code);
     if (result.code !== 0) {
       return res.json({ available: false, results: [] });
     }
     let results = [];
     try {
       const parsed = JSON.parse(result.stdout);
-      console.log('[memory-debug] search parsed:', JSON.stringify(parsed));
       results = Array.isArray(parsed) ? parsed : (parsed.results || []);
     } catch {
       if (result.stdout.trim()) {
@@ -1033,13 +1021,9 @@ app.get('/lite/api/memory/search', authMiddleware, async (req, res) => {
 app.post('/lite/api/memory/index', authMiddleware, async (req, res) => {
   try {
     const result = await runCmd('memory', ['index']);
-    console.log('[memory-debug] index stdout:', result.stdout);
-    console.log('[memory-debug] index stderr:', result.stderr);
-    console.log('[memory-debug] index code:', result.code);
     const output = result.stdout.trim() || result.stderr.trim() || '';
     res.json({ success: result.code === 0, output });
   } catch (err) {
-    console.log('[memory-debug] index exception:', err.message);
     res.json({ success: false, output: 'Failed to run memory index' });
   }
 });

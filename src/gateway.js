@@ -220,30 +220,61 @@ export async function startGateway() {
   config.browser.headless = true;
   config.browser.noSandbox = true;
 
-  // Auto-detect Playwright Chromium and set executablePath so the
-  // gateway doesn't rely on its own auto-detection (which may fail
-  // if the Playwright revision doesn't match what's installed)
+  // Auto-detect Playwright Chromium and set executablePath.
+  // Strategy: try playwright-core API first, then scan filesystem.
   const pwBrowsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH || '/ms-playwright';
-  if (existsSync(pwBrowsersPath)) {
+  let chromeBinary = null;
+
+  // Method 1: Ask playwright-core where its Chromium binary is
+  try {
+    const pw = await import('/openclaw/node_modules/playwright-core/index.mjs');
+    const candidate = pw.chromium.executablePath();
+    if (candidate && existsSync(candidate)) {
+      chromeBinary = candidate;
+      console.log(`Browser: playwright-core reports Chromium at ${candidate}`);
+    }
+  } catch {
+    // playwright-core might not be importable — fall through to filesystem scan
+  }
+
+  // Method 2: Scan the Playwright browsers directory for any chrome/chromium binary
+  if (!chromeBinary && existsSync(pwBrowsersPath)) {
+    // Common Playwright binary paths across versions
+    const scanPaths = [
+      ['chrome-linux', 'chrome'],
+      ['chrome-linux', 'chromium'],
+      ['chrome-linux', 'headless_shell'],
+      ['chrome'],
+    ];
     try {
-      // Match "chromium-NNNN" but NOT "chromium_headless_shell-NNNN"
       const chromiumDir = readdirSync(pwBrowsersPath).find(d => /^chromium-\d/.test(d));
       if (chromiumDir) {
-        const chromePath = join(pwBrowsersPath, chromiumDir, 'chrome-linux', 'chrome');
-        if (existsSync(chromePath)) {
-          config.browser.executablePath = chromePath;
-          console.log(`Browser: using Chromium at ${chromePath}`);
-        } else {
-          console.warn(`Browser: chrome binary not found at ${chromePath}`);
+        for (const parts of scanPaths) {
+          const candidate = join(pwBrowsersPath, chromiumDir, ...parts);
+          if (existsSync(candidate)) {
+            chromeBinary = candidate;
+            console.log(`Browser: found Chromium at ${candidate}`);
+            break;
+          }
+        }
+        if (!chromeBinary) {
+          // List what's actually in the directory for debugging
+          const chromiumPath = join(pwBrowsersPath, chromiumDir);
+          const contents = readdirSync(chromiumPath);
+          console.warn(`Browser: no chrome binary found in ${chromiumPath}, contents:`, contents.join(', '));
         }
       } else {
-        console.warn('Browser: no chromium-* directory found in', pwBrowsersPath,
-          '— contents:', readdirSync(pwBrowsersPath).join(', '));
+        console.warn('Browser: no chromium-* dir in', pwBrowsersPath,
+          '— found:', readdirSync(pwBrowsersPath).join(', '));
       }
     } catch (e) {
-      console.warn('Browser: failed to auto-detect Chromium path:', e.message);
+      console.warn('Browser: filesystem scan failed:', e.message);
     }
-  } else {
+  }
+
+  if (chromeBinary) {
+    config.browser.executablePath = chromeBinary;
+  } else if (!existsSync(pwBrowsersPath)) {
     console.warn('Browser: Playwright browsers path not found:', pwBrowsersPath);
   }
 

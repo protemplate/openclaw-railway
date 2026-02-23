@@ -75,7 +75,7 @@ export function createProxy(getToken) {
     for (const h of proxyHeaders) {
       delete req.headers[h];
     }
-    console.log(`[proxy] WebSocket upgrade: ${req.url} headers: ${JSON.stringify(req.headers)}`);
+    console.log(`[proxy] WebSocket upgrade: ${req.url}`);
     proxy.ws(req, socket, head);
   };
 

@@ -53,7 +53,7 @@ export async function gatewayRPC(method, params = {}, timeoutMs = 10000) {
           type: 'req', id: String(reqId), method: 'connect',
           params: {
             minProtocol: 3, maxProtocol: 3,
-            client: { id: 'cli', version: '1.0', platform: 'node', mode: 'cli' },
+            client: { id: 'openclaw-control-ui', version: 'dev', platform: 'node', mode: 'webchat' },
             role: 'operator', scopes: ['operator.admin', 'operator.read'],
             auth: { token }, caps: []
           }

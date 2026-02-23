@@ -620,21 +620,29 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
       // The gateway's config.set method accepts { raw: <string> } — the full
       // JSON config as a string — so the runtime picks up channels/skills
       // without needing a restart.
-      try {
-        await gatewayRPC('config.set', { raw: JSON.stringify(liveConfig) });
-        logs.push('Pushed config to gateway via RPC.');
-      } catch (rpcErr) {
-        // Fallback: try raw as object (in case the gateway expects that form)
+      //
+      // The gateway may close the WebSocket connection during config reload,
+      // causing the first RPC call to fail with "ws closed unexpectedly".
+      // We retry once after a brief delay before falling back to a full restart.
+      const configStr = JSON.stringify(liveConfig);
+      let rpcOk = false;
+      for (let attempt = 1; attempt <= 2 && !rpcOk; attempt++) {
         try {
-          await gatewayRPC('config.set', { raw: liveConfig });
-          logs.push('Pushed config to gateway via RPC (object form).');
-        } catch (rpcErr2) {
-          logs.push(`Warning: config.set RPC failed (${rpcErr2.message}), restarting gateway...`);
-          // Last resort: restart gateway so it reads the updated config file
-          await stopGateway();
-          await startGateway();
-          logs.push('Gateway restarted with updated config.');
+          if (attempt > 1) await new Promise(r => setTimeout(r, 2000));
+          await gatewayRPC('config.set', { raw: configStr });
+          logs.push('Pushed config to gateway via RPC.');
+          rpcOk = true;
+        } catch (rpcErr) {
+          if (attempt === 2) {
+            logs.push(`Warning: config.set RPC failed after ${attempt} attempts (${rpcErr.message}), restarting gateway...`);
+          }
         }
+      }
+      if (!rpcOk) {
+        // Last resort: restart gateway so it reads the updated config file
+        await stopGateway();
+        await startGateway();
+        logs.push('Gateway restarted with updated config.');
       }
     }
 

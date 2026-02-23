@@ -65,13 +65,17 @@ export function createProxy(getToken) {
     req.headers['host'] = `127.0.0.1:${gatewayPort}`;
     // Strip ALL forwarded/proxy headers so gateway sees a direct local connection.
     // isLocalDirectRequest() requires: loopback remoteAddr + localish Host + no forwarded headers.
-    // Any x-forwarded-* header makes the gateway treat this as a proxied (non-local) request,
-    // which blocks the scope upgrade from operator.read → operator.admin (requires pairing).
-    delete req.headers['x-forwarded-for'];
-    delete req.headers['x-forwarded-proto'];
-    delete req.headers['x-forwarded-host'];
-    delete req.headers['x-real-ip'];
-    console.log(`[proxy] WebSocket upgrade: ${req.url}`);
+    // Any proxy-related header makes the gateway treat this as non-local, blocking the
+    // scope upgrade from operator.read → operator.admin (requires pairing).
+    const proxyHeaders = [
+      'x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-host',
+      'x-forwarded-port', 'x-forwarded-server',
+      'x-real-ip', 'forwarded', 'via'
+    ];
+    for (const h of proxyHeaders) {
+      delete req.headers[h];
+    }
+    console.log(`[proxy] WebSocket upgrade: ${req.url} headers: ${JSON.stringify(req.headers)}`);
     proxy.ws(req, socket, head);
   };
 

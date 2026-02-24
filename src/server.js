@@ -660,6 +660,40 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
           }
         }
       }
+
+      // Config changes trigger gateway self-restart via SIGUSR1.
+      // Wait for the daemon to come back up so the wrapper can re-adopt it,
+      // otherwise isGatewayRunning() returns false and the proxy returns 503.
+      // Skip this if there's no real gateway (e.g. test/mock environment).
+      // The mock gateway returns { mock: true } in its HTTP responses.
+      const gwPort = process.env.INTERNAL_GATEWAY_PORT || '18789';
+      let hasRealGateway = false;
+      try {
+        const gwRes = await fetch(`http://127.0.0.1:${gwPort}/health`);
+        const gwData = await gwRes.json();
+        hasRealGateway = !gwData.mock;
+      } catch { /* no gateway on this port */ }
+
+      if (hasRealGateway) {
+        // Give the gateway time to detect the config change and restart
+        await new Promise(r => setTimeout(r, 5000));
+        let stabilized = false;
+        for (let i = 0; i < 8; i++) {
+          try {
+            await fetch(`http://127.0.0.1:${gwPort}/health`);
+            stabilized = true;
+            break;
+          } catch { /* still restarting */ }
+          await new Promise(r => setTimeout(r, 2000));
+        }
+        if (stabilized) {
+          // Re-adopt the restarted daemon so isGatewayRunning() stays true
+          await startGateway();
+          logs.push('Gateway stabilized after config change.');
+        } else {
+          logs.push('Warning: gateway did not stabilize after config change');
+        }
+      }
     }
 
     res.json({ success: true, logs });

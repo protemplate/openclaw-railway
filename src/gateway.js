@@ -311,17 +311,10 @@ export async function startGateway() {
     }
   }
 
-  // Ensure gateway scans the persistent skills directory.
-  // OpenClaw discovers skills from ~/.openclaw/skills/ and skills.load.extraDirs.
-  // The HOME-based path relies on a symlink that may not resolve in all environments,
-  // so we explicitly add the skills directory as an extra search path.
+  // Clean up any stale skills.load.extraDirs key from previous versions
+  // (OpenClaw doesn't recognize this key and will reject the config).
   config.skills = config.skills || {};
-  const skillsDir = join(stateDir, 'skills');
-  const extraDirs = config.skills['load.extraDirs'] || [];
-  if (!extraDirs.includes(skillsDir)) {
-    extraDirs.push(skillsDir);
-  }
-  config.skills['load.extraDirs'] = extraDirs;
+  delete config.skills['load.extraDirs'];
 
   // --- Browser config: force Docker-safe settings every startup ---
   if (!config.browser) config.browser = {};
@@ -358,8 +351,11 @@ export async function startGateway() {
     // Common Playwright binary paths across versions
     const scanPaths = [
       ['chrome-linux', 'chrome'],
+      ['chrome-linux64', 'chrome'],     // newer Playwright layout
       ['chrome-linux', 'chromium'],
+      ['chrome-linux64', 'chromium'],
       ['chrome-linux', 'headless_shell'],
+      ['chrome-linux64', 'headless_shell'],
       ['chrome'],
     ];
     try {
@@ -385,6 +381,15 @@ export async function startGateway() {
       }
     } catch (e) {
       console.warn('Browser: filesystem scan failed:', e.message);
+    }
+  }
+
+  // Method 3: Use the stable symlink created at Docker build time.
+  if (!chromeBinary) {
+    const stableLink = '/usr/local/bin/chromium';
+    if (existsSync(stableLink)) {
+      chromeBinary = stableLink;
+      console.log(`Browser: using stable symlink at ${stableLink}`);
     }
   }
 

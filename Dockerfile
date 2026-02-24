@@ -128,6 +128,16 @@ RUN PW_VER=$(node -e "try{console.log(require('/openclaw/node_modules/playwright
     npx -y playwright@${PW_VER} install --with-deps chromium && \
     chmod -R o+rx /ms-playwright
 
+# Create a stable symlink so the wrapper always finds Chromium
+# regardless of Playwright's internal directory naming (chrome-linux vs chrome-linux64).
+RUN CHROME_BIN=$(find /ms-playwright -name "chrome" -type f \( -path "*/chrome-linux/*" -o -path "*/chrome-linux64/*" \) 2>/dev/null | head -1) && \
+    if [ -n "$CHROME_BIN" ]; then \
+      ln -sf "$CHROME_BIN" /usr/local/bin/chromium && \
+      echo "Symlinked $CHROME_BIN -> /usr/local/bin/chromium"; \
+    else \
+      echo "WARNING: Playwright chrome binary not found for symlink"; \
+    fi
+
 WORKDIR /app
 
 # Copy wrapper server from builder

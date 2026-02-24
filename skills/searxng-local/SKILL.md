@@ -1,3 +1,13 @@
+---
+name: searxng-local
+description: Web search via a locally-deployed SearXNG meta-search engine
+version: 1.0.0
+metadata:
+  openclaw:
+    requires:
+      env: [SEARXNG_URL]
+    primaryEnv: SEARXNG_URL
+---
 # SearXNG Web Search (Railway)
 
 You have access to a SearXNG meta-search engine for web searches. SearXNG is **already running** as a separate Railway service — no installation, Docker setup, or configuration is needed.

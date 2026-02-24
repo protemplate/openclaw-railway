@@ -311,6 +311,18 @@ export async function startGateway() {
     }
   }
 
+  // Ensure gateway scans the persistent skills directory.
+  // OpenClaw discovers skills from ~/.openclaw/skills/ and skills.load.extraDirs.
+  // The HOME-based path relies on a symlink that may not resolve in all environments,
+  // so we explicitly add the skills directory as an extra search path.
+  config.skills = config.skills || {};
+  const skillsDir = join(stateDir, 'skills');
+  const extraDirs = config.skills['load.extraDirs'] || [];
+  if (!extraDirs.includes(skillsDir)) {
+    extraDirs.push(skillsDir);
+  }
+  config.skills['load.extraDirs'] = extraDirs;
+
   // --- Browser config: force Docker-safe settings every startup ---
   if (!config.browser) config.browser = {};
 

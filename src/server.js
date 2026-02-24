@@ -1191,8 +1191,12 @@ app.get('/lite/api/version', authMiddleware, async (req, res) => {
   const steps = [];
   let current = null;
   let latest = null;
+  let baseVersion = null;
   let upgradeMethod = 'redeploy';
+  let versions = [];
+  let isNpmInstalled = false;
 
+  // Check current running version
   try {
     const vResult = await runCmd('--version');
     current = (vResult.stdout || '').trim().replace(/^openclaw\s*/i, '') || null;
@@ -1201,6 +1205,23 @@ app.get('/lite/api/version', authMiddleware, async (req, res) => {
     steps.push('Could not determine current version');
   }
 
+  // Check base (Docker-baked) version
+  try {
+    const baseResult = await runExec('node', ['-e', "try{const p=require('/openclaw/package.json');console.log(p.version)}catch{console.log('unknown')}"]);
+    baseVersion = (baseResult.stdout || '').trim() || null;
+    if (baseVersion === 'unknown') baseVersion = null;
+    steps.push('Base version: ' + (baseVersion || 'unknown'));
+  } catch {
+    steps.push('Could not determine base version');
+  }
+
+  // Check if npm-installed version exists (vs Docker-baked)
+  const npmPrefix = process.env.NPM_CONFIG_PREFIX || '/data/.npm-global';
+  const npmEntryPath = join(npmPrefix, 'lib', 'node_modules', 'openclaw', 'dist', 'entry.js');
+  isNpmInstalled = existsSync(npmEntryPath);
+  steps.push('npm-installed: ' + (isNpmInstalled ? 'yes' : 'no (using Docker base)'));
+
+  // Check latest npm version and list available versions
   try {
     const npmResult = await runExec('npm', ['view', 'openclaw', 'version']);
     if (npmResult.code === 0 && npmResult.stdout.trim()) {
@@ -1214,8 +1235,18 @@ app.get('/lite/api/version', authMiddleware, async (req, res) => {
     steps.push('npm check failed, use redeploy to update');
   }
 
+  // List recent npm versions
+  try {
+    const versionsResult = await runExec('npm', ['view', 'openclaw', 'versions', '--json']);
+    if (versionsResult.code === 0 && versionsResult.stdout.trim()) {
+      const allVersions = JSON.parse(versionsResult.stdout.trim());
+      // Return last 15 versions, newest first
+      versions = Array.isArray(allVersions) ? allVersions.slice(-15).reverse() : [allVersions];
+    }
+  } catch { /* ignore */ }
+
   const upgradeAvailable = current && latest && current !== latest;
-  res.json({ current, latest, upgradeAvailable, upgradeMethod, steps });
+  res.json({ current, latest, baseVersion, upgradeAvailable, upgradeMethod, isNpmInstalled, versions, steps });
 });
 
 // Lite API: Restore from backup
@@ -1314,17 +1345,77 @@ app.post('/lite/api/restore', authMiddleware, express.raw({ type: 'application/o
 app.post('/lite/api/upgrade', authMiddleware, async (req, res) => {
   const steps = [];
   let autoBackupPath = null;
+  // Accept version from body: { version: "2026.2.21" } or { version: "base" } or omit for latest
+  const requestedVersion = req.body?.version || 'latest';
+  const isRevert = requestedVersion === 'base';
 
   try {
+    if (isRevert) {
+      // Revert to Docker-baked version by removing npm-installed version
+      const npmPrefix = process.env.NPM_CONFIG_PREFIX || '/data/.npm-global';
+      const npmModulePath = join(npmPrefix, 'lib', 'node_modules', 'openclaw');
+      const npmBinPath = join(npmPrefix, 'bin', 'openclaw');
+
+      if (!existsSync(join(npmModulePath, 'dist', 'entry.js'))) {
+        return res.json({ success: true, steps: ['Already using Docker base version'], newVersion: null });
+      }
+
+      steps.push('Reverting to Docker base version...');
+
+      // Stop gateway
+      if (isGatewayRunning()) {
+        steps.push('Stopping gateway...');
+        await stopGateway();
+        steps.push('Gateway stopped');
+      }
+
+      // Create auto-backup
+      steps.push('Creating auto-backup...');
+      autoBackupPath = await createAutoBackup();
+      steps.push('Auto-backup saved: ' + autoBackupPath);
+
+      // Remove npm-installed openclaw
+      steps.push('Removing npm-installed openclaw...');
+      try {
+        const { rmSync: rm } = await import('node:fs');
+        rm(npmModulePath, { recursive: true, force: true });
+        try { rm(npmBinPath, { force: true }); } catch { /* might not exist */ }
+        steps.push('Removed npm openclaw module');
+      } catch (rmErr) {
+        steps.push('Remove failed: ' + rmErr.message);
+        try { await startGateway(); steps.push('Gateway restarted'); } catch { steps.push('Gateway restart failed'); }
+        return res.json({ success: false, error: 'Failed to remove npm version', steps, autoBackupPath });
+      }
+
+      // Verify base version is now active
+      const verifyResult = await runCmd('--version');
+      const newVersion = (verifyResult.stdout || '').trim().replace(/^openclaw\s*/i, '');
+      steps.push('Active version: ' + (newVersion || 'unknown'));
+
+      // Restart gateway
+      steps.push('Starting gateway...');
+      try {
+        await startGateway();
+        steps.push('Gateway started');
+      } catch (startErr) {
+        steps.push('Gateway start failed: ' + startErr.message);
+      }
+
+      return res.json({ success: true, steps, autoBackupPath, newVersion });
+    }
+
+    // Install specific version or latest
+    const versionSpec = requestedVersion === 'latest' ? 'latest' : requestedVersion;
+
     // Check if npm package exists
     steps.push('Checking npm registry...');
-    const npmCheck = await runExec('npm', ['view', 'openclaw', 'version']);
+    const npmCheck = await runExec('npm', ['view', `openclaw@${versionSpec}`, 'version']);
     if (npmCheck.code !== 0 || !npmCheck.stdout.trim()) {
       return res.json({
         success: false,
-        error: 'openclaw npm package not found. Redeploy on Railway to update.',
+        error: `openclaw@${versionSpec} not found. Redeploy on Railway to update.`,
         upgradeMethod: 'redeploy',
-        steps: ['npm package not available', 'Redeploy your Railway service to get the latest version']
+        steps: [`npm package openclaw@${versionSpec} not available`, 'Redeploy your Railway service to get the desired version']
       });
     }
     const targetVersion = npmCheck.stdout.trim();
@@ -1342,9 +1433,9 @@ app.post('/lite/api/upgrade', authMiddleware, async (req, res) => {
     autoBackupPath = await createAutoBackup();
     steps.push('Auto-backup saved: ' + autoBackupPath);
 
-    // Install latest
-    steps.push('Installing openclaw@latest...');
-    const installResult = await runExec('npm', ['install', '-g', 'openclaw@latest']);
+    // Install requested version
+    steps.push(`Installing openclaw@${versionSpec}...`);
+    const installResult = await runExec('npm', ['install', '-g', `openclaw@${versionSpec}`]);
     if (installResult.code !== 0) {
       steps.push('Install failed: ' + (installResult.stderr || 'unknown error'));
       // Restart gateway with old version

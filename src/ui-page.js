@@ -2050,6 +2050,38 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       color: var(--teal-bright);
       font-size: 11px;
     }
+    .maintenance-version-picker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 10px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .maintenance-select {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .maintenance-select:focus {
+      outline: none;
+      border-color: var(--teal-bright);
+    }
+    .maintenance-version-picker .maintenance-btn {
+      width: auto;
+      padding: 6px 12px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
     .maintenance-actions {
       display: flex;
       flex-direction: column;
@@ -2492,6 +2524,13 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             <div id="version-info" class="maintenance-version">
               <span><span data-i18n="lite.maintenance.version">Version</span>: <span class="version-current" id="version-current">...</span></span>
               <span class="version-update" id="version-update" style="display:none"></span>
+            </div>
+            <div id="version-picker" class="maintenance-version-picker" style="display:none">
+              <select id="version-select" class="maintenance-select" onchange="onVersionSelectChange()">
+                <option value="">Select version...</option>
+              </select>
+              <button class="maintenance-btn btn-secondary" id="btn-switch-version" onclick="confirmSwitchVersion()" disabled>Switch</button>
+              <button class="maintenance-btn btn-secondary" id="btn-revert-base" onclick="confirmRevertBase()" style="display:none">Revert to Base</button>
             </div>
             <div class="maintenance-actions">
               <button class="maintenance-btn btn-secondary" onclick="downloadBackup()" data-i18n="lite.maintenance.downloadBackup">Download Backup</button>
@@ -3614,6 +3653,10 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             var currentEl = document.getElementById('version-current');
             var updateEl = document.getElementById('version-update');
             var upgradeBtn = document.getElementById('btn-upgrade');
+            var pickerEl = document.getElementById('version-picker');
+            var selectEl = document.getElementById('version-select');
+            var switchBtn = document.getElementById('btn-switch-version');
+            var revertBtn = document.getElementById('btn-revert-base');
 
             currentEl.textContent = data.current || 'unknown';
 
@@ -3629,6 +3672,37 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
             } else {
               updateEl.style.display = 'none';
               upgradeBtn.style.display = 'none';
+            }
+
+            // Populate version picker
+            if (data.versions && data.versions.length > 0) {
+              pickerEl.style.display = '';
+              // Clear existing options and add placeholder
+              while (selectEl.firstChild) selectEl.removeChild(selectEl.firstChild);
+              var placeholder = document.createElement('option');
+              placeholder.value = '';
+              placeholder.textContent = 'Select version...';
+              selectEl.appendChild(placeholder);
+              data.versions.forEach(function(v) {
+                var opt = document.createElement('option');
+                opt.value = v;
+                var label = v;
+                if (v === data.current) label += ' (current)';
+                if (v === data.baseVersion) label += ' (base)';
+                opt.textContent = label;
+                selectEl.appendChild(opt);
+              });
+              switchBtn.disabled = true;
+            } else {
+              pickerEl.style.display = 'none';
+            }
+
+            // Show revert button if npm-installed version is active
+            if (data.isNpmInstalled && data.baseVersion) {
+              revertBtn.style.display = '';
+              revertBtn.textContent = 'Revert to Base (' + data.baseVersion + ')';
+            } else {
+              revertBtn.style.display = 'none';
             }
           })
           .catch(function() {
@@ -3703,19 +3777,54 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         showConfirmDialog(
           t('lite.maintenance.upgradeTitle'),
           t('lite.maintenance.upgradeMessage'),
-          function() { performUpgrade(); }
+          function() { performUpgrade('latest'); }
         );
       };
 
-      function performUpgrade() {
-        var btn = document.getElementById('btn-upgrade');
-        var statusEl = document.getElementById('maintenance-status');
-        btn.disabled = true;
-        btn.textContent = t('lite.maintenance.upgrading');
-        statusEl.className = 'maintenance-status visible';
-        statusEl.textContent = '';
+      // Version select change handler — enable/disable Switch button
+      window.onVersionSelectChange = function() {
+        var selectEl = document.getElementById('version-select');
+        var switchBtn = document.getElementById('btn-switch-version');
+        switchBtn.disabled = !selectEl.value;
+      };
 
-        fetch('/lite/api/upgrade?' + authParam(), { method: 'POST' })
+      window.confirmSwitchVersion = function() {
+        var selectEl = document.getElementById('version-select');
+        var version = selectEl.value;
+        if (!version) return;
+        showConfirmDialog(
+          'Switch Version',
+          'Switch OpenClaw to version ' + version + '? The gateway will restart.',
+          function() { performUpgrade(version); }
+        );
+      };
+
+      window.confirmRevertBase = function() {
+        showConfirmDialog(
+          'Revert to Base',
+          'Remove npm-installed version and revert to the Docker base version? The gateway will restart.',
+          function() { performUpgrade('base'); }
+        );
+      };
+
+      function performUpgrade(version) {
+        var statusEl = document.getElementById('maintenance-status');
+        // Disable all version-related buttons during upgrade
+        var upgradeBtn = document.getElementById('btn-upgrade');
+        var switchBtn = document.getElementById('btn-switch-version');
+        var revertBtn = document.getElementById('btn-revert-base');
+        if (upgradeBtn) upgradeBtn.disabled = true;
+        if (switchBtn) switchBtn.disabled = true;
+        if (revertBtn) revertBtn.disabled = true;
+        statusEl.className = 'maintenance-status visible';
+        statusEl.textContent = 'Installing...';
+
+        var body = version ? JSON.stringify({ version: version }) : '{}';
+        fetch('/lite/api/upgrade?' + authParam(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body
+        })
           .then(function(res) { return res.json(); })
           .then(function(data) {
             statusEl.textContent = '';
@@ -3726,19 +3835,20 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
               statusEl.appendChild(span);
             });
             if (data.success) {
-              showToast(t('lite.maintenance.upgradeSuccess'), 'success');
+              showToast('Version updated successfully', 'success');
               checkVersion();
               setTimeout(pollStatus, 1000);
             } else {
-              showToast(t('lite.maintenance.upgradeFailed', { error: data.error || 'unknown' }), 'error');
+              showToast('Version update failed: ' + (data.error || 'unknown'), 'error');
             }
           })
           .catch(function(err) {
-            showToast(t('lite.maintenance.upgradeError', { error: err.message }), 'error');
+            showToast('Version update error: ' + err.message, 'error');
           })
           .finally(function() {
-            btn.disabled = false;
-            btn.textContent = t('lite.maintenance.upgradeAvailable');
+            if (upgradeBtn) upgradeBtn.disabled = false;
+            if (switchBtn) switchBtn.disabled = false;
+            if (revertBtn) revertBtn.disabled = false;
           });
       }
 

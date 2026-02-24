@@ -246,16 +246,15 @@ export async function startGateway() {
   config.agents.defaults = config.agents.defaults || {};
   delete config.agents.defaults.persona;
 
-  // Write a default SOUL.md into the workspace if one doesn't already exist.
-  // OpenClaw reads identity/persona from SOUL.md rather than openclaw.json.
+  // Write a default SOUL.md (identity/persona only) if one doesn't already exist.
+  // Tool awareness belongs in TOOLS.md, which is injected for all agents + sub-agents.
   const soulPath = join(workspaceDir, 'SOUL.md');
   if (!existsSync(soulPath)) {
     writeFileSync(soulPath,
       '# Soul\n\n' +
-      'You have a Chromium browser available for web browsing, taking screenshots, filling forms, and extracting data from web pages.\n\n' +
-      'You can also search the web using the installed SearXNG service — read the SEARXNG_URL environment variable and query its JSON API with curl.\n',
+      'You are a helpful, knowledgeable AI assistant running inside an OpenClaw gateway on Railway.\n',
       'utf8');
-    console.log('Wrote default SOUL.md with browser + search capabilities');
+    console.log('Wrote default SOUL.md');
   }
 
   // Inject gateway settings (always overwritten by wrapper)
@@ -444,6 +443,37 @@ export async function startGateway() {
   }
 
   console.log('Browser config:', JSON.stringify(config.browser));
+
+  // Write TOOLS.md with environment-specific tool notes.
+  // TOOLS.md is injected into the system prompt for all agents + sub-agents,
+  // ensuring consistent tool awareness (browser, SearXNG, shell, etc.).
+  const toolsPath = join(workspaceDir, 'TOOLS.md');
+  if (!existsSync(toolsPath)) {
+    let toolsContent = '# Tools\n\n';
+
+    if (chromeBinary) {
+      toolsContent +=
+        '## Browser\n\n' +
+        `A Chromium browser is installed at \`${chromeBinary}\` and available via the built-in browser tool. ` +
+        'Use it for web browsing, taking screenshots, filling forms, and extracting data from web pages. ' +
+        'The browser runs headless in a Docker container.\n\n';
+    }
+
+    if (process.env.SEARXNG_URL) {
+      toolsContent +=
+        '## Web Search\n\n' +
+        'A SearXNG meta-search engine is running as a separate Railway service. ' +
+        'Use the `searxng-local` skill for web searches — read its SKILL.md for the full API reference. ' +
+        `The service URL is available in the \`SEARXNG_URL\` environment variable.\n\n`;
+    }
+
+    toolsContent +=
+      '## Shell\n\n' +
+      'Shell execution (`exec` tool) is available for running commands like `curl`, `node`, `python3`, etc.\n';
+
+    writeFileSync(toolsPath, toolsContent, 'utf8');
+    console.log('Wrote default TOOLS.md with environment tool notes');
+  }
 
   writeFileSync(configFile, JSON.stringify(config, null, 2));
 

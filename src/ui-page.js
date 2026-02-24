@@ -2350,6 +2350,61 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
     .header-right .lang-selector { position: relative; }
 
     .hidden { display: none !important; }
+
+    /* --- Mobile header hamburger --- */
+    .hamburger {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 6px 8px;
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      h1 { font-size: 18px; }
+      h1 .subtitle { font-size: 0.65em; }
+
+      .hamburger { display: block; }
+
+      .header {
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .header-right {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 12px;
+      }
+      .header-right.open {
+        display: flex;
+      }
+      .header-right .nav-link {
+        padding: 8px 0;
+      }
+      .header-right .mode-toggle {
+        width: 100%;
+      }
+      .header-right .mode-toggle button {
+        flex: 1;
+      }
+      .header-right .lang-selector {
+        width: 100%;
+      }
+      .header-right .lang-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2359,6 +2414,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         <svg class="logo" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lobster-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff4d4d"/><stop offset="100%" stop-color="#991b1b"/></linearGradient></defs><path d="M60 10 C30 10 15 35 15 55 C15 75 30 95 45 100 L45 110 L55 110 L55 100 C55 100 60 102 65 100 L65 110 L75 110 L75 100 C90 95 105 75 105 55 C105 35 90 10 60 10Z" fill="url(#lobster-gradient)"/><path d="M20 45 C5 40 0 50 5 60 C10 70 20 65 25 55 C28 48 25 45 20 45Z" fill="url(#lobster-gradient)"/><path d="M100 45 C115 40 120 50 115 60 C110 70 100 65 95 55 C92 48 95 45 100 45Z" fill="url(#lobster-gradient)"/><path d="M45 15 Q35 5 30 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/><path d="M75 15 Q85 5 90 8" stroke="#ff4d4d" stroke-width="3" stroke-linecap="round"/><circle cx="45" cy="35" r="6" fill="#050810"/><circle cx="75" cy="35" r="6" fill="#050810"/><circle cx="46" cy="34" r="2.5" fill="#00e5cc"/><circle cx="76" cy="34" r="2.5" fill="#00e5cc"/></svg> OpenClaw
         <span class="subtitle">Lite</span>
       </h1>
+      <button class="hamburger" onclick="document.querySelector('.header-right').classList.toggle('open')" aria-label="Menu">&#9776;</button>
       <div class="header-right">
         <a href="/onboard?password=${encodeURIComponent(password)}" class="nav-link" data-i18n="lite.header.onboardLink">&larr; Onboarding Wizard</a>
         ${getLangSelectorHTML('lite')}
@@ -4347,6 +4403,15 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         loadMemory();
         filterCommands();
       }
+
+      // ----- Close hamburger menu on outside click -----
+      document.addEventListener('click', function(e) {
+        var hr = document.querySelector('.header-right');
+        var hb = document.querySelector('.hamburger');
+        if (hr && hb && !hr.contains(e.target) && !hb.contains(e.target)) {
+          hr.classList.remove('open');
+        }
+      });
 
       // ----- Initialize -----
       document.addEventListener('DOMContentLoaded', function() {

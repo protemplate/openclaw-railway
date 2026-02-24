@@ -19,9 +19,27 @@
       },
       "additionalProperties": true
     },
-    "directory": {
-      "type": "string",
-      "description": "Custom skills directory path"
+    "allowBundled": {
+      "type": "array",
+      "description": "Bundled skill slugs to allow",
+      "items": { "type": "string" }
+    },
+    "load": {
+      "type": "object",
+      "description": "Skill loading configuration",
+      "properties": {
+        "extraDirs": {
+          "type": "array",
+          "description": "Additional directories to load skills from",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "install": {
+      "type": "object",
+      "description": "Skill installation preferences",
+      "additionalProperties": true
     }
   },
   "additionalProperties": true

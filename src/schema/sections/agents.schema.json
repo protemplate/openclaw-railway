@@ -39,10 +39,6 @@
           ],
           "description": "Image generation model"
         },
-        "persona": {
-          "type": "string",
-          "description": "Agent persona/system prompt"
-        },
         "workspace": {
           "oneOf": [
             { "type": "string", "description": "Workspace directory path" },

@@ -78,11 +78,6 @@ export const FIELD_META = {
     help: 'Comma-separated list of fallback model identifiers',
     widget: 'tags'
   },
-  'agents.defaults.persona': {
-    label: 'Persona',
-    help: 'System prompt / personality for the agent',
-    widget: 'textarea'
-  },
   'agents.defaults.maxTokens': {
     label: 'Max Tokens',
     help: 'Maximum tokens per response',
@@ -123,10 +118,10 @@ export const FIELD_META = {
     help: 'Tool names or glob patterns to deny',
     widget: 'tags'
   },
-  'tools.exec': {
-    label: 'Shell Execution',
-    help: 'Enable/disable shell command execution',
-    widget: 'toggle'
+  'tools.exec.timeoutSec': {
+    label: 'Exec Timeout (sec)',
+    help: 'Maximum seconds for shell command execution',
+    widget: 'number'
   },
 
   // Session

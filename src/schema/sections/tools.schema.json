@@ -21,19 +21,16 @@
       "items": { "type": "string" }
     },
     "exec": {
-      "oneOf": [
-        { "type": "boolean" },
-        {
-          "type": "object",
-          "properties": {
-            "enabled": { "type": "boolean" },
-            "shell": { "type": "string" },
-            "timeout": { "type": "integer", "minimum": 0 }
-          },
-          "additionalProperties": true
-        }
-      ],
-      "description": "Shell execution settings (formerly agent.bash)"
+      "type": "object",
+      "properties": {
+        "backgroundMs": { "type": "integer", "minimum": 0 },
+        "timeoutSec": { "type": "integer", "minimum": 0 },
+        "cleanupMs": { "type": "integer", "minimum": 0 },
+        "notifyOnExit": { "type": "boolean" },
+        "notifyOnExitEmptySuccess": { "type": "boolean" }
+      },
+      "additionalProperties": true,
+      "description": "Shell execution settings"
     },
     "webSearch": {
       "oneOf": [

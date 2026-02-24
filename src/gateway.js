@@ -241,15 +241,21 @@ export async function startGateway() {
     }
   }
 
-  // Set a default persona that mentions available capabilities.
-  // Only applies when the user hasn't set their own persona (via onboard or config editor).
+  // Remove legacy persona key (no longer valid in OpenClaw config).
   config.agents = config.agents || {};
   config.agents.defaults = config.agents.defaults || {};
-  if (!config.agents.defaults.persona) {
-    config.agents.defaults.persona =
-      'You have a Chromium browser available for web browsing, taking screenshots, filling forms, and extracting data from web pages. ' +
-      'You can also search the web using the installed SearXNG service — read the SEARXNG_URL environment variable and query its JSON API with curl.';
-    console.log('Set default persona with browser + search capabilities');
+  delete config.agents.defaults.persona;
+
+  // Write a default SOUL.md into the workspace if one doesn't already exist.
+  // OpenClaw reads identity/persona from SOUL.md rather than openclaw.json.
+  const soulPath = join(workspaceDir, 'SOUL.md');
+  if (!existsSync(soulPath)) {
+    writeFileSync(soulPath,
+      '# Soul\n\n' +
+      'You have a Chromium browser available for web browsing, taking screenshots, filling forms, and extracting data from web pages.\n\n' +
+      'You can also search the web using the installed SearXNG service — read the SEARXNG_URL environment variable and query its JSON API with curl.\n',
+      'utf8');
+    console.log('Wrote default SOUL.md with browser + search capabilities');
   }
 
   // Inject gateway settings (always overwritten by wrapper)
@@ -322,12 +328,17 @@ export async function startGateway() {
     }
   }
 
-  // Enable shell execution so the agent can use curl for SearXNG web search
+  // Ensure tools.exec exists so the agent can use curl for SearXNG web search
   // and other command-line tools available in the container.
+  // tools.exec is enabled by default in OpenClaw; we just ensure the key is present.
   config.tools = config.tools || {};
   if (config.tools.exec === undefined) {
-    config.tools.exec = { enabled: true };
-    console.log('Auto-enabled tools.exec for shell execution');
+    config.tools.exec = {};
+    console.log('Initialized tools.exec for shell execution');
+  }
+  // Remove legacy 'enabled' sub-key (not a valid tools.exec field).
+  if (config.tools.exec && config.tools.exec.enabled !== undefined) {
+    delete config.tools.exec.enabled;
   }
 
   // Clean up any stale skills.load.extraDirs key from previous versions
@@ -337,8 +348,16 @@ export async function startGateway() {
 
   // Point OpenClaw to the persistent skills directory so it discovers
   // bundled skills (copied there by entrypoint.sh from /bundled-skills/).
+  // Use skills.load.extraDirs (the valid config key) instead of skills.directory.
   const skillsDir = join(stateDir, 'skills');
-  config.skills.directory = skillsDir;
+  delete config.skills.directory;
+  config.skills.load = config.skills.load || {};
+  if (!Array.isArray(config.skills.load.extraDirs)) {
+    config.skills.load.extraDirs = [];
+  }
+  if (!config.skills.load.extraDirs.includes(skillsDir)) {
+    config.skills.load.extraDirs.push(skillsDir);
+  }
 
   // --- Browser config: force Docker-safe settings every startup ---
   if (!config.browser) config.browser = {};

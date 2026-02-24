@@ -92,6 +92,28 @@ export async function startGateway() {
   const workspaceDir = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace';
 
   isShuttingDown = false;
+
+  // Check for orphaned gateway process still holding the port
+  try {
+    await fetch(`http://127.0.0.1:${port}/health`);
+    // Port is responding — orphan gateway is still running
+    console.log('Port already in use — stopping orphaned gateway...');
+    await runCmd('gateway', ['stop']);
+    await new Promise(r => setTimeout(r, 2000));
+    // Verify port is free
+    try {
+      await fetch(`http://127.0.0.1:${port}/health`);
+      // Still responding — can't clear it, adopt as running
+      console.log('Orphaned gateway still running — adopting as active');
+      setGatewayReady(true);
+      return;
+    } catch {
+      // Good — port is now free, continue with normal start
+    }
+  } catch {
+    // Port not in use — normal start path
+  }
+
   console.log(`Starting OpenClaw gateway on port ${port}...`);
 
   // Symlink HOME-derived workspace to the persistent volume so memories survive redeploys.

@@ -128,7 +128,7 @@ export const CHANNEL_GROUPS = [
   },
   {
     name: 'zalo', displayName: 'Zalo', description: 'Popular in Vietnam',
-    category: 'more', emoji: '\uD83D\uDCF1', icon: null,
+    category: 'more', emoji: '\uD83D\uDCF1', icon: null, requiresPlugin: '@openclaw/zalo',
     fields: [
       { id: 'botToken', label: 'Bot Token', placeholder: 'Zalo OA token...', type: 'password' }
     ],
@@ -138,7 +138,7 @@ export const CHANNEL_GROUPS = [
   },
   {
     name: 'mattermost', displayName: 'Mattermost', description: 'Open-source team messaging',
-    category: 'more', emoji: '\uD83D\uDCAC', icon: null,
+    category: 'more', emoji: '\uD83D\uDCAC', icon: null, requiresPlugin: '@openclaw/mattermost',
     fields: [
       { id: 'botToken', label: 'Bot Token', placeholder: 'Mattermost bot token...', type: 'password' },
       { id: 'baseUrl', label: 'Server URL', placeholder: 'https://mattermost.example.com', type: 'text' }
@@ -160,7 +160,7 @@ export const CHANNEL_GROUPS = [
   },
   {
     name: 'line', displayName: 'LINE', description: 'Popular in Japan & SE Asia',
-    category: 'more', emoji: '\uD83D\uDFE2', icon: null,
+    category: 'more', emoji: '\uD83D\uDFE2', icon: null, requiresPlugin: '@openclaw/line',
     fields: [
       { id: 'channelAccessToken', label: 'Channel Access Token', placeholder: 'LINE channel access token...', type: 'password' },
       { id: 'channelSecret', label: 'Channel Secret', placeholder: 'LINE channel secret...', type: 'password' }
@@ -171,7 +171,7 @@ export const CHANNEL_GROUPS = [
   },
   {
     name: 'feishu', displayName: 'Feishu / Lark', description: 'ByteDance workspace',
-    category: 'more', emoji: '\uD83D\uDC26', icon: null,
+    category: 'more', emoji: '\uD83D\uDC26', icon: null, requiresPlugin: '@openclaw/feishu',
     fields: [
       { id: 'appId', label: 'App ID', placeholder: 'Feishu app ID...', type: 'text' },
       { id: 'appSecret', label: 'App Secret', placeholder: 'Feishu app secret...', type: 'password' }
@@ -192,7 +192,7 @@ export const CHANNEL_GROUPS = [
   },
   {
     name: 'nextcloud-talk', displayName: 'Nextcloud Talk', description: 'Self-hosted team chat',
-    category: 'more', emoji: '\u2601\uFE0F', icon: null,
+    category: 'more', emoji: '\u2601\uFE0F', icon: null, requiresPlugin: '@openclaw/nextcloud-talk',
     fields: [
       { id: 'baseUrl', label: 'Server URL', placeholder: 'https://cloud.example.com', type: 'text' },
       { id: 'botSecret', label: 'Bot Secret', placeholder: 'Shared secret from Nextcloud', type: 'password' }
@@ -251,6 +251,16 @@ export const CHANNEL_GROUPS = [
 // Enrich each channel group with SVG icon data
 for (const ch of CHANNEL_GROUPS) {
   ch.icon = getChannelIcon(ch.name);
+}
+
+/**
+ * Look up the required plugin package for a channel (if any)
+ * @param {string} channelName - Channel config key (e.g. 'zalo', 'line')
+ * @returns {string|null} Plugin package name or null
+ */
+export function getRequiredPlugin(channelName) {
+  const ch = CHANNEL_GROUPS.find(c => c.name === channelName);
+  return ch?.requiresPlugin || null;
 }
 
 /**

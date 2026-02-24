@@ -30,14 +30,14 @@ describe('buildChannelConfig', () => {
 
   it('handles empty fields object (toggle-only channels)', () => {
     const config = buildChannelConfig('whatsapp', {});
-    assert.deepEqual(config, { enabled: true, dmPolicy: 'open' });
+    assert.deepEqual(config, { enabled: true, dmPolicy: 'open', allowFrom: ['*'] });
   });
 
   it('handles null/undefined fields', () => {
     const config1 = buildChannelConfig('signal', null);
-    assert.deepEqual(config1, { enabled: true, dmPolicy: 'open' });
+    assert.deepEqual(config1, { enabled: true, dmPolicy: 'open', allowFrom: ['*'] });
     const config2 = buildChannelConfig('signal', undefined);
-    assert.deepEqual(config2, { enabled: true, dmPolicy: 'open' });
+    assert.deepEqual(config2, { enabled: true, dmPolicy: 'open', allowFrom: ['*'] });
   });
 });
 

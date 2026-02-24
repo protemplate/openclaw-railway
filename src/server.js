@@ -19,7 +19,7 @@ import { tmpdir } from 'os';
 import JSZip from 'jszip';
 import archiver from 'archiver';
 import { siAnthropic, siGooglegemini, siOpenrouter, siVercel, siCloudflare, siOllama } from 'simple-icons';
-import { CHANNEL_GROUPS, buildChannelConfig, getChannelIcon } from './channels.js';
+import { CHANNEL_GROUPS, buildChannelConfig, getChannelIcon, getRequiredPlugin } from './channels.js';
 import { validate, migrateConfig, getAllSchemas } from './schema/index.js';
 
 import healthRouter, { setGatewayReady } from './health.js';
@@ -579,6 +579,20 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
           }
         } catch (err) {
           logs.push(`Warning: Failed to install skill ${slug}: ${err.message}`);
+        }
+      }
+    }
+
+    // Install required channel plugins (must happen before gateway start)
+    for (const ch of channelPayload || []) {
+      const plugin = getRequiredPlugin(ch.name);
+      if (plugin) {
+        logs.push(`Installing channel plugin: ${plugin}...`);
+        const result = await runCmd('plugins', ['install', plugin]);
+        if (result.code === 0) {
+          logs.push(`Installed plugin: ${plugin}`);
+        } else {
+          logs.push(`Warning: plugin install ${plugin} failed: ${(result.stderr || '').trim()}`);
         }
       }
     }

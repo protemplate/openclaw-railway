@@ -44,6 +44,22 @@ describe('CHANNEL_GROUPS data integrity', () => {
     const names = CHANNEL_GROUPS.map(ch => ch.name);
     assert.equal(names.length, new Set(names).size, 'Duplicate channel names found');
   });
+
+  it('requiresPlugin channels have @openclaw/ scoped names', () => {
+    for (const ch of CHANNEL_GROUPS) {
+      if (ch.requiresPlugin) {
+        assert.ok(ch.requiresPlugin.startsWith('@openclaw/'),
+          `${ch.name} plugin should be @openclaw/ scoped, got "${ch.requiresPlugin}"`);
+      }
+    }
+  });
+
+  it('exactly 5 channels require plugins', () => {
+    const withPlugin = CHANNEL_GROUPS.filter(ch => ch.requiresPlugin);
+    assert.equal(withPlugin.length, 5);
+    const names = withPlugin.map(ch => ch.name).sort();
+    assert.deepEqual(names, ['feishu', 'line', 'mattermost', 'nextcloud-talk', 'zalo']);
+  });
 });
 
 describe('category assignments', () => {

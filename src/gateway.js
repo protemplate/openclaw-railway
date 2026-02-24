@@ -15,6 +15,7 @@ let gatewayProcess = null;
 let isShuttingDown = false;
 let isStarting = false;
 let daemonAdopted = false;  // True when the gateway daemon outlives the CLI process
+let daemonPollTimer = null; // Health-poll interval when in adopted mode
 
 // Log buffering for UI panel
 const LOG_BUFFER_MAX = 1000;
@@ -80,6 +81,55 @@ export function isGatewayRunning() {
 }
 
 /**
+ * Start polling an adopted daemon's health.
+ * Detects when the daemon restarts (port goes down briefly) and re-adopts
+ * once it comes back, keeping daemonAdopted/gatewayReady in sync.
+ */
+function startDaemonPoll(port) {
+  stopDaemonPoll();
+  let consecutiveFails = 0;
+  const MAX_FAILS = 3;       // allow brief restart windows
+  const POLL_INTERVAL = 3000; // check every 3s
+
+  daemonPollTimer = setInterval(async () => {
+    if (isShuttingDown || gatewayProcess) {
+      // We have a real process now (or shutting down), stop polling
+      stopDaemonPoll();
+      return;
+    }
+    try {
+      await fetch(`http://127.0.0.1:${port}/health`);
+      if (!daemonAdopted) {
+        console.log(`Daemon poll: gateway back on port ${port} — re-adopting`);
+      }
+      consecutiveFails = 0;
+      daemonAdopted = true;
+      gatewayStartTime = gatewayStartTime || Date.now();
+      setGatewayReady(true);
+    } catch {
+      consecutiveFails++;
+      if (consecutiveFails <= MAX_FAILS) {
+        // Transient — daemon likely restarting
+        return;
+      }
+      // Daemon gone for real
+      if (daemonAdopted) {
+        console.log(`Daemon poll: gateway unresponsive after ${consecutiveFails} checks — marking down`);
+        daemonAdopted = false;
+        setGatewayReady(false);
+      }
+    }
+  }, POLL_INTERVAL);
+}
+
+function stopDaemonPoll() {
+  if (daemonPollTimer) {
+    clearInterval(daemonPollTimer);
+    daemonPollTimer = null;
+  }
+}
+
+/**
  * Start the OpenClaw gateway process
  * @returns {Promise<void>}
  */
@@ -113,12 +163,14 @@ export async function startGateway() {
     daemonAdopted = true;
     setGatewayReady(true);
     gatewayStartTime = gatewayStartTime || Date.now();
+    startDaemonPoll(port);
     isStarting = false;
     return;
   } catch {
     // Port not in use — proceed with normal start
   }
 
+  stopDaemonPoll();
   daemonAdopted = false;
   console.log(`Starting OpenClaw gateway on port ${port}...`);
 
@@ -385,34 +437,45 @@ export async function startGateway() {
     // exits. This happens when:
     //   - code !== 0: crash where the daemon outlives the CLI wrapper
     //   - code === 0: self-restart via SIGUSR1 (e.g. config change detected)
-    // In both cases, check if the daemon is responding and adopt it.
-    const delay = code === 0 ? 2000 : 5000;
+    // In both cases, poll until the daemon is responding and adopt it.
+    // The daemon's "full process restart" can take 5-10s (spawn new PID, bind port).
     const reason = code === 0 ? 'Gateway exited cleanly' : 'Gateway crashed';
-    console.log(`${reason}, checking for daemon in ${delay / 1000}s...`);
-    setTimeout(async () => {
-      // Check if the gateway daemon is still alive on the port
+    const maxAttempts = code === 0 ? 8 : 5;
+    const interval = 2000;
+    console.log(`${reason}, polling for daemon (${maxAttempts} attempts, ${interval/1000}s apart)...`);
+
+    let attempt = 0;
+    const pollForDaemon = async () => {
+      attempt++;
       try {
         await fetch(`http://127.0.0.1:${port}/health`);
-        console.log(`Gateway daemon still alive on port ${port} — adopting`);
+        console.log(`Gateway daemon alive on port ${port} after ${attempt} attempts — adopting`);
         daemonAdopted = true;
         gatewayStartTime = gatewayStartTime || Date.now();
         setGatewayReady(true);
+        startDaemonPoll(port);
         return;
       } catch {
-        // Daemon not responding
+        // Daemon not responding yet
       }
 
-      // Only restart if the exit was unexpected (non-zero)
+      if (attempt < maxAttempts) {
+        setTimeout(pollForDaemon, interval);
+        return;
+      }
+
+      // Exhausted retries
       if (code !== 0) {
-        console.log('Daemon not found, restarting gateway...');
+        console.log(`Daemon not found after ${maxAttempts} attempts, restarting gateway...`);
         gatewayStartTime = null;
         startGateway().catch(err => {
           console.error('Gateway restart failed:', err.message);
         });
       } else {
-        console.log('Gateway stopped cleanly, no daemon found on port');
+        console.log(`Daemon not found after ${maxAttempts} attempts, gateway stopped`);
       }
-    }, delay);
+    };
+    setTimeout(pollForDaemon, interval);
   });
 
   // Wait for gateway to be ready (up to 90s for cold starts)
@@ -715,6 +778,7 @@ export async function stopGateway() {
   }
 
   isShuttingDown = true;
+  stopDaemonPoll();
   console.log('Stopping gateway...');
 
   // If we adopted a daemon (no process handle), just clear the flag

@@ -13,6 +13,7 @@ import { migrateConfig, getDefaultConfig } from './schema/index.js';
 
 let gatewayProcess = null;
 let isShuttingDown = false;
+let isStarting = false;
 
 // Log buffering for UI panel
 const LOG_BUFFER_MAX = 1000;
@@ -87,31 +88,33 @@ export async function startGateway() {
     return;
   }
 
+  // Prevent concurrent startGateway() calls (e.g. overlapping restart timers)
+  if (isStarting) {
+    console.log('Gateway start already in progress, skipping');
+    return;
+  }
+  isStarting = true;
+
   const port = process.env.INTERNAL_GATEWAY_PORT || '18789';
   const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
   const workspaceDir = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace';
 
   isShuttingDown = false;
 
-  // Check for orphaned gateway process still holding the port
+  // Check if a gateway is already responding on the port (orphan from a previous
+  // spawn cycle or a daemon that outlived its parent process). If so, adopt it
+  // as our active gateway instead of spawning a new one — this breaks the
+  // crash-restart loop where spawn → exit → restart → spawn endlessly.
   try {
     await fetch(`http://127.0.0.1:${port}/health`);
-    // Port is responding — orphan gateway is still running
-    console.log('Port already in use — stopping orphaned gateway...');
-    await runCmd('gateway', ['stop']);
-    await new Promise(r => setTimeout(r, 2000));
-    // Verify port is free
-    try {
-      await fetch(`http://127.0.0.1:${port}/health`);
-      // Still responding — can't clear it, adopt as running
-      console.log('Orphaned gateway still running — adopting as active');
-      setGatewayReady(true);
-      return;
-    } catch {
-      // Good — port is now free, continue with normal start
-    }
+    // Port is responding — adopt the running gateway
+    console.log(`Gateway already responding on port ${port} — adopting as active`);
+    setGatewayReady(true);
+    gatewayStartTime = gatewayStartTime || Date.now();
+    isStarting = false;
+    return;
   } catch {
-    // Port not in use — normal start path
+    // Port not in use — proceed with normal start
   }
 
   console.log(`Starting OpenClaw gateway on port ${port}...`);
@@ -366,15 +369,29 @@ export async function startGateway() {
   gatewayProcess.on('exit', (code, signal) => {
     console.log(`Gateway exited with code ${code}, signal ${signal}`);
     gatewayProcess = null;
-    gatewayStartTime = null;
     setGatewayReady(false);
 
     // Restart if not shutting down and exited unexpectedly
     if (!isShuttingDown && code !== 0) {
       console.log('Gateway crashed, restarting in 5 seconds...');
-      setTimeout(() => startGateway().catch(err => {
-        console.error('Gateway restart failed:', err.message);
-      }), 5000);
+      setTimeout(async () => {
+        // Before spawning a new process, check if the gateway daemon is
+        // still alive on the port (the CLI exited but the daemon persists).
+        // If so, adopt it instead of restarting.
+        try {
+          await fetch(`http://127.0.0.1:${port}/health`);
+          console.log(`Gateway daemon still alive on port ${port} — adopting`);
+          gatewayStartTime = gatewayStartTime || Date.now();
+          setGatewayReady(true);
+          return;
+        } catch {
+          // Daemon not responding — proceed with full restart
+        }
+        gatewayStartTime = null;
+        startGateway().catch(err => {
+          console.error('Gateway restart failed:', err.message);
+        });
+      }, 5000);
     }
   });
 
@@ -383,6 +400,7 @@ export async function startGateway() {
     await waitForGateway(port, 90000);
     syncGatewayToken(configFile, token, stateDir);
     setGatewayReady(true);
+    isStarting = false;
     console.log('Gateway is ready');
 
     // Re-apply bundled skill config if the gateway dropped it during startup.
@@ -419,6 +437,7 @@ export async function startGateway() {
       }
     }).catch(() => {});
   } catch (err) {
+    isStarting = false;
     console.warn(`Initial gateway wait failed: ${err.message}`);
     // The process may still be starting — poll in the background
     if (isGatewayRunning()) {

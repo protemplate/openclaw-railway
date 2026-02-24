@@ -14,6 +14,7 @@ import { migrateConfig, getDefaultConfig } from './schema/index.js';
 let gatewayProcess = null;
 let isShuttingDown = false;
 let isStarting = false;
+let daemonAdopted = false;  // True when the gateway daemon outlives the CLI process
 
 // Log buffering for UI panel
 const LOG_BUFFER_MAX = 1000;
@@ -75,7 +76,7 @@ export function getGatewayToken() {
  * @returns {boolean} True if gateway is running
  */
 export function isGatewayRunning() {
-  return gatewayProcess !== null && !gatewayProcess.killed;
+  return daemonAdopted || (gatewayProcess !== null && !gatewayProcess.killed);
 }
 
 /**
@@ -109,6 +110,7 @@ export async function startGateway() {
     await fetch(`http://127.0.0.1:${port}/health`);
     // Port is responding — adopt the running gateway
     console.log(`Gateway already responding on port ${port} — adopting as active`);
+    daemonAdopted = true;
     setGatewayReady(true);
     gatewayStartTime = gatewayStartTime || Date.now();
     isStarting = false;
@@ -117,6 +119,7 @@ export async function startGateway() {
     // Port not in use — proceed with normal start
   }
 
+  daemonAdopted = false;
   console.log(`Starting OpenClaw gateway on port ${port}...`);
 
   // Symlink HOME-derived workspace to the persistent volume so memories survive redeploys.
@@ -391,6 +394,7 @@ export async function startGateway() {
       try {
         await fetch(`http://127.0.0.1:${port}/health`);
         console.log(`Gateway daemon still alive on port ${port} — adopting`);
+        daemonAdopted = true;
         gatewayStartTime = gatewayStartTime || Date.now();
         setGatewayReady(true);
         return;
@@ -713,6 +717,13 @@ export async function stopGateway() {
   isShuttingDown = true;
   console.log('Stopping gateway...');
 
+  // If we adopted a daemon (no process handle), just clear the flag
+  if (daemonAdopted && !gatewayProcess) {
+    daemonAdopted = false;
+    setGatewayReady(false);
+    return;
+  }
+
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
       console.log('Gateway did not stop gracefully, killing...');
@@ -722,6 +733,7 @@ export async function stopGateway() {
 
     gatewayProcess.once('exit', () => {
       clearTimeout(timeout);
+      daemonAdopted = false;
       resolve();
     });
 

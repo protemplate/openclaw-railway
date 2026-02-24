@@ -65,6 +65,9 @@ export function createProxy(getToken) {
     delete req.headers['authorization'];
 
     req.headers['host'] = `127.0.0.1:${gatewayPort}`;
+    // Rewrite Origin to match the local gateway so it passes the
+    // gateway's controlUi.allowedOrigins check (origin-mismatch → code 1008).
+    req.headers['origin'] = `http://127.0.0.1:${gatewayPort}`;
     // Strip ALL forwarded/proxy headers so gateway sees a direct local connection.
     // isLocalDirectRequest() requires: loopback remoteAddr + localish Host + no forwarded headers.
     const proxyHeaders = [

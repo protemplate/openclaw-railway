@@ -2052,7 +2052,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
     }
     .maintenance-version-picker {
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 12px;
       padding: 8px 10px;
@@ -2061,8 +2061,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       border-radius: var(--radius-sm);
     }
     .maintenance-select {
-      flex: 1;
-      min-width: 0;
+      width: 100%;
       padding: 6px 8px;
       font-family: var(--mono);
       font-size: 12px;
@@ -2077,7 +2076,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       border-color: var(--teal-bright);
     }
     .maintenance-version-picker .maintenance-btn {
-      width: auto;
+      flex: 1;
       padding: 6px 12px;
       font-size: 12px;
       white-space: nowrap;

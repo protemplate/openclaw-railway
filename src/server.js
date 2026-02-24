@@ -715,6 +715,24 @@ app.post('/onboard/api/reset', authMiddleware, async (req, res) => {
   }
 });
 
+// Diagnostic endpoint: run CLI commands for troubleshooting
+app.get('/onboard/api/diag', authMiddleware, async (req, res) => {
+  try {
+    const results = {};
+    const commands = [
+      { name: 'status', cmd: 'status', args: ['--deep'] },
+      { name: 'channels-status', cmd: 'channels', args: ['status', '--probe'] },
+    ];
+    for (const { name, cmd, args } of commands) {
+      const result = await runCmd(cmd, args);
+      results[name] = { stdout: result.stdout, stderr: result.stderr, code: result.code };
+    }
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- Lite Management Panel (/lite) routes ---
 
 // Main UI page

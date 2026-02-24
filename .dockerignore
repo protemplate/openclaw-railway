@@ -35,6 +35,7 @@ CLAUDE.md
 LICENSE
 *.md
 !README.md
+!skills/
 
 # Railway config (not needed in image)
 railway.json

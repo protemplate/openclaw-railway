@@ -110,6 +110,9 @@ RUN mkdir -p /opt/openclaw-bin && \
 if [ -z "$OPENCLAW_GATEWAY_TOKEN" ] && [ -f "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token" ]; then\n\
   export OPENCLAW_GATEWAY_TOKEN=$(cat "${OPENCLAW_STATE_DIR:-/data/.openclaw}/gateway.token")\n\
 fi\n\
+if [ -z "$OPENCLAW_BUNDLED_SKILLS_DIR" ]; then\n\
+  export OPENCLAW_BUNDLED_SKILLS_DIR="${OPENCLAW_STATE_DIR:-/data/.openclaw}/skills"\n\
+fi\n\
 NPM_ENTRY="${NPM_CONFIG_PREFIX:-/data/.npm-global}/lib/node_modules/openclaw/dist/entry.js"\n\
 if [ -f "$NPM_ENTRY" ]; then\n\
   exec node "$NPM_ENTRY" "$@"\n\

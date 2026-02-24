@@ -273,7 +273,11 @@ export function getRequiredPlugin(channelName) {
 export function buildChannelConfig(channelName, fields) {
   const config = { enabled: true, dmPolicy: 'open', allowFrom: ['*'] };
   for (const [key, val] of Object.entries(fields || {})) {
-    if (val) config[key] = val;
+    if (val === '' || val == null) continue;
+    // Coerce boolean-like strings from form inputs
+    if (val === 'true') { config[key] = true; continue; }
+    if (val === 'false') { config[key] = false; continue; }
+    config[key] = val;
   }
   // IRC channels field: comma-separated string -> array
   if (channelName === 'irc' && config.channels && typeof config.channels === 'string') {

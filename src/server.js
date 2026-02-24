@@ -727,6 +727,17 @@ app.get('/onboard/api/diag', authMiddleware, async (req, res) => {
       const result = await runCmd(cmd, args);
       results[name] = { stdout: result.stdout, stderr: result.stderr, code: result.code };
     }
+
+    // Also include raw config channels for inspection
+    const configFile = join(OPENCLAW_STATE_DIR, 'openclaw.json');
+    try {
+      const rawConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
+      results.config = {
+        channels: rawConfig.channels || {},
+        gatewayPort: rawConfig.config?.gateway?.port,
+      };
+    } catch { results.config = { error: 'Could not read config file' }; }
+
     res.json(results);
   } catch (error) {
     res.status(500).json({ error: error.message });

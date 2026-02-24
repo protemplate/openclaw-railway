@@ -241,6 +241,17 @@ export async function startGateway() {
     }
   }
 
+  // Set a default persona that mentions available capabilities.
+  // Only applies when the user hasn't set their own persona (via onboard or config editor).
+  config.agents = config.agents || {};
+  config.agents.defaults = config.agents.defaults || {};
+  if (!config.agents.defaults.persona) {
+    config.agents.defaults.persona =
+      'You have a Chromium browser available for web browsing, taking screenshots, filling forms, and extracting data from web pages. ' +
+      'You can also search the web using the installed SearXNG service — read the SEARXNG_URL environment variable and query its JSON API with curl.';
+    console.log('Set default persona with browser + search capabilities');
+  }
+
   // Inject gateway settings (always overwritten by wrapper)
   config.gateway = config.gateway || {};
   // Set gateway.port to the wrapper server's external port so the CLI connects through
@@ -311,10 +322,23 @@ export async function startGateway() {
     }
   }
 
+  // Enable shell execution so the agent can use curl for SearXNG web search
+  // and other command-line tools available in the container.
+  config.tools = config.tools || {};
+  if (config.tools.exec === undefined) {
+    config.tools.exec = { enabled: true };
+    console.log('Auto-enabled tools.exec for shell execution');
+  }
+
   // Clean up any stale skills.load.extraDirs key from previous versions
   // (OpenClaw doesn't recognize this key and will reject the config).
   config.skills = config.skills || {};
   delete config.skills['load.extraDirs'];
+
+  // Point OpenClaw to the persistent skills directory so it discovers
+  // bundled skills (copied there by entrypoint.sh from /bundled-skills/).
+  const skillsDir = join(stateDir, 'skills');
+  config.skills.directory = skillsDir;
 
   // --- Browser config: force Docker-safe settings every startup ---
   if (!config.browser) config.browser = {};
@@ -326,6 +350,7 @@ export async function startGateway() {
   // Force managed Chromium profile (the "chrome" profile needs a
   // desktop browser + relay extension which doesn't exist in Docker)
   config.browser.defaultProfile = 'openclaw';
+  config.browser.enabled = true;
   config.browser.headless = true;
   config.browser.noSandbox = true;
 

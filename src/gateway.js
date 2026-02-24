@@ -122,24 +122,29 @@ export async function startGateway() {
   // Symlink HOME-derived workspace to the persistent volume so memories survive redeploys.
   // OpenClaw uses $HOME/.openclaw/workspace internally, which with HOME=/home/openclaw
   // resolves to /home/openclaw/.openclaw/workspace — NOT on the /data volume.
-  const homeOpenclawDir = '/home/openclaw/.openclaw';
+  // Derive from HOME env so tests on macOS (where /home is read-only) still work.
+  const homeOpenclawDir = join(process.env.HOME || '/home/openclaw', '.openclaw');
   const homeWorkspace = join(homeOpenclawDir, 'workspace');
-  mkdirSync(homeOpenclawDir, { recursive: true });
-  if (existsSync(homeWorkspace) && !lstatSync(homeWorkspace).isSymbolicLink()) {
-    // Real dir exists — move any files to persistent location, then replace with symlink
-    const files = readdirSync(homeWorkspace);
-    for (const f of files) {
-      const src = join(homeWorkspace, f);
-      const dest = join(workspaceDir, f);
-      if (!existsSync(dest)) {
-        renameSync(src, dest);
+  try {
+    mkdirSync(homeOpenclawDir, { recursive: true });
+    if (existsSync(homeWorkspace) && !lstatSync(homeWorkspace).isSymbolicLink()) {
+      // Real dir exists — move any files to persistent location, then replace with symlink
+      const files = readdirSync(homeWorkspace);
+      for (const f of files) {
+        const src = join(homeWorkspace, f);
+        const dest = join(workspaceDir, f);
+        if (!existsSync(dest)) {
+          renameSync(src, dest);
+        }
       }
+      rmSync(homeWorkspace, { recursive: true, force: true });
     }
-    rmSync(homeWorkspace, { recursive: true, force: true });
-  }
-  if (!existsSync(homeWorkspace)) {
-    symlinkSync(workspaceDir, homeWorkspace);
-    console.log(`Symlinked ${homeWorkspace} -> ${workspaceDir}`);
+    if (!existsSync(homeWorkspace)) {
+      symlinkSync(workspaceDir, homeWorkspace);
+      console.log(`Symlinked ${homeWorkspace} -> ${workspaceDir}`);
+    }
+  } catch (e) {
+    console.warn(`Workspace symlink setup skipped: ${e.message}`);
   }
   // Ensure memory subdirectory exists on the persistent volume
   mkdirSync(join(workspaceDir, 'memory'), { recursive: true });

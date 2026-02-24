@@ -26,12 +26,15 @@ export async function startServer() {
   // Pick a random high port to avoid collisions
   const port = 30000 + Math.floor(Math.random() * 20000);
 
+  const homeDir = mkdtempSync(join(tmpdir(), 'openclaw-home-'));
+
   const env = {
     ...process.env,
     PORT: String(port),
     SETUP_PASSWORD: 'test-password',
     OPENCLAW_STATE_DIR: stateDir,
     OPENCLAW_WORKSPACE_DIR: join(stateDir, 'workspace'),
+    HOME: homeDir,
     // Prepend mock/ so `openclaw` resolves to our mock script
     PATH: `${mockDir}:${process.env.PATH}`,
   };
@@ -68,6 +71,7 @@ export async function startServer() {
   const cleanup = () => {
     try { child.kill('SIGTERM'); } catch { /* already dead */ }
     try { rmSync(stateDir, { recursive: true, force: true }); } catch { /* best effort */ }
+    try { rmSync(homeDir, { recursive: true, force: true }); } catch { /* best effort */ }
   };
 
   return { port: actualPort, stateDir, process: child, cleanup };

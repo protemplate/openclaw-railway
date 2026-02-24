@@ -57,6 +57,13 @@ describe('E2E deploy flow', { timeout: 30000 }, () => {
 
         assert.equal(result.success, true, `Deploy failed for ${ch.name}: ${JSON.stringify(result.logs)}`);
 
+        // Verify deploy logs contain the "Configured channel:" message
+        const configuredMsg = `Configured channel: ${ch.name}`;
+        assert.ok(
+          result.logs.some(l => l.includes(configuredMsg)),
+          `Logs should contain "${configuredMsg}" but got: ${JSON.stringify(result.logs)}`
+        );
+
         const config = readConfig(server.stateDir);
         const channelConfig = config.channels?.[ch.name];
 
@@ -96,6 +103,15 @@ describe('E2E deploy flow', { timeout: 30000 }, () => {
       });
 
       assert.equal(result.success, true, `Multi-deploy failed: ${JSON.stringify(result.logs)}`);
+
+      // Verify deploy logs contain "Configured channel:" for each channel
+      for (const name of ['telegram', 'discord', 'slack']) {
+        const configuredMsg = `Configured channel: ${name}`;
+        assert.ok(
+          result.logs.some(l => l.includes(configuredMsg)),
+          `Logs should contain "${configuredMsg}" but got: ${JSON.stringify(result.logs)}`
+        );
+      }
 
       const config = readConfig(server.stateDir);
 

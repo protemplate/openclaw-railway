@@ -603,66 +603,62 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
     await startGateway();
     logs.push('Gateway started.');
 
-    // Now merge channels and skills into the live config (post-gateway-startup).
-    const configPath = join(OPENCLAW_STATE_DIR, 'openclaw.json');
+    // Configure channels and skills via the CLI's `config set` command.
+    // This goes through the gateway's proper validation pipeline and avoids
+    // the file-level race condition where the gateway rewrites openclaw.json
+    // on startup (v2026.2.22+), overwriting our raw JSON writes.
     const hasChannels = channelPayload && channelPayload.length > 0;
     const hasSkills = skills && Array.isArray(skills) && skills.length > 0;
 
     if (hasChannels || hasSkills) {
-      const liveConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
-
-      for (const ch of channelPayload || []) {
-        liveConfig.channels = liveConfig.channels || {};
-        liveConfig.channels[ch.name] = buildChannelConfig(ch.name, ch.fields);
-        logs.push(`Configured channel: ${ch.name}`);
+      // Wait for the gateway's RPC to stabilize before pushing config.
+      // startGateway() only checks HTTP liveness; the WebSocket/CLI may
+      // need a moment longer to accept config changes.
+      const maxWaitAttempts = 6;
+      const waitInterval = 1000;
+      let rpcReady = false;
+      for (let i = 0; i < maxWaitAttempts && !rpcReady; i++) {
+        try {
+          await gatewayRPC('config.get', {});
+          rpcReady = true;
+        } catch {
+          await new Promise(r => setTimeout(r, waitInterval));
+        }
+      }
+      if (!rpcReady) {
+        logs.push('Warning: gateway RPC not ready, proceeding with CLI config set anyway');
       }
 
+      // Configure each channel via `openclaw config set --json channels.<name> <value>`
+      for (const ch of channelPayload || []) {
+        const channelConfig = buildChannelConfig(ch.name, ch.fields);
+        const result = await runCmd('config', [
+          'set', '--json',
+          `channels.${ch.name}`,
+          JSON.stringify(channelConfig)
+        ]);
+        if (result.code === 0) {
+          logs.push(`Configured channel: ${ch.name}`);
+        } else {
+          logs.push(`Warning: failed to configure channel ${ch.name}: ${(result.stderr || '').trim()}`);
+        }
+      }
+
+      // Configure each skill via `openclaw config set --json skills.entries.<slug> {"enabled":true}`
       if (hasSkills) {
-        liveConfig.skills = liveConfig.skills || {};
-        liveConfig.skills.entries = liveConfig.skills.entries || {};
         for (const item of skills) {
           const slug = typeof item === 'string' ? item : item.slug;
-          liveConfig.skills.entries[slug] = { enabled: true };
-          logs.push(`Enabled skill: ${slug}`);
-        }
-      }
-
-      // Write merged config back to file
-      writeFileSync(configPath, JSON.stringify(liveConfig, null, 2));
-
-      // Push the full config to the running gateway via config.set RPC.
-      // The gateway requires a base hash (from config.get) for optimistic
-      // concurrency control. We fetch the current config hash, then set.
-      //
-      // The gateway's WebSocket server may not be ready immediately after
-      // startGateway() returns (which only checks HTTP liveness), so we
-      // retry with increasing delays. The config file is already written,
-      // so a gateway restart will pick up channels/skills regardless.
-      const configStr = JSON.stringify(liveConfig);
-      let rpcOk = false;
-      const rpcDelays = [1000, 3000, 5000]; // delays before each attempt
-      for (let attempt = 0; attempt < rpcDelays.length && !rpcOk; attempt++) {
-        try {
-          await new Promise(r => setTimeout(r, rpcDelays[attempt]));
-          // Fetch current config to get the base hash for optimistic concurrency
-          const current = await gatewayRPC('config.get', {});
-          const baseHash = current?.hash || current?.baseHash;
-          const setParams = { raw: configStr };
-          if (baseHash) setParams.baseHash = baseHash;
-          await gatewayRPC('config.set', setParams);
-          logs.push('Pushed config to gateway via RPC.');
-          rpcOk = true;
-        } catch (rpcErr) {
-          if (attempt === rpcDelays.length - 1) {
-            logs.push(`Warning: config.set RPC failed after ${attempt + 1} attempts (${rpcErr.message}), restarting gateway...`);
+          const result = await runCmd('config', [
+            'set', '--json',
+            `skills.entries.${slug}`,
+            JSON.stringify({ enabled: true })
+          ]);
+          if (result.code === 0) {
+            logs.push(`Enabled skill: ${slug}`);
+          } else {
+            logs.push(`Warning: failed to enable skill ${slug}: ${(result.stderr || '').trim()}`);
           }
         }
-      }
-      if (!rpcOk) {
-        // Last resort: restart gateway so it reads the updated config file
-        await stopGateway();
-        await startGateway();
-        logs.push('Gateway restarted with updated config.');
       }
     }
 

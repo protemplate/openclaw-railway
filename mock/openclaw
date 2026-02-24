@@ -87,6 +87,18 @@ wss.on('connection', (ws) => {
       return;
     }
 
+    if (msg.method === 'config.get') {
+      // Return the current config with a hash for optimistic concurrency
+      const fs = require('fs');
+      const crypto = require('crypto');
+      const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
+      let raw = '{}';
+      try { raw = fs.readFileSync(stateDir + '/openclaw.json', 'utf-8'); } catch { /* file may not exist */ }
+      const hash = crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
+      ws.send(JSON.stringify({ type: 'res', id: msg.id, ok: true, result: { raw, hash } }));
+      return;
+    }
+
     if (msg.method === 'config.set') {
       // Accept config.set with { raw: ... } and write to config file
       const raw = msg.params?.raw;

@@ -577,39 +577,7 @@ export async function startGateway() {
     isStarting = false;
     console.log('Gateway is ready');
 
-    // Re-apply bundled skill config if the gateway dropped it during startup.
-    // Read the live config, write to file, then push via RPC so the runtime picks it up.
-    if (process.env.SEARXNG_URL) {
-      try {
-        const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
-        if (!liveConfig.skills?.entries?.['searxng-local']?.enabled) {
-          liveConfig.skills = liveConfig.skills || {};
-          liveConfig.skills.entries = liveConfig.skills.entries || {};
-          liveConfig.skills.entries['searxng-local'] = { enabled: true };
-          writeFileSync(configFile, JSON.stringify(liveConfig, null, 2));
-          console.log('Re-applied searxng-local skill (file)');
-          // Push to gateway runtime via RPC
-          try {
-            const { gatewayRPC } = await import('./gateway-rpc.js');
-            await gatewayRPC('config.set', { raw: JSON.stringify(liveConfig) });
-            console.log('Pushed searxng-local config to gateway via RPC');
-          } catch (rpcErr) {
-            console.warn('config.set RPC for searxng-local failed:', rpcErr.message);
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to check/re-apply searxng-local:', e.message);
-      }
-    }
-
-    // Auto-index memory in the background so files created since last restart are searchable
-    runCmd('memory', ['index']).then(result => {
-      if (result.code === 0) {
-        console.log('Memory indexed successfully');
-      } else {
-        console.log('Memory index skipped:', result.stderr.trim());
-      }
-    }).catch(() => {});
+    await runPostStartupTasks(configFile);
   } catch (err) {
     isStarting = false;
     console.warn(`Initial gateway wait failed: ${err.message}`);
@@ -798,6 +766,64 @@ function syncGatewayToken(configFile, originalToken, stateDir) {
 }
 
 /**
+ * Run post-startup tasks after the gateway becomes ready.
+ * Extracted to avoid duplication between startGateway() and pollUntilReady().
+ * @param {string} configFile - Path to openclaw.json
+ * @param {string} [context] - Optional label for log messages (e.g. 'background poll')
+ */
+async function runPostStartupTasks(configFile, context = '') {
+  const logSuffix = context ? ` (${context})` : '';
+
+  // 1. Start managed browser profile (gateway doesn't auto-start it)
+  try {
+    const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
+    if (liveConfig.browser?.executablePath) {
+      console.log(`Starting browser profile "openclaw"${logSuffix}...`);
+      const result = await runCmd('browser', ['--browser-profile', 'openclaw', 'start']);
+      if (result.code === 0) {
+        console.log(`Browser profile "openclaw" started${logSuffix}`);
+      } else {
+        console.warn(`Browser profile start code ${result.code}${logSuffix}: ${(result.stderr || result.stdout || '').trim()}`);
+      }
+    }
+  } catch (e) {
+    console.warn(`Browser profile start failed${logSuffix}: ${e.message}`);
+  }
+
+  // 2. Re-apply bundled skill config if the gateway dropped it during startup
+  if (process.env.SEARXNG_URL) {
+    try {
+      const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
+      if (!liveConfig.skills?.entries?.['searxng-local']?.enabled) {
+        liveConfig.skills = liveConfig.skills || {};
+        liveConfig.skills.entries = liveConfig.skills.entries || {};
+        liveConfig.skills.entries['searxng-local'] = { enabled: true };
+        writeFileSync(configFile, JSON.stringify(liveConfig, null, 2));
+        console.log(`Re-applied searxng-local skill${logSuffix} (file)`);
+        try {
+          const { gatewayRPC } = await import('./gateway-rpc.js');
+          await gatewayRPC('config.set', { raw: JSON.stringify(liveConfig) });
+          console.log(`Pushed searxng-local config to gateway via RPC${logSuffix}`);
+        } catch (rpcErr) {
+          console.warn(`config.set RPC for searxng-local failed${logSuffix}: ${rpcErr.message}`);
+        }
+      }
+    } catch (e) {
+      console.warn(`Failed to check/re-apply searxng-local${logSuffix}: ${e.message}`);
+    }
+  }
+
+  // 3. Auto-index memory in the background so files created since last restart are searchable
+  runCmd('memory', ['index']).then(result => {
+    if (result.code === 0) {
+      console.log('Memory indexed successfully');
+    } else {
+      console.log('Memory index skipped:', result.stderr.trim());
+    }
+  }).catch(() => {});
+}
+
+/**
  * Poll for gateway readiness in the background (when initial wait times out)
  * Checks every 5s for up to 5 minutes
  */
@@ -819,37 +845,7 @@ function pollUntilReady(port, configFile, originalToken, stateDir) {
       syncGatewayToken(configFile, originalToken, stateDir);
       setGatewayReady(true);
 
-      // Re-apply bundled skill config if dropped by gateway startup
-      if (process.env.SEARXNG_URL) {
-        try {
-          const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
-          if (!liveConfig.skills?.entries?.['searxng-local']?.enabled) {
-            liveConfig.skills = liveConfig.skills || {};
-            liveConfig.skills.entries = liveConfig.skills.entries || {};
-            liveConfig.skills.entries['searxng-local'] = { enabled: true };
-            writeFileSync(configFile, JSON.stringify(liveConfig, null, 2));
-            console.log('Re-applied searxng-local skill (background poll, file)');
-            try {
-              const { gatewayRPC } = await import('./gateway-rpc.js');
-              await gatewayRPC('config.set', { raw: JSON.stringify(liveConfig) });
-              console.log('Pushed searxng-local config to gateway via RPC (background poll)');
-            } catch (rpcErr) {
-              console.warn('config.set RPC for searxng-local failed (background poll):', rpcErr.message);
-            }
-          }
-        } catch (e) {
-          console.warn('Failed to check/re-apply searxng-local:', e.message);
-        }
-      }
-
-      // Auto-index memory in the background
-      runCmd('memory', ['index']).then(result => {
-        if (result.code === 0) {
-          console.log('Memory indexed successfully');
-        } else {
-          console.log('Memory index skipped:', result.stderr.trim());
-        }
-      }).catch(() => {});
+      await runPostStartupTasks(configFile, 'background poll');
     } catch {
       if (Date.now() - start > maxPollTime) {
         console.error('Gateway did not become ready within 5 minutes');

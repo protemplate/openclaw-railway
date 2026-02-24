@@ -376,28 +376,39 @@ export async function startGateway() {
     gatewayProcess = null;
     setGatewayReady(false);
 
-    // Restart if not shutting down and exited unexpectedly
-    if (!isShuttingDown && code !== 0) {
-      console.log('Gateway crashed, restarting in 5 seconds...');
-      setTimeout(async () => {
-        // Before spawning a new process, check if the gateway daemon is
-        // still alive on the port (the CLI exited but the daemon persists).
-        // If so, adopt it instead of restarting.
-        try {
-          await fetch(`http://127.0.0.1:${port}/health`);
-          console.log(`Gateway daemon still alive on port ${port} — adopting`);
-          gatewayStartTime = gatewayStartTime || Date.now();
-          setGatewayReady(true);
-          return;
-        } catch {
-          // Daemon not responding — proceed with full restart
-        }
+    if (isShuttingDown) return;
+
+    // The gateway daemon may still be alive on the port after the CLI process
+    // exits. This happens when:
+    //   - code !== 0: crash where the daemon outlives the CLI wrapper
+    //   - code === 0: self-restart via SIGUSR1 (e.g. config change detected)
+    // In both cases, check if the daemon is responding and adopt it.
+    const delay = code === 0 ? 2000 : 5000;
+    const reason = code === 0 ? 'Gateway exited cleanly' : 'Gateway crashed';
+    console.log(`${reason}, checking for daemon in ${delay / 1000}s...`);
+    setTimeout(async () => {
+      // Check if the gateway daemon is still alive on the port
+      try {
+        await fetch(`http://127.0.0.1:${port}/health`);
+        console.log(`Gateway daemon still alive on port ${port} — adopting`);
+        gatewayStartTime = gatewayStartTime || Date.now();
+        setGatewayReady(true);
+        return;
+      } catch {
+        // Daemon not responding
+      }
+
+      // Only restart if the exit was unexpected (non-zero)
+      if (code !== 0) {
+        console.log('Daemon not found, restarting gateway...');
         gatewayStartTime = null;
         startGateway().catch(err => {
           console.error('Gateway restart failed:', err.message);
         });
-      }, 5000);
-    }
+      } else {
+        console.log('Gateway stopped cleanly, no daemon found on port');
+      }
+    }, delay);
   });
 
   // Wait for gateway to be ready (up to 90s for cold starts)

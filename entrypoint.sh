@@ -29,8 +29,11 @@ else
 fi
 
 # Fix volume ownership (Railway mounts volumes as root)
+# Only fix /data (the volume mount). /app and openclaw npm install are baked
+# into the image with correct ownership — no need to chown them at runtime.
+# Skip node_modules trees (thousands of files) to keep startup fast (<5s).
 if [ "$(id -u)" = "0" ]; then
-    chown -R openclaw:openclaw /data /app /openclaw 2>/dev/null || true
+    find /data -not -path "*/node_modules/*" -exec chown openclaw:openclaw {} + 2>/dev/null || true
 fi
 
 # Ensure Playwright browser is accessible by openclaw user
@@ -45,10 +48,9 @@ chmod 700 "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" 2>/dev/null || true
 # Ensure npm global prefix directory exists for in-app upgrades
 mkdir -p "${NPM_CONFIG_PREFIX:-/data/.npm-global}"
 
-# Fix ownership after creating directories (the initial chown runs before mkdir,
-# so freshly created directories are owned by root)
+# Fix ownership of newly created directories
 if [ "$(id -u)" = "0" ]; then
-    chown -R openclaw:openclaw /data 2>/dev/null || true
+    find /data -maxdepth 2 -not -path "*/node_modules/*" -exec chown openclaw:openclaw {} + 2>/dev/null || true
 fi
 
 # Create symlinks from openclaw home into the persistent volume

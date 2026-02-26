@@ -1218,7 +1218,7 @@ app.get('/lite/api/version', authMiddleware, async (req, res) => {
 
   // Check base (Docker-baked) version
   try {
-    const baseResult = await runExec('node', ['-e', "try{const p=require('/openclaw/package.json');console.log(p.version)}catch{console.log('unknown')}"]);
+    const baseResult = await runExec('node', ['-e', "try{const p=require('/usr/local/lib/node_modules/openclaw/package.json');console.log(p.version)}catch{console.log('unknown')}"]);
     baseVersion = (baseResult.stdout || '').trim() || null;
     if (baseVersion === 'unknown') baseVersion = null;
     steps.push('Base version: ' + (baseVersion || 'unknown'));

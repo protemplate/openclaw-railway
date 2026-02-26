@@ -379,7 +379,7 @@ export async function startGateway() {
 
   // Method 1: Ask playwright-core where its Chromium binary is
   try {
-    const pw = await import('/openclaw/node_modules/playwright-core/index.mjs');
+    const pw = await import('/usr/local/lib/node_modules/openclaw/node_modules/playwright-core/index.mjs');
     const candidate = pw.chromium.executablePath();
     if (candidate && existsSync(candidate)) {
       chromeBinary = candidate;

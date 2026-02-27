@@ -62,6 +62,10 @@ const CUSTOM_ICONS = {
   'Z.AI (GLM)': {
     svg: 'M4 4h16v4l-10.5 8H20v4H4v-4l10.5-8H4V4z',
     color: '#3B82F6'
+  },
+  'Custom Provider': {
+    svg: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
+    color: '#a78bfa'
   }
 };
 
@@ -242,6 +246,24 @@ const AUTH_GROUPS = [
     emoji: '\u{1F999}',
     options: [
       { label: 'No key needed', value: 'ollama', flag: null }
+    ]
+  },
+  {
+    provider: 'Custom Provider',
+    category: 'more',
+    description: 'Any OpenAI-compatible API',
+    emoji: '\u{1F527}',
+    options: [
+      {
+        label: 'API Key + Base URL',
+        value: 'custom-api-key',
+        flag: ['--auth-choice', 'custom-api-key', '--custom-compatibility', 'openai'],
+        secretFlag: '--custom-api-key',
+        extraFields: [
+          { id: 'custom-base-url', label: 'Base URL', flag: '--custom-base-url', placeholder: 'https://api.example.com/v1' },
+          { id: 'custom-model-id', label: 'Model ID', flag: '--custom-model-id', placeholder: 'gpt-4o' }
+        ]
+      }
     ]
   }
 ];

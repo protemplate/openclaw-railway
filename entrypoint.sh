@@ -75,6 +75,69 @@ if [ -d "/bundled-skills" ]; then
     done
 fi
 
+# Auto-configure Plano LLM proxy if PLANO_URL is set
+# When deployed alongside Plano, this adds a custom "plano" model provider
+# that routes LLM requests through Plano's intelligent routing layer.
+# Set PLANO_URL via Railway reference variable: http://${{Plano.RAILWAY_PRIVATE_DOMAIN}}:${{Plano.PORT}}/v1
+if [ -n "$PLANO_URL" ]; then
+    CONFIG_FILE="$OPENCLAW_STATE_DIR/openclaw.json"
+    if [ -f "$CONFIG_FILE" ]; then
+        echo "Plano integration detected: $PLANO_URL"
+        # Inject plano provider into existing config using Python (available in base image)
+        python3 -c "
+import json, sys, os
+
+config_path = '$CONFIG_FILE'
+plano_url = os.environ.get('PLANO_URL', '')
+plano_api_key = os.environ.get('PLANO_API_KEY', os.environ.get('OPENAI_API_KEY', 'none'))
+plano_model = os.environ.get('PLANO_MODEL', 'gpt-4o')
+plano_model_name = os.environ.get('PLANO_MODEL_NAME', 'GPT 4o')
+
+with open(config_path) as f:
+    cfg = json.load(f)
+
+# Add plano provider under models.providers
+if 'models' not in cfg:
+    cfg['models'] = {}
+if 'providers' not in cfg['models']:
+    cfg['models']['providers'] = {}
+
+cfg['models']['providers']['plano'] = {
+    'baseUrl': plano_url,
+    'apiKey': plano_api_key,
+    'api': 'openai-completions',
+    'models': [
+        {'id': plano_model, 'name': plano_model_name, 'contextWindow': 128000, 'maxTokens': 16384}
+    ]
+}
+
+# Set primary model to plano/<model> if not already set to a plano model
+model_key = 'plano/' + plano_model
+if 'agents' not in cfg:
+    cfg['agents'] = {}
+if 'defaults' not in cfg['agents']:
+    cfg['agents']['defaults'] = {}
+if 'model' not in cfg['agents']['defaults']:
+    cfg['agents']['defaults']['model'] = {}
+
+current_primary = cfg['agents']['defaults']['model'].get('primary', '')
+if not current_primary.startswith('plano/'):
+    cfg['agents']['defaults']['model']['primary'] = model_key
+    cfg['agents']['defaults']['models'] = {model_key: {'alias': plano_model_name}}
+    print(f'  Primary model set to: {model_key}')
+else:
+    print(f'  Primary model already set to: {current_primary}')
+
+with open(config_path, 'w') as f:
+    json.dump(cfg, f, indent=2)
+
+print('  Plano provider configured successfully')
+" 2>&1 || echo "Warning: Failed to auto-configure Plano provider"
+    else
+        echo "Plano URL set but config not found yet — provider will be configured after onboard"
+    fi
+fi
+
 # Log startup info
 echo ""
 echo "OpenClaw Railway Template"
@@ -87,6 +150,9 @@ if [ -d "/ms-playwright" ] && [ -n "$(ls /ms-playwright 2>/dev/null)" ]; then
     echo "Browser: Chromium (Playwright) available"
 else
     echo "Browser: Not available"
+fi
+if [ -n "$PLANO_URL" ]; then
+    echo "Plano LLM Proxy: $PLANO_URL"
 fi
 echo ""
 

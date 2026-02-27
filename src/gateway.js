@@ -813,6 +813,53 @@ async function runPostStartupTasks(configFile, context = '') {
     }
   }
 
+  // 2b. Re-apply any user-installed skills found on disk
+  try {
+    const liveConfig = JSON.parse(readFileSync(configFile, 'utf-8'));
+    const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
+    const skillsOnDisk = join(stateDir, 'skills');
+    let changed = false;
+    if (existsSync(skillsOnDisk)) {
+      for (const dir of readdirSync(skillsOnDisk)) {
+        const skillPath = join(skillsOnDisk, dir);
+        if (lstatSync(skillPath).isDirectory() && existsSync(join(skillPath, 'SKILL.md'))) {
+          liveConfig.skills = liveConfig.skills || {};
+          liveConfig.skills.entries = liveConfig.skills.entries || {};
+          if (!liveConfig.skills.entries[dir]?.enabled) {
+            liveConfig.skills.entries[dir] = { enabled: true };
+            changed = true;
+            console.log(`Re-applied skill ${dir}${logSuffix}`);
+          }
+        }
+      }
+    }
+    // Also ensure extraDirs includes the skills directory
+    if (existsSync(skillsOnDisk)) {
+      liveConfig.skills = liveConfig.skills || {};
+      liveConfig.skills.load = liveConfig.skills.load || {};
+      if (!Array.isArray(liveConfig.skills.load.extraDirs)) {
+        liveConfig.skills.load.extraDirs = [];
+      }
+      if (!liveConfig.skills.load.extraDirs.includes(skillsOnDisk)) {
+        liveConfig.skills.load.extraDirs.push(skillsOnDisk);
+        changed = true;
+        console.log(`Re-applied skills.load.extraDirs${logSuffix}`);
+      }
+    }
+    if (changed) {
+      writeFileSync(configFile, JSON.stringify(liveConfig, null, 2));
+      try {
+        const { gatewayRPC } = await import('./gateway-rpc.js');
+        await gatewayRPC('config.set', { raw: JSON.stringify(liveConfig) });
+        console.log(`Pushed re-applied skills to gateway via RPC${logSuffix}`);
+      } catch (rpcErr) {
+        console.warn(`config.set RPC for skills failed${logSuffix}: ${rpcErr.message}`);
+      }
+    }
+  } catch (e) {
+    console.warn(`Failed to re-apply user skills${logSuffix}: ${e.message}`);
+  }
+
   // 3. Auto-index memory in the background so files created since last restart are searchable
   runCmd('memory', ['index']).then(result => {
     if (result.code === 0) {

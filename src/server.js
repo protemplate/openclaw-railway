@@ -602,6 +602,12 @@ app.post('/onboard/api/run', authMiddleware, async (req, res) => {
         } catch (err) {
           logs.push(`Warning: Failed to install skill ${slug}: ${err.message}`);
         }
+
+        // Verify SKILL.md exists after install
+        const skillDir = join(skillsDir, slug);
+        if (!existsSync(join(skillDir, 'SKILL.md'))) {
+          logs.push(`Warning: ${slug} installed but SKILL.md not found — skill may not be discoverable`);
+        }
       }
     }
 

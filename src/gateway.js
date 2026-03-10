@@ -269,7 +269,11 @@ export async function startGateway() {
   config.gateway.controlUi = config.gateway.controlUi || {};
   config.gateway.controlUi.basePath = '/openclaw';
   // Allow token-only auth without device pairing — safe because the gateway is bound
-  // to loopback and our wrapper enforces SETUP_PASSWORD + HTTPS externally
+  // to loopback and our wrapper enforces SETUP_PASSWORD + HTTPS externally.
+  // Note: dangerouslyDisableDeviceAuth has an upstream bug (#29801) where it only
+  // works when shared authentication (Bearer token) is already present on the
+  // connection. The proxy (src/proxy.js) works around this by injecting the gateway
+  // token on dashboard WebSocket upgrades while stripping it from CLI connections.
   config.gateway.controlUi.allowInsecureAuth = true;
   config.gateway.controlUi.dangerouslyDisableDeviceAuth = true;
 

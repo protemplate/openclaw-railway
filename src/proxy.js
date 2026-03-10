@@ -56,13 +56,28 @@ export function createProxy(getToken) {
    * WebSocket upgrade handler
    */
   const upgradeHandler = (req, socket, head) => {
-    // Do NOT inject Authorization header for WebSocket upgrades.
-    // If we pre-authenticate at the HTTP level, the gateway grants limited scopes
-    // (operator.read). The CLI then tries to upgrade to operator.admin via the
-    // WebSocket connect handshake, which triggers a pairing requirement.
-    // Without HTTP-level auth, the CLI authenticates entirely through the
-    // WebSocket connect handshake and can request operator.admin directly.
-    delete req.headers['authorization'];
+    const controlUiBasePath = '/openclaw';
+
+    if (req.url.startsWith(controlUiBasePath + '/') || req.url === controlUiBasePath) {
+      // Dashboard/Control UI WebSocket: inject token so shared auth is present.
+      // OpenClaw bug #29801: dangerouslyDisableDeviceAuth only works when shared
+      // authentication is already being transmitted. Without the token, the gateway
+      // falls through to device identity requirement.
+      if (getToken) {
+        const token = getToken();
+        if (token) {
+          req.headers['authorization'] = `Bearer ${token}`;
+        }
+      }
+    } else {
+      // CLI WebSocket: strip auth to avoid scope downgrade.
+      // If we pre-authenticate at the HTTP level, the gateway grants limited scopes
+      // (operator.read). The CLI then tries to upgrade to operator.admin via the
+      // WebSocket connect handshake, which triggers a pairing requirement.
+      // Without HTTP-level auth, the CLI authenticates entirely through the
+      // WebSocket connect handshake and can request operator.admin directly.
+      delete req.headers['authorization'];
+    }
 
     req.headers['host'] = `127.0.0.1:${gatewayPort}`;
     // Rewrite Origin to match the local gateway so it passes the

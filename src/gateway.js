@@ -943,26 +943,22 @@ function pollUntilReady(port, configFile, originalToken, stateDir) {
 /**
  * Kill the gateway daemon listening on the given port.
  * Used when we need to stop an adopted daemon that we don't have a process handle for.
- * Sends SIGTERM to any process owning the port, waits briefly, then SIGKILL if needed.
+ * Loops until the port is clear, using SIGKILL to prevent the daemon from spawning
+ * a replacement process during shutdown (the daemon's self-restart mechanism).
  */
 async function killDaemonOnPort(port, timeoutMs = 10000) {
-  const result = await runExec('sh', ['-c', `lsof -ti tcp:${port} -s tcp:listen 2>/dev/null || fuser ${port}/tcp 2>/dev/null | tr -d ' '`]);
-  const pids = (result.stdout || '').trim().split(/\s+/).filter(Boolean).map(Number).filter(n => n > 0 && n !== process.pid);
-  if (pids.length === 0) return;
-
-  for (const pid of pids) {
-    try { process.kill(pid, 'SIGTERM'); } catch { /* already gone */ }
-  }
-
   const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    await new Promise(r => setTimeout(r, 500));
-    const alive = pids.some(pid => { try { process.kill(pid, 0); return true; } catch { return false; } });
-    if (!alive) return;
-  }
 
-  for (const pid of pids) {
-    try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
+  while (Date.now() < deadline) {
+    const result = await runExec('sh', ['-c', `lsof -ti tcp:${port} -s tcp:listen 2>/dev/null || fuser ${port}/tcp 2>/dev/null | tr -d ' '`]);
+    const pids = (result.stdout || '').trim().split(/\s+/).filter(Boolean).map(Number).filter(n => n > 0 && n !== process.pid);
+    if (pids.length === 0) return; // Port is clear
+
+    for (const pid of pids) {
+      try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
+    }
+
+    await new Promise(r => setTimeout(r, 500));
   }
 }
 
@@ -989,7 +985,9 @@ export async function stopGateway() {
     return;
   }
 
-  return new Promise((resolve) => {
+  const port = process.env.INTERNAL_GATEWAY_PORT || '18789';
+
+  await new Promise((resolve) => {
     const timeout = setTimeout(() => {
       console.log('Gateway did not stop gracefully, killing...');
       gatewayProcess.kill('SIGKILL');
@@ -1004,6 +1002,10 @@ export async function stopGateway() {
 
     gatewayProcess.kill('SIGTERM');
   });
+
+  // The daemon may have spawned a replacement process before exiting.
+  // Kill anything still listening on the port to ensure a clean restart.
+  await killDaemonOnPort(port, 5000);
 }
 
 /**

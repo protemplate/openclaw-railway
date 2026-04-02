@@ -1601,6 +1601,48 @@ app.get('/openclaw', openclawHandler);
 app.post('/openclaw', openclawHandler);
 app.get('/openclaw/{*path}', openclawHandler);  // catch subpath refreshes like /openclaw/chat?session=...
 
+// ── Twilio SMS Webhook ───────────────────────────────────────────────
+// Handles inbound SMS from Twilio → forwards to OpenClaw → replies via SMS
+{
+  const { readFileSync } = await import('fs');
+  const { URLSearchParams: URLSP2 } = await import('url');
+  app.post('/sms', async (req, res) => {
+    res.set('Content-Type', 'text/xml');
+    res.send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
+    setImmediate(async () => {
+      try {
+        const from = req.body?.From, text = req.body?.Body;
+        if (!from || !text) return;
+        console.log(`[SMS] inbound ${from}: ${text}`);
+        let sid, authToken, fromNumber = '+61468006713';
+        try {
+          const raw = readFileSync('/home/openclaw/.openclaw/workspace/.secrets/twilio.env', 'utf8');
+          const env = Object.fromEntries(raw.split('\n').filter(l => l.includes('=')).map(l => { const i = l.indexOf('='); return [l.slice(0,i).trim(), l.slice(i+1).trim()]; }));
+          sid = env.TWILIO_ACCOUNT_SID; authToken = env.TWILIO_AUTH_TOKEN; fromNumber = env.TWILIO_PHONE_NUMBER || fromNumber;
+        } catch (e) { console.error('[SMS] creds:', e.message); return; }
+        const gPort = process.env.INTERNAL_GATEWAY_PORT || '18789';
+        const token = getGatewayToken();
+        const result = await fetch(`http://127.0.0.1:${gPort}/tools/invoke`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ tool: 'sessions_send', args: { sessionKey: `agent:main:sms:${from}`, message: `[SMS]: ${text}`, timeoutSeconds: 30 } })
+        }).then(r => r.json()).catch(() => null);
+        let reply = result?.result?.details?.reply;
+        if (!reply) { try { reply = JSON.parse(result?.result?.content?.[0]?.text)?.reply; } catch {} }
+        if (reply && !['NO_REPLY','HEARTBEAT_OK'].includes(reply.trim())) {
+          const ah = 'Basic ' + Buffer.from(`${sid}:${authToken}`).toString('base64');
+          await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': ah },
+            body: new URLSP2({ To: from, From: fromNumber, Body: reply.slice(0,1600) }).toString()
+          });
+          console.log(`[SMS] replied to ${from}`);
+        }
+      } catch (e) { console.error('[SMS] error:', e.message); }
+    });
+  console.log('[SMS] /sms webhook registered');
+}
+// ─────────────────────────────────────────────────────────────────────
+
 // Proxy all other requests to gateway (when running)
 // Note: Using no path argument to avoid Express 5 stripping req.url
 // (/{*path} would set req.url to "/" for every request, breaking the proxy)

@@ -1629,12 +1629,16 @@ app.get('/openclaw/{*path}', openclawHandler);  // catch subpath refreshes like 
         let reply = result?.result?.details?.reply;
         if (!reply) { try { reply = JSON.parse(result?.result?.content?.[0]?.text)?.reply; } catch {} }
         if (reply && !['NO_REPLY','HEARTBEAT_OK'].includes(reply.trim())) {
-          const ah = 'Basic ' + Buffer.from(`${sid}:${authToken}`).toString('base64');
-          await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
-            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': ah },
-            body: new URLSP2({ To: from, From: fromNumber, Body: reply.slice(0,1600) }).toString()
+          const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`;
+          const twilioBody = `To=${encodeURIComponent(from)}&From=${encodeURIComponent(fromNumber)}&Body=${encodeURIComponent(reply.slice(0,1600))}`;
+          const twilioAuth = 'Basic ' + Buffer.from(sid + ':' + authToken).toString('base64');
+          const twilioRes = await fetch(twilioUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': twilioAuth },
+            body: twilioBody
           });
-          console.log(`[SMS] replied to ${from}`);
+          const twilioJson = await twilioRes.json().catch(() => ({}));
+          console.log(`[SMS] replied to ${from}`, twilioJson.sid || twilioJson.message || twilioJson.status);
         }
       } catch (e) { console.error('[SMS] error:', e.message); }
     });

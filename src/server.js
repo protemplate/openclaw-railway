@@ -1624,11 +1624,11 @@ app.get('/openclaw/{*path}', openclawHandler);  // catch subpath refreshes like 
         const result = await fetch(`http://127.0.0.1:${gPort}/tools/invoke`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ tool: 'sessions_send', args: { sessionKey: `agent:main:sms:${from}`, message: `[SMS]: ${text}`, timeoutSeconds: 30 } })
+          body: JSON.stringify({ tool: 'sessions_send', args: { sessionKey: `agent:main:sms:${from}`, message: `[SMS]: ${text}`, timeoutSeconds: 55 } })
         }).then(r => r.json()).catch(() => null);
         let reply = result?.result?.details?.reply;
         if (!reply) { try { reply = JSON.parse(result?.result?.content?.[0]?.text)?.reply; } catch {} }
-        if (reply && !['NO_REPLY','HEARTBEAT_OK'].includes(reply.trim())) {
+        if (reply && !['NO_REPLY','HEARTBEAT_OK'].some(s => reply.trim().includes(s))) {
           const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`;
           const twilioBody = `To=${encodeURIComponent(from)}&From=${encodeURIComponent(fromNumber)}&Body=${encodeURIComponent(reply.slice(0,1600))}`;
           const twilioAuth = 'Basic ' + Buffer.from(sid + ':' + authToken).toString('base64');

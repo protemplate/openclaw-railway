@@ -2407,67 +2407,45 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
     }
 
     /* Agent Monitor */
-    .agents-monitor {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .agents-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .agents-monitor { display: flex; flex-direction: column; gap: 8px; }
     .agent-item {
       background: var(--bg-elevated);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 10px;
-      transition: all 0.2s;
+      transition: border-color var(--duration-normal);
     }
-    .agent-item:hover {
-      border-color: var(--teal-bright);
-      background: var(--bg-hover);
-    }
-    .agent-header {
+    .agent-item:hover { border-color: var(--teal-bright); }
+    .agent-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      cursor: pointer;
-      font-weight: 500;
       font-size: 13px;
+      font-weight: 500;
     }
-    .agent-name {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-strong);
-      text-transform: capitalize;
-    }
-    .agent-status-indicator {
-      width: 8px;
-      height: 8px;
+    .agent-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
       border-radius: 50%;
+      margin-right: 6px;
+      background: var(--muted);
+    }
+    .agent-dot.running {
+      background: var(--ok);
       animation: pulse 2s ease-in-out infinite;
     }
-    .agent-status-indicator.running {
-      background: var(--ok);
-    }
-    .agent-status-indicator.idle {
-      background: var(--muted);
-      animation: none;
-    }
-    .agent-progress {
-      width: 100%;
-      height: 3px;
+    .agent-pct { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+    .agent-bar {
+      width: 100%; height: 3px;
       background: var(--border);
       border-radius: 2px;
-      margin-top: 8px;
+      margin-top: 6px;
       overflow: hidden;
     }
-    .agent-progress-fill {
+    .agent-bar-fill {
       height: 100%;
       background: linear-gradient(90deg, var(--teal) 0%, var(--teal-bright) 100%);
-      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: width 0.4s ease-out;
     }
   </style>
 </head>
@@ -2683,16 +2661,11 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
               </button>
             </div>
           </div>
+
           <!-- Agent Monitor -->
           <div class="card">
-            <h2>🤖 Sub-Agents</h2>
-            <div id="agents-monitor" class="agents-monitor">
-              <div class="agents-list" id="agents-list">
-                <div class="empty-state">
-                  <div class="empty-state-text">Loading agents...</div>
-                </div>
-              </div>
-            </div>
+            <h2>&#x1F916; Sub-Agents</h2>
+            <div class="agents-monitor" id="agents-monitor"></div>
           </div>
 
           <!-- Maintenance -->
@@ -2849,47 +2822,6 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         return 'password=' + encodeURIComponent(password);
       }
 
-
-      // ----- Agent Monitor -----
-      var agentsData = {
-        coordinador: { status: 'idle', progress: 0 },
-        housekeeping: { status: 'idle', progress: 0 },
-        gerencia: { status: 'idle', progress: 0 },
-        fb: { status: 'idle', progress: 0 },
-        mantenimiento: { status: 'idle', progress: 0 }
-      };
-
-      function loadAgents() {
-        var container = document.getElementById('agents-list');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        Object.entries(agentsData).forEach(function([agentId, data]) {
-          var agentEl = document.createElement('div');
-          agentEl.className = 'agent-item';
-          agentEl.innerHTML = `
-            <div class="agent-header">
-              <span class="agent-name">
-                <span class="agent-status-indicator ${data.status}"></span>
-                ${agentId}
-              </span>
-              <span style="font-size: 11px; color: var(--muted);">${data.progress}%</span>
-            </div>
-            <div class="agent-progress">
-              <div class="agent-progress-fill" style="width: ${data.progress}%"></div>
-            </div>
-          `;
-          container.appendChild(agentEl);
-        });
-      }
-
-      function updateAgentStatus(agentId, status, progress) {
-        if (agentsData[agentId]) {
-          agentsData[agentId].status = status;
-          agentsData[agentId].progress = progress || 0;
-          loadAgents();
-        }
-      }
       function formatUptime(seconds) {
         if (seconds == null) return '--';
         var d = Math.floor(seconds / 86400);
@@ -4354,7 +4286,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       window.setCategory = function(cat) {
         activeCat = cat;
         renderCategoryPills();
-        loadAgents();
+        renderAgents();
         filterCommands();
       };
 
@@ -4531,13 +4463,45 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       });
 
       // ----- Initialize -----
+
+      // ----- Agent Monitor -----
+      var HOTEL_AGENTS = ['coordinador','housekeeping','gerencia','fb','mantenimiento'];
+      var agentProgress = {};
+      var agentStatus = {};
+      HOTEL_AGENTS.forEach(function(id) { agentProgress[id] = 0; agentStatus[id] = 'idle'; });
+
+      function renderAgents() {
+        var container = document.getElementById('agents-monitor');
+        if (!container) return;
+        var html = '';
+        HOTEL_AGENTS.forEach(function(id) {
+          var st = agentStatus[id] || 'idle';
+          var pct = agentProgress[id] || 0;
+          html += '<div class="agent-item">' +
+            '<div class="agent-row">' +
+              '<span><span class="agent-dot ' + st + '"></span>' + id + '</span>' +
+              '<span class="agent-pct">' + pct + '%</span>' +
+            '</div>' +
+            '<div class="agent-bar"><div class="agent-bar-fill" style="width:' + pct + '%"></div></div>' +
+          '</div>';
+        });
+        container.innerHTML = html;
+      }
+
+      window.updateAgent = function(id, status, progress) {
+        if (agentStatus[id] !== undefined) {
+          agentStatus[id] = status;
+          agentProgress[id] = progress || 0;
+          renderAgents();
+        }
+      };
+
       document.addEventListener('DOMContentLoaded', function() {
         initLanguage();
         updateLangSelectorUI();
         applyTranslations();
         startPolling();
         renderCategoryPills();
-        loadAgents();
         filterCommands();
       });
     })();

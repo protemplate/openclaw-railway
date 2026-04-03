@@ -1604,8 +1604,7 @@ app.get('/openclaw/{*path}', openclawHandler);  // catch subpath refreshes like 
 // ── Twilio SMS Webhook ───────────────────────────────────────────────
 // Handles inbound SMS from Twilio → forwards to OpenClaw → replies via SMS
 {
-  const { readFileSync } = await import('fs');
-  const { URLSearchParams: URLSP2 } = await import('url');
+  const { URLSearchParams: URLSP2 } = URL;
   app.post('/sms', async (req, res) => {
     res.set('Content-Type', 'text/xml');
     res.send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
@@ -1639,6 +1638,7 @@ app.get('/openclaw/{*path}', openclawHandler);  // catch subpath refreshes like 
         }
       } catch (e) { console.error('[SMS] error:', e.message); }
     });
+  });
   console.log('[SMS] /sms webhook registered');
 }
 // ─────────────────────────────────────────────────────────────────────

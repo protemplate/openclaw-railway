@@ -2405,6 +2405,70 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         justify-content: center;
       }
     }
+
+    /* Agent Monitor */
+    .agents-monitor {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .agents-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .agent-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      transition: all 0.2s;
+    }
+    .agent-item:hover {
+      border-color: var(--teal-bright);
+      background: var(--bg-hover);
+    }
+    .agent-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+    }
+    .agent-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-strong);
+      text-transform: capitalize;
+    }
+    .agent-status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .agent-status-indicator.running {
+      background: var(--ok);
+    }
+    .agent-status-indicator.idle {
+      background: var(--muted);
+      animation: none;
+    }
+    .agent-progress {
+      width: 100%;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .agent-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal) 0%, var(--teal-bright) 100%);
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
   </style>
 </head>
 <body>
@@ -2619,6 +2683,17 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
               </button>
             </div>
           </div>
+          <!-- Agent Monitor -->
+          <div class="card">
+            <h2>🤖 Sub-Agents</h2>
+            <div id="agents-monitor" class="agents-monitor">
+              <div class="agents-list" id="agents-list">
+                <div class="empty-state">
+                  <div class="empty-state-text">Loading agents...</div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Maintenance -->
           <div class="card">
@@ -2774,6 +2849,47 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         return 'password=' + encodeURIComponent(password);
       }
 
+
+      // ----- Agent Monitor -----
+      var agentsData = {
+        coordinador: { status: 'idle', progress: 0 },
+        housekeeping: { status: 'idle', progress: 0 },
+        gerencia: { status: 'idle', progress: 0 },
+        fb: { status: 'idle', progress: 0 },
+        mantenimiento: { status: 'idle', progress: 0 }
+      };
+
+      function loadAgents() {
+        var container = document.getElementById('agents-list');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        Object.entries(agentsData).forEach(function([agentId, data]) {
+          var agentEl = document.createElement('div');
+          agentEl.className = 'agent-item';
+          agentEl.innerHTML = `
+            <div class="agent-header">
+              <span class="agent-name">
+                <span class="agent-status-indicator ${data.status}"></span>
+                ${agentId}
+              </span>
+              <span style="font-size: 11px; color: var(--muted);">${data.progress}%</span>
+            </div>
+            <div class="agent-progress">
+              <div class="agent-progress-fill" style="width: ${data.progress}%"></div>
+            </div>
+          `;
+          container.appendChild(agentEl);
+        });
+      }
+
+      function updateAgentStatus(agentId, status, progress) {
+        if (agentsData[agentId]) {
+          agentsData[agentId].status = status;
+          agentsData[agentId].progress = progress || 0;
+          loadAgents();
+        }
+      }
       function formatUptime(seconds) {
         if (seconds == null) return '--';
         var d = Math.floor(seconds / 86400);
@@ -4238,6 +4354,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       window.setCategory = function(cat) {
         activeCat = cat;
         renderCategoryPills();
+        loadAgents();
         filterCommands();
       };
 
@@ -4420,6 +4537,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         applyTranslations();
         startPolling();
         renderCategoryPills();
+        loadAgents();
         filterCommands();
       });
     })();

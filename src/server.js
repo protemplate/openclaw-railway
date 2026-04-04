@@ -31,6 +31,7 @@ import { createTerminalServer, closeAllSessions } from './terminal.js';
 import { getSetupPageHTML } from './onboard-page.js';
 import { getUIPageHTML } from './ui-page.js';
 import { getLoginPageHTML } from './login-page.js';
+import { nabotoObservationsHandler, nabotoDbHealthHandler } from './naboto-observations.js';
 
 // Configuration
 const PORT = process.env.PORT || 8080;
@@ -355,7 +356,7 @@ async function installClawHubSkill(slug, skillsDir) {
 const app = express();
 
 // Parse JSON and URL-encoded bodies
-app.use(express.json());
+app.use(express.json({ limit: '256kb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Simple cookie parser
@@ -374,6 +375,10 @@ app.use((req, res, next) => {
 
 // Health check endpoints - no authentication required
 app.use('/health', healthRouter);
+app.get('/health/naboto-db', nabotoDbHealthHandler);
+
+// NaBoTo: append-only message ingest (Bearer NABOTO_INGEST_SECRET; not cookie auth)
+app.post('/api/naboto/observations', nabotoObservationsHandler);
 
 // Login page - no authentication required
 app.get('/login', (req, res) => {

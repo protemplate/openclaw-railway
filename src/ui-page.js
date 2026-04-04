@@ -2405,6 +2405,48 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
         justify-content: center;
       }
     }
+
+    /* Agent Monitor */
+    .agents-monitor { display: flex; flex-direction: column; gap: 8px; }
+    .agent-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      transition: border-color var(--duration-normal);
+    }
+    .agent-item:hover { border-color: var(--teal-bright); }
+    .agent-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .agent-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      margin-right: 6px;
+      background: var(--muted);
+    }
+    .agent-dot.running {
+      background: var(--ok);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .agent-pct { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+    .agent-bar {
+      width: 100%; height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .agent-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal) 0%, var(--teal-bright) 100%);
+      transition: width 0.4s ease-out;
+    }
   </style>
 </head>
 <body>
@@ -2618,6 +2660,12 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
                 Restart Gateway
               </button>
             </div>
+          </div>
+
+          <!-- Agent Monitor -->
+          <div class="card">
+            <h2>&#x1F916; Sub-Agents</h2>
+            <div class="agents-monitor" id="agents-monitor"></div>
           </div>
 
           <!-- Maintenance -->
@@ -4238,6 +4286,7 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       window.setCategory = function(cat) {
         activeCat = cat;
         renderCategoryPills();
+        renderAgents();
         filterCommands();
       };
 
@@ -4414,6 +4463,39 @@ export function getUIPageHTML({ isConfigured, gatewayInfo, password, stateDir, g
       });
 
       // ----- Initialize -----
+
+      // ----- Agent Monitor -----
+      var HOTEL_AGENTS = ['coordinador','housekeeping','gerencia','fb','mantenimiento'];
+      var agentProgress = {};
+      var agentStatus = {};
+      HOTEL_AGENTS.forEach(function(id) { agentProgress[id] = 0; agentStatus[id] = 'idle'; });
+
+      function renderAgents() {
+        var container = document.getElementById('agents-monitor');
+        if (!container) return;
+        var html = '';
+        HOTEL_AGENTS.forEach(function(id) {
+          var st = agentStatus[id] || 'idle';
+          var pct = agentProgress[id] || 0;
+          html += '<div class="agent-item">' +
+            '<div class="agent-row">' +
+              '<span><span class="agent-dot ' + st + '"></span>' + id + '</span>' +
+              '<span class="agent-pct">' + pct + '%</span>' +
+            '</div>' +
+            '<div class="agent-bar"><div class="agent-bar-fill" style="width:' + pct + '%"></div></div>' +
+          '</div>';
+        });
+        container.innerHTML = html;
+      }
+
+      window.updateAgent = function(id, status, progress) {
+        if (agentStatus[id] !== undefined) {
+          agentStatus[id] = status;
+          agentProgress[id] = progress || 0;
+          renderAgents();
+        }
+      };
+
       document.addEventListener('DOMContentLoaded', function() {
         initLanguage();
         updateLangSelectorUI();

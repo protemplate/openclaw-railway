@@ -92,10 +92,12 @@ export function createTerminalServer(httpServer, password) {
     const stateDir = process.env.OPENCLAW_STATE_DIR || '/data/.openclaw';
     const workspaceDir = process.env.OPENCLAW_WORKSPACE_DIR || '/data/workspace';
 
-    // Determine command based on WebSocket path
-    const isUITerminal = parseUrl(req.url, true).pathname === '/lite/ws';
-    const command = isUITerminal ? '/bin/bash' : 'openclaw';
-    const args = isUITerminal ? [] : ['onboard'];
+    // Determine command based on WebSocket path and query params
+    const wsUrl = parseUrl(req.url, true);
+    const isUITerminal = wsUrl.pathname === '/lite/ws';
+    const isShellMode = wsUrl.query.mode === 'shell';
+    const command = (isUITerminal || isShellMode) ? '/bin/bash' : 'openclaw';
+    const args = (isUITerminal || isShellMode) ? [] : ['onboard'];
 
     // Spawn process in a PTY
     const ptyProcess = pty.spawn(command, args, {

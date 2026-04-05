@@ -103,7 +103,7 @@ const AUTH_GROUPS = [
         secretFlag: '--token' },
       { label: 'Claude CLI (OAuth)', value: 'anthropic-cli',
         noSecret: true, terminalOnly: true,
-        hint: 'Claude CLI is pre-installed. Switch to Terminal Mode and run:',
+        hint: 'Claude CLI is pre-installed. Complete the interactive OAuth setup below:',
         hintCmd: 'openclaw onboard --auth-choice anthropic-cli',
         helpUrl: 'https://docs.openclaw.ai/concepts/oauth#anthropic-claude-cli' }
     ]
@@ -117,7 +117,7 @@ const AUTH_GROUPS = [
       { label: 'API Key', value: 'openai-api-key', flag: '--openai-api-key' },
       { label: 'ChatGPT / Codex (OAuth)', value: 'openai-codex',
         noSecret: true, terminalOnly: true,
-        hint: 'OpenAI Codex is pre-installed. Switch to Terminal Mode and run:',
+        hint: 'OpenAI Codex is pre-installed. Complete the interactive OAuth setup below:',
         hintCmd: 'openclaw onboard --auth-choice openai-codex',
         helpUrl: 'https://docs.openclaw.ai/concepts/oauth#openai-codex' }
     ]
@@ -534,59 +534,70 @@ app.get('/onboard/api/bwc-skills', authMiddleware, async (req, res) => {
 // Run setup (simple mode)
 app.post('/onboard/api/run', authMiddleware, async (req, res) => {
   try {
-    const { authChoice, authSecret, extraFieldValues, flow, channels: channelPayload, skills } = req.body;
+    const { authChoice, authSecret, extraFieldValues, skipAuth, flow, channels: channelPayload, skills } = req.body;
     const logs = [];
 
-    // Build onboard command args
-    const onboardArgs = ['--non-interactive', '--accept-risk', '--json'];
+    // If auth was handled by the inline OAuth terminal, skip the onboard auth step
+    if (!skipAuth) {
+      // Build onboard command args
+      const onboardArgs = ['--non-interactive', '--accept-risk', '--json'];
 
-    if (flow) {
-      onboardArgs.push('--flow', flow);
-    }
-
-    const opt = AUTH_OPTION_MAP[authChoice];
-    const flag = opt?.flag;
-    if (flag) {
-      if (Array.isArray(flag)) {
-        onboardArgs.push(...flag);
-        // For secretOptional providers (e.g. Plano), fall back to 'nokey' so the
-        // flag is always passed and onboard doesn't prompt interactively.
-        const secretVal = authSecret || (opt.secretOptional ? 'nokey' : null);
-        if (opt.secretFlag && secretVal) {
-          onboardArgs.push(opt.secretFlag, secretVal);
-        }
-      } else if (authSecret) {
-        onboardArgs.push(flag, authSecret);
+      if (flow) {
+        onboardArgs.push('--flow', flow);
       }
-    }
 
-    // Handle extra fields (e.g., Cloudflare account/gateway IDs)
-    if (opt?.extraFields && extraFieldValues) {
-      for (const field of opt.extraFields) {
-        if (field.noFlag) continue;
-        const val = extraFieldValues[field.id];
-        if (val && field.flag) {
-          onboardArgs.push(field.flag, val);
+      const opt = AUTH_OPTION_MAP[authChoice];
+      const flag = opt?.flag;
+      if (flag) {
+        if (Array.isArray(flag)) {
+          onboardArgs.push(...flag);
+          // For secretOptional providers (e.g. Plano), fall back to 'nokey' so the
+          // flag is always passed and onboard doesn't prompt interactively.
+          const secretVal = authSecret || (opt.secretOptional ? 'nokey' : null);
+          if (opt.secretFlag && secretVal) {
+            onboardArgs.push(opt.secretFlag, secretVal);
+          }
+        } else if (authSecret) {
+          onboardArgs.push(flag, authSecret);
         }
       }
-    }
 
-    // Run onboard
-    logs.push('> openclaw onboard ' + onboardArgs.map(a => a.startsWith('--') ? a : '***').join(' '));
-    const onboardResult = await runCmd('onboard', onboardArgs);
-    if (onboardResult.stdout) logs.push(onboardResult.stdout.trim());
-    if (onboardResult.stderr) logs.push(onboardResult.stderr.trim());
+      // Handle extra fields (e.g., Cloudflare account/gateway IDs)
+      if (opt?.extraFields && extraFieldValues) {
+        for (const field of opt.extraFields) {
+          if (field.noFlag) continue;
+          const val = extraFieldValues[field.id];
+          if (val && field.flag) {
+            onboardArgs.push(field.flag, val);
+          }
+        }
+      }
 
-    if (onboardResult.code !== 0) {
-      // onboard always tries to verify the gateway connection after writing config.
-      // Since no gateway is running yet (we start it below), the verification fails
-      // and onboard exits non-zero. Check if config was actually written — if so,
-      // treat the gateway verification failure as non-fatal and continue.
+      // Run onboard
+      logs.push('> openclaw onboard ' + onboardArgs.map(a => a.startsWith('--') ? a : '***').join(' '));
+      const onboardResult = await runCmd('onboard', onboardArgs);
+      if (onboardResult.stdout) logs.push(onboardResult.stdout.trim());
+      if (onboardResult.stderr) logs.push(onboardResult.stderr.trim());
+
+      if (onboardResult.code !== 0) {
+        // onboard always tries to verify the gateway connection after writing config.
+        // Since no gateway is running yet (we start it below), the verification fails
+        // and onboard exits non-zero. Check if config was actually written — if so,
+        // treat the gateway verification failure as non-fatal and continue.
+        const configFile = join(OPENCLAW_STATE_DIR, 'openclaw.json');
+        if (!existsSync(configFile)) {
+          return res.json({ success: false, logs });
+        }
+        logs.push('(Gateway verification skipped — gateway will be started next)');
+      }
+    } else {
+      // Auth was handled by the inline OAuth terminal — verify config exists
+      logs.push('Auth configured via inline terminal (OAuth).');
       const configFile = join(OPENCLAW_STATE_DIR, 'openclaw.json');
       if (!existsSync(configFile)) {
+        logs.push('Error: OAuth setup did not complete — openclaw.json not found. Please complete the OAuth flow in the terminal above.');
         return res.json({ success: false, logs });
       }
-      logs.push('(Gateway verification skipped — gateway will be started next)');
     }
 
     // Patch custom provider fields that the CLI doesn't handle (provider name, context window)

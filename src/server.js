@@ -100,7 +100,10 @@ const AUTH_GROUPS = [
       { label: 'API Key', value: 'anthropic-api-key', flag: '--anthropic-api-key' },
       { label: 'Setup Token', value: 'setup-token',
         flag: ['--auth-choice', 'token', '--token-provider', 'anthropic'],
-        secretFlag: '--token' }
+        secretFlag: '--token' },
+      { label: 'Claude CLI (OAuth)', value: 'anthropic-cli',
+        flag: ['--auth-choice', 'anthropic-cli'],
+        noSecret: true }
     ]
   },
   {
@@ -110,7 +113,7 @@ const AUTH_GROUPS = [
     emoji: '\u{1F916}',
     options: [
       { label: 'API Key', value: 'openai-api-key', flag: '--openai-api-key' },
-      { label: 'Codex Subscription', value: 'openai-codex',
+      { label: 'ChatGPT / Codex (OAuth)', value: 'openai-codex',
         flag: ['--auth-choice', 'openai-codex'],
         noSecret: true }
     ]

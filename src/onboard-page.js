@@ -1098,7 +1098,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
 
         <div class="before-section" style="text-align: left;">
           <h3 data-i18n="step1.beforeTitle">Before you begin</h3>
-          <p style="color: var(--muted); font-size: 13px; margin: 0 0 10px 0;" data-i18n="step1.beforeDesc">You'll need an API key from at least one provider:</p>
+          <p style="color: var(--muted); font-size: 13px; margin: 0 0 10px 0;" data-i18n="step1.beforeDesc">You'll need an API key or OAuth login from at least one provider:</p>
           <div class="key-links">
             <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="key-link">Anthropic</a>
             <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" class="key-link">OpenAI</a>
@@ -1281,7 +1281,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'step1.list3': 'Pick skills',
           'step1.list4': 'Deploy and start chatting',
           'step1.beforeTitle': 'Before you begin',
-          'step1.beforeDesc': "You'll need an API key from at least one provider:",
+          'step1.beforeDesc': "You'll need an API key or OAuth login from at least one provider:",
           'step1.moreProviders': '+ 8 more providers',
           'step1.getStarted': 'Get Started \u2192',
           'step2.selectProvider': 'Select your AI provider',
@@ -1360,7 +1360,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'step1.list3': '\u9078\u64C7\u6280\u80FD',
           'step1.list4': '\u90E8\u7F72\u4E26\u958B\u59CB\u804A\u5929',
           'step1.beforeTitle': '\u958B\u59CB\u4E4B\u524D',
-          'step1.beforeDesc': '\u60A8\u9700\u8981\u81F3\u5C11\u4E00\u500B\u63D0\u4F9B\u8005\u7684 API \u91D1\u9470\uFF1A',
+          'step1.beforeDesc': '\u60A8\u9700\u8981\u81F3\u5C11\u4E00\u500B\u63D0\u4F9B\u8005\u7684 API \u91D1\u9470\u6216 OAuth \u767B\u5165\uFF1A',
           'step1.moreProviders': '+ \u53E6\u5916 8 \u500B\u63D0\u4F9B\u8005',
           'step1.getStarted': '\u958B\u59CB\u8A2D\u5B9A \u2192',
           'step2.selectProvider': '\u9078\u64C7\u60A8\u7684 AI \u63D0\u4F9B\u8005',
@@ -1439,7 +1439,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'step1.list3': '\u9009\u62E9\u6280\u80FD',
           'step1.list4': '\u90E8\u7F72\u5E76\u5F00\u59CB\u804A\u5929',
           'step1.beforeTitle': '\u5F00\u59CB\u4E4B\u524D',
-          'step1.beforeDesc': '\u60A8\u9700\u8981\u81F3\u5C11\u4E00\u4E2A\u63D0\u4F9B\u8005\u7684 API \u5BC6\u94A5\uFF1A',
+          'step1.beforeDesc': '\u60A8\u9700\u8981\u81F3\u5C11\u4E00\u4E2A\u63D0\u4F9B\u8005\u7684 API \u5BC6\u94A5\u6216 OAuth \u767B\u5F55\uFF1A',
           'step1.moreProviders': '+ \u53E6\u5916 8 \u4E2A\u63D0\u4F9B\u8005',
           'step1.getStarted': '\u5F00\u59CB\u8BBE\u7F6E \u2192',
           'step2.selectProvider': '\u9009\u62E9\u60A8\u7684 AI \u63D0\u4F9B\u8005',
@@ -1518,7 +1518,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'step1.list3': '\u30B9\u30AD\u30EB\u3092\u9078\u629E',
           'step1.list4': '\u30C7\u30D7\u30ED\u30A4\u3057\u3066\u30C1\u30E3\u30C3\u30C8\u958B\u59CB',
           'step1.beforeTitle': '\u59CB\u3081\u308B\u524D\u306B',
-          'step1.beforeDesc': '\u5C11\u306A\u304F\u3068\u3082 1 \u3064\u306E\u30D7\u30ED\u30D0\u30A4\u30C0\u306E API \u30AD\u30FC\u304C\u5FC5\u8981\u3067\u3059\uFF1A',
+          'step1.beforeDesc': '\u5C11\u306A\u304F\u3068\u3082 1 \u3064\u306E\u30D7\u30ED\u30D0\u30A4\u30C0\u306E API \u30AD\u30FC\u307E\u305F\u306F OAuth \u30ED\u30B0\u30A4\u30F3\u304C\u5FC5\u8981\u3067\u3059\uFF1A',
           'step1.moreProviders': '+ \u4ED6 8 \u30D7\u30ED\u30D0\u30A4\u30C0',
           'step1.getStarted': '\u59CB\u3081\u308B \u2192',
           'step2.selectProvider': 'AI \u30D7\u30ED\u30D0\u30A4\u30C0\u3092\u9078\u629E',
@@ -1597,7 +1597,7 @@ export function getSetupPageHTML({ isConfigured, gatewayInfo, password, stateDir
           'step1.list3': '\uC2A4\uD0AC \uC120\uD0DD',
           'step1.list4': '\uBC30\uD3EC\uD558\uACE0 \uCC44\uD305 \uC2DC\uC791',
           'step1.beforeTitle': '\uC2DC\uC791\uD558\uAE30 \uC804\uC5D0',
-          'step1.beforeDesc': '\uCD5C\uC18C \uD558\uB098\uC758 \uC81C\uACF5\uC790 API \uD0A4\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4:',
+          'step1.beforeDesc': '\uCD5C\uC18C \uD558\uB098\uC758 \uC81C\uACF5\uC790 API \uD0A4 \uB610\uB294 OAuth \uB85C\uADF8\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4:',
           'step1.moreProviders': '+ 8\uAC1C \uCD94\uAC00 \uC81C\uACF5\uC790',
           'step1.getStarted': '\uC2DC\uC791\uD558\uAE30 \u2192',
           'step2.selectProvider': 'AI \uC81C\uACF5\uC790\uB97C \uC120\uD0DD\uD558\uC138\uC694',

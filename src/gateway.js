@@ -214,6 +214,9 @@ export async function startGateway() {
     console.log('Configuration created at', configFile);
   }
 
+  // Before the config is read below: `plugins install` writes to openclaw.json.
+  await syncOfficialPlugins(stateDir);
+
   // Get or generate gateway token
   const token = getGatewayToken();
 
@@ -617,6 +620,54 @@ export async function startGateway() {
     if (isGatewayRunning()) {
       console.log('Gateway process is alive, continuing to poll in background...');
       pollUntilReady(port, configFile, token, stateDir);
+    }
+  }
+}
+
+/**
+ * Version of the OpenClaw core the CLI wrapper runs: the volume install left by an
+ * in-app upgrade when present, else the Docker-baked one.
+ */
+function getCoreVersion() {
+  const prefix = process.env.NPM_CONFIG_PREFIX || '/data/.npm-global';
+  for (const dir of [join(prefix, 'lib/node_modules/openclaw'), '/usr/local/lib/node_modules/openclaw']) {
+    try {
+      return JSON.parse(readFileSync(join(dir, 'package.json'), 'utf-8')).version;
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
+/**
+ * Keep official @openclaw/* plugins (a separate npm tree under the state dir) on the
+ * core's version. Onboarding installs them at @latest (e.g. @openclaw/codex 2026.10.8
+ * on a 2026.5.27 core), which fails to load ("Cannot find module .../plugin-sdk/...")
+ * and breaks OpenAI chats; a core upgrade leaves them stale the same way.
+ */
+async function syncOfficialPlugins(stateDir) {
+  const core = getCoreVersion();
+  const root = join(stateDir, 'npm', 'node_modules', '@openclaw');
+  if (!core || !existsSync(root)) return;
+
+  for (const name of readdirSync(root)) {
+    const dir = join(root, name);
+    // Only plugins carry a manifest; @openclaw/fs-safe etc. are versioned libraries.
+    if (!existsSync(join(dir, 'openclaw.plugin.json'))) continue;
+    let version;
+    try {
+      version = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf-8')).version;
+    } catch { continue; }
+    if (version === core) continue;
+
+    const spec = `@openclaw/${name}@${core}`;
+    console.log(`OpenClaw plugin @openclaw/${name} is ${version} but core is ${core}; reinstalling ${spec}`);
+    // Throwaway npm cache: older plugin versions pull ~800 MB of dependencies, which
+    // would otherwise sit in Trial/Free plans' 1 GB of ephemeral storage.
+    const npmCache = join('/tmp', `openclaw-plugin-npm-cache-${process.pid}`);
+    const result = await runExec('timeout', ['300', 'openclaw', 'plugins', 'install', '--force', spec], { npm_config_cache: npmCache });
+    rmSync(npmCache, { recursive: true, force: true });
+    if (result.code !== 0) {
+      console.warn(`Failed to resync ${spec} (non-fatal): ${(result.stderr || result.stdout).trim().slice(-500)}`);
     }
   }
 }
